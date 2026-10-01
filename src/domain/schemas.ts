@@ -72,18 +72,55 @@ export const useInputSchema = z.object({
   note: z.string().max(200).nullable(),
 })
 
-export const freezeInputSchema = z
+const freezeRange = z.object({ startDate: date, endDate: date })
+const endNotBeforeStart = {
+  path: ['endDate'],
+  message: 'End date cannot be before the start date',
+}
+
+/** Just the dates of a freeze, for edits. */
+export const freezeRangeSchema = freezeRange.refine(
+  (f) => f.endDate >= f.startDate,
+  endNotBeforeStart,
+)
+
+export const freezeInputSchema = freezeRange
+  .extend({ passId: z.string().min(1) })
+  .refine((f) => f.endDate >= f.startDate, endNotBeforeStart)
+
+export const userGymInputSchema = z.object({
+  name: z.string().trim().min(1, 'Enter a name').max(100),
+  website: z.string().trim().max(200).nullable(),
+})
+
+/** A pass template the user saved themselves. Unlike built-in ones, it may carry price and validity (Q3). */
+export const userTemplateInputSchema = z
   .object({
-    passId: z.string().min(1),
-    startDate: date,
-    endDate: date,
+    gymRef: gymRefSchema,
+    passType: z.enum(['multipass', 'class_pack', 'membership', 'single_entry']),
+    name: z.string().trim().min(1, 'Enter a name').max(100),
+    totalEntries: z.number().int().min(1).max(1000).nullable(),
+    priceCents: z.number().int().min(0).nullable(),
+    validityMonths: z.number().int().min(1).max(120).nullable(),
+    billingPeriod: z.enum(['monthly', 'yearly', 'custom']).nullable(),
   })
-  .refine((f) => f.endDate >= f.startDate, {
-    path: ['endDate'],
-    message: 'End date cannot be before the start date',
-  })
+  .refine(
+    (t) =>
+      t.passType === 'multipass' || t.passType === 'class_pack' ? t.totalEntries !== null : true,
+    { path: ['totalEntries'], message: 'Enter the number of entries' },
+  )
+
+export const settingsSchema = z.object({
+  expiryReminderDays: z.array(z.number().int().min(1).max(365)).max(5),
+  lowEntriesThreshold: z.number().int().min(0).max(100),
+  expiryRemindersEnabled: z.boolean(),
+  lowRemindersEnabled: z.boolean(),
+  dismissedReminders: z.record(z.string(), z.number().int()),
+})
 
 export type GymRef = z.infer<typeof gymRefSchema>
 export type PassInput = z.infer<typeof passInputSchema>
 export type UseInput = z.infer<typeof useInputSchema>
 export type FreezeInput = z.infer<typeof freezeInputSchema>
+export type UserGymInput = z.infer<typeof userGymInputSchema>
+export type UserTemplateInput = z.infer<typeof userTemplateInputSchema>
