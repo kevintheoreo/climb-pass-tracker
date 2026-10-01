@@ -4,7 +4,26 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project status
 
-Climb Pass Tracker is a phone-first PWA for climbers to track gym passes (shareable multipasses, memberships, single entries, class packs), starting with Singapore gyms. **No code exists yet** — the repo currently holds only `docs/PRD.md`, which is the source of truth for scope and behaviour. Read it before implementing anything, and cite its decision IDs (D1–D22) and requirement IDs (FR-1…FR-49) when relevant. Update this file with real build/lint/test commands once the project is scaffolded.
+Climb Pass Tracker is a phone-first PWA for climbers to track gym passes (shareable multipasses, memberships, single entries, class packs), starting with Singapore gyms. `docs/PRD.md` is the source of truth for scope and behaviour; `docs/IMPLEMENTATION_PLAN.md` is the step-by-step build plan (milestones M1–M3). Read both before implementing anything, and cite decision IDs (D1–D22) and requirement IDs (FR-1…FR-49) when relevant.
+
+Progress: step 1.1 (project setup) is done; the app is currently a placeholder screen. Next is step 1.2 (domain logic in `src/domain/`).
+
+## Commands
+
+```
+npm run dev            # Vite dev server
+npm run build          # typecheck + production build (also generates the service worker)
+npm run lint           # ESLint
+npm run format         # Prettier write (docs/ and CLAUDE.md are excluded)
+npm run typecheck      # tsc -b
+npm test               # Vitest, run once
+npx vitest run src/path/file.test.ts      # a single test file
+npx vitest run -t "test name"             # tests matching a name
+npm run e2e            # Playwright; builds and serves the app on :4173 first
+node scripts/generate-icons.mjs           # regenerate placeholder PWA icons from public/*.svg
+```
+
+In the cloud environment, run Playwright with `PW_CHROMIUM_PATH=/opt/pw-browsers/chromium` (the browser is pre-installed; do not run `playwright install`). CI (`.github/workflows/ci.yml`) runs lint, format check, typecheck, tests and build on every PR.
 
 ## Planned stack (PRD §10)
 

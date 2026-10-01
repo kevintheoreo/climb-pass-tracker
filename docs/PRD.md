@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Draft v1.2 — for review |
+| **Status** | Draft v1.3 — for review |
 | **Date** | 2026-10-01 |
 | **Product** | Climb Pass Tracker |
 | **Platform** | Progressive Web App (PWA), phone-first |
@@ -101,13 +101,13 @@ Priority: **P0** = must have for launch, **P1** = should have for launch, **P2**
 - **FR-9 (P0)** One tap logs **one** entry dated today, at the current time.
 - **FR-10 (P0)** If the gym has more than one active counted pass, the pass expiring soonest is pre-selected, with a one-tap way to switch (D6).
 - **FR-11 (P0)** A use cannot be logged on a pass with 0 entries left.
-- **FR-12 (P0)** A use cannot be logged for today on an expired pass. Instead, show "This pass expired on <date>. Edit expiry?" A backdated use on or before the expiry date is allowed.
+- **FR-12 (P0)** A pass is usable through the whole of its expiry date. A use cannot be logged for today on a pass whose expiry date has passed. A membership past its end date is blocked the same way ("Edit end date?"), but visits are allowed during a freeze, with a note that it is frozen. Instead, show "This pass expired on <date>. Edit expiry?" A backdated use on or before the expiry date is allowed.
 - **FR-13 (P0)** In the pass detail screen, the user can add a use for a past date, change a use's date, or delete a use. The remaining count is recalculated.
 - **FR-14 (P0)** Each use record: date, time, and an optional short note (e.g. "with friends"). No names are stored.
 
 ### 6.3 Adding and editing passes
 - **FR-15 (P0)** Add-pass flow: **choose gym** (search the built-in list or user-added gyms) → **choose pass type / template** → **check the filled-in details** → save.
-- **FR-16 (P0)** Choosing a template fills in the pass name and entry count only. The user enters the price and expiry date. All fields stay editable.
+- **FR-16 (P0)** Choosing a **built-in** template fills in the pass name and entry count only. The user enters the price and expiry date. A template the user created themselves also fills in the price and validity they saved. All fields stay editable.
 - **FR-17 (P0)** Fields for each pass type:
   - Multipass / class pack: name, number of entries, price paid, purchase date, expiry date (entered by the user, with +6 / +12 month quick buttons), entries already used (for passes bought before installing the app), notes.
   - Membership: name, price paid, billing period (monthly / yearly / custom), start date, end date, notes.

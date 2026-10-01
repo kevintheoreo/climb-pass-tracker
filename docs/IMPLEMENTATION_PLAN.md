@@ -150,12 +150,12 @@ During M1 I'll put in a few placeholder gyms so the app can be tested; you repla
 
 ---
 
-## 6. Questions before starting
+## 6. Decisions made before starting
 
-These came up while planning. Each has a suggested answer.
-
-1. **Last valid day:** Is a pass usable *on* its expiry date (expires at the end of that day)? *Suggested: yes.*
-2. **Membership edge cases:** Should "Log visit" be blocked after a membership's end date, and during a freeze? *Suggested: block after the end date (same as expired multipasses, with "Edit end date?"); allow during a freeze, but show a note that it's frozen.*
-3. **User-added templates:** PRD §7 lets a user's own templates store their own price and validity, but FR-16 says templates only fill in name and entry count. Should a user's *own* templates also fill in the price and expiry that they saved? *Suggested: yes for user templates (it's their own data, not a suggestion from the app); built-in templates stay name + entries only.*
-4. **Placeholder icon:** OK to use a simple generated icon until you have a logo? *Suggested: yes.*
-5. **CI:** OK to add a GitHub Actions workflow for lint, typecheck and tests? *Suggested: yes.*
+| # | Question | Decision |
+|---|---|---|
+| Q1 | Last valid day | A pass is usable **on** its expiry date and expires at the end of that day. |
+| Q2 | Membership edge cases | "Log visit" is blocked after the end date, with an "Edit end date?" link. It is allowed during a freeze, with a "frozen" note. |
+| Q3 | User-added templates | A user's **own** templates also fill in the price and expiry they saved. Built-in templates fill in name and entries only. |
+| Q4 | Icon | A simple generated placeholder icon until there is a logo. |
+| Q5 | CI | A GitHub Actions workflow runs lint, typecheck and tests on every PR. |
