@@ -1,0 +1,42 @@
+import { addMonths, format, parseISO } from 'date-fns'
+
+/** A calendar date as `YYYY-MM-DD`, in the device's local time zone. */
+export type LocalDate = string
+
+const DAY_MS = 86_400_000
+
+/** Whole days since the epoch for a `YYYY-MM-DD` date. Uses UTC so daylight saving can't skew it. */
+function dayNumber(date: LocalDate): number {
+  const year = Number(date.slice(0, 4))
+  const month = Number(date.slice(5, 7))
+  const day = Number(date.slice(8, 10))
+  return Date.UTC(year, month - 1, day) / DAY_MS
+}
+
+export function toLocalDate(date: Date): LocalDate {
+  return format(date, 'yyyy-MM-dd')
+}
+
+/** Today's date. `now` is injectable so tests (and callers) control the clock. */
+export function todayLocal(now: Date = new Date()): LocalDate {
+  return toLocalDate(now)
+}
+
+/** The local calendar date on which an ISO timestamp (e.g. a `Use.usedAt`) falls. */
+export function localDateOfTimestamp(timestamp: string): LocalDate {
+  return toLocalDate(new Date(timestamp))
+}
+
+/** Days from `from` to `to`. Positive when `to` is later, 0 when equal, negative when earlier. */
+export function daysBetween(from: LocalDate, to: LocalDate): number {
+  return dayNumber(to) - dayNumber(from)
+}
+
+export function addDays(date: LocalDate, days: number): LocalDate {
+  return new Date((dayNumber(date) + days) * DAY_MS).toISOString().slice(0, 10)
+}
+
+/** Adds calendar months, clamping to the end of a shorter month (31 Aug + 6 months = 28 Feb). */
+export function addMonthsToDate(date: LocalDate, months: number): LocalDate {
+  return toLocalDate(addMonths(parseISO(date), months))
+}

@@ -6,7 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Climb Pass Tracker is a phone-first PWA for climbers to track gym passes (shareable multipasses, memberships, single entries, class packs), starting with Singapore gyms. `docs/PRD.md` is the source of truth for scope and behaviour; `docs/IMPLEMENTATION_PLAN.md` is the step-by-step build plan (milestones M1–M3). Read both before implementing anything, and cite decision IDs (D1–D22) and requirement IDs (FR-1…FR-49) when relevant.
 
-Progress: step 1.1 (project setup) is done; the app is currently a placeholder screen. Next is step 1.2 (domain logic in `src/domain/`).
+Progress: steps 1.1 (setup) and 1.2 (domain logic) are done; the app is still a placeholder screen. Next is step 1.3 (Dexie local database). Work happens on a feature branch per step, merged into `main` through a PR (CI runs on PRs only).
+
+Domain logic lives in `src/domain/` and has no React or database imports. Pass dates are `YYYY-MM-DD` strings and "today" is always passed in, never read from the clock. Use `getPassStatus` for pass state, `canLogUse` before recording a use, `orderUsablePasses` to pre-select a pass, and `getReminders` for banners. `src/domain/schemas.ts` (zod) is the source for the Pass/Use/Freeze types. CSV export (`csv.ts` in the plan) is deferred to step 1.10.
 
 ## Commands
 
