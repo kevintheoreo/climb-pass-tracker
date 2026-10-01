@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Draft v1.1 — for review |
+| **Status** | Draft v1.2 — for review |
 | **Date** | 2026-10-01 |
 | **Product** | Climb Pass Tracker |
 | **Platform** | Progressive Web App (PWA), phone-first |
@@ -69,6 +69,8 @@ Friends who use the owner's passes are **not** users of the app. The owner recor
 | D18 | Currency | **SGD only** in v1. There is no currency setting. |
 | D19 | Analytics | None in v1, to keep the free database tier small. |
 | D20 | Monetization | Core tracking and sync stay free. Ways to make money are listed as future ideas only. |
+| D21 | Hosting | **Netlify** free plan, which allows commercial use. Launch on the free `.netlify.app` address. |
+| D22 | Gym data upkeep | The product owner checks the built-in gym names and pass options. How often is still to be decided. |
 
 ## 5. Pass types
 
@@ -232,19 +234,20 @@ Settings
 | Local storage | IndexedDB via Dexie | Reliable on-device storage with offline queries. |
 | Backend | Supabase (Postgres, Auth, Row-Level Security) | Free tier, built-in Google sign-in, a database to hold the built-in gym list. |
 | Sync | Local-first: write to IndexedDB, then push and pull changed rows by `updated_at` | Offline-first, simple last-write-wins. |
-| Hosting | Vercel (see 10.1) | HTTPS, CDN, preview deploys, deploys automatically from GitHub. |
+| Hosting | Netlify, free plan (see 10.1) | HTTPS, CDN, preview deploys, deploys automatically from GitHub. |
 | Testing | Vitest (unit), Playwright (end-to-end) | Covers the counting, expiry and sync logic and the core flows. |
 
-### 10.1 Hosting on Vercel
+### 10.1 Hosting on Netlify
 
-Vercel works well for this stack. The app is a static Vite build (no server code), and Supabase runs separately, so Vercel only serves files.
+Netlify's free plan allows commercial use, so the app will not need to change host when it starts making money (D21). The app is a static Vite build (no server code), and Supabase runs separately, so Netlify only serves files.
 
-- **Setup:** import the GitHub repo into Vercel. It detects Vite automatically (build `npm run build`, output `dist`). Supabase keys are set as environment variables (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`). The anon key is safe to expose because row-level security protects the data.
-- **Routing:** add a `vercel.json` rewrite that sends every path to `index.html`, so deep links work in a single-page app.
-- **Service worker:** serve `sw.js` with `Cache-Control: no-cache` so users get app updates promptly.
-- **Google sign-in:** add the Vercel URL (and any custom domain) to the allowed redirect URLs in Supabase and Google Cloud.
-- **Plan limit to know about:** Vercel's free **Hobby plan is for non-commercial use only**. It is fine while the app is free. When the app starts making money, either upgrade to Vercel Pro (about US$20/month) or move to **Cloudflare Pages** or **Netlify**, whose free plans allow commercial use. Moving is low-effort because the app is just static files.
-- **Domain:** start on the free `climb-pass-tracker.vercel.app`-style subdomain (if available) and add a custom domain later.
+- **Setup:** connect the GitHub repo in Netlify. Build command `npm run build`, publish directory `dist`. Supabase keys are set as environment variables (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`). The anon key is safe to expose because row-level security protects the data.
+- **Routing:** add a `netlify.toml` redirect that sends every path to `index.html` with status 200, so deep links work in a single-page app.
+- **Service worker:** serve `sw.js` with `Cache-Control: no-cache` (set in `netlify.toml`) so users get app updates promptly.
+- **Google sign-in:** add the Netlify URL (and any future custom domain) to the allowed redirect URLs in Supabase and Google Cloud.
+- **Preview deploys:** each pull request gets its own preview URL for testing before merging.
+- **Usage limits:** the free plan has monthly limits on bandwidth and builds. A small static app should stay well within them, but check the current limits before launch.
+- **Address:** launch on the free `<site-name>.netlify.app` address (e.g. `climb-pass-tracker.netlify.app`, if available). A custom domain can be added later.
 
 ## 11. Seed gym data
 
@@ -283,5 +286,4 @@ There are no analytics in v1, so success is judged by:
 
 ## 15. Open questions
 
-1. **Custom domain:** whether to buy one for launch, or stay on the free Vercel subdomain for now.
-2. **Gym data upkeep:** who checks the built-in gym names and pass options after launch, and how often (e.g. every quarter)?
+1. **Gym data review schedule:** how often the product owner checks the built-in gym names and pass options after launch (D22). To be planned later; it does not block development.
