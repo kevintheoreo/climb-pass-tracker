@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Draft v1.0 — for review |
+| **Status** | Draft v1.1 — for review |
 | **Date** | 2026-10-01 |
 | **Product** | Climb Pass Tracker |
 | **Platform** | Progressive Web App (PWA), phone-first |
@@ -27,7 +27,8 @@ Climbers in Singapore usually buy **shareable multipasses** (for example, 10 ent
 
 ### Non-goals (v1)
 - Tracking *who* used each entry (friends' names are deliberately not recorded).
-- Currency conversion (the currency setting only changes how amounts are displayed).
+- Currencies other than SGD.
+- Suggested prices or validity periods for gyms (users enter their own).
 - Shared or collaborative passes between multiple accounts.
 - Booking, payments, or any integration with gym systems.
 - Native iOS or Android store apps.
@@ -54,18 +55,18 @@ Friends who use the owner's passes are **not** users of the app. The owner recor
 | D4 | Who used it | **Not tracked.** No names. |
 | D5 | Editing uses | Uses can be edited, deleted, and backdated. The remaining count updates automatically. |
 | D6 | Several active passes at one gym | The pass expiring soonest is **pre-selected**, and the user can switch with one tap. |
-| D7 | Validity start | Counts from the **purchase date**. Expiry is filled in from the gym's usual validity and can be edited. |
+| D7 | Validity | Counts from the **purchase date**. The user enters the expiry date; the app does not suggest one. Quick buttons (+6 months, +12 months from purchase) are provided for convenience. |
 | D8 | After expiry | Shown as "Expired – X unused" and kept in history. The expiry date stays editable, to record extensions. |
 | D9 | Reminders | Expiring soon **and** low entries. In-app banners in v1, push notifications later. |
 | D10 | Gym granularity | Tracked **per brand**. If an outlet has different pricing, it is listed as a separate gym name. |
-| D11 | Built-in gym data | Stored in the backend database so it can be updated without releasing a new app version. Prices are filled in for the user and can be edited. |
+| D11 | Built-in gym data | Gym names and pass options (type, name, number of entries) only. **No prices or validity periods are suggested in v1.** Stored in the backend database so it can be updated without releasing a new app version. |
 | D12 | User-added gyms | Visible only to the user who added them. Suggesting them for the built-in list is a future enhancement. |
 | D13 | First sign-in | Data already on the device is **merged** into the account. |
 | D14 | Sign-out | Data is **cleared** from the device, since it is safe in the account. |
 | D15 | Privacy | Data export (CSV) and account deletion are included. |
 | D16 | Pass types | Multipass, Membership, Single entry, Class / course pack. |
 | D17 | Language | English only. |
-| D18 | Currency | App-wide setting, **SGD by default**, display only. No conversion. |
+| D18 | Currency | **SGD only** in v1. There is no currency setting. |
 | D19 | Analytics | None in v1, to keep the free database tier small. |
 | D20 | Monetization | Core tracking and sync stay free. Ways to make money are listed as future ideas only. |
 
@@ -104,9 +105,9 @@ Priority: **P0** = must have for launch, **P1** = should have for launch, **P2**
 
 ### 6.3 Adding and editing passes
 - **FR-15 (P0)** Add-pass flow: **choose gym** (search the built-in list or user-added gyms) → **choose pass type / template** → **check the filled-in details** → save.
-- **FR-16 (P0)** Choosing a template fills in: pass name, entry count, price, and validity. All fields stay editable.
+- **FR-16 (P0)** Choosing a template fills in the pass name and entry count only. The user enters the price and expiry date. All fields stay editable.
 - **FR-17 (P0)** Fields for each pass type:
-  - Multipass / class pack: name, number of entries, price paid, purchase date, expiry date (auto = purchase date + validity), entries already used (for passes bought before installing the app), notes.
+  - Multipass / class pack: name, number of entries, price paid, purchase date, expiry date (entered by the user, with +6 / +12 month quick buttons), entries already used (for passes bought before installing the app), notes.
   - Membership: name, price paid, billing period (monthly / yearly / custom), start date, end date, notes.
   - Single entry: date, price paid, notes.
 - **FR-18 (P0)** Edit any field later, including the expiry date (D8).
@@ -117,7 +118,7 @@ Priority: **P0** = must have for launch, **P1** = should have for launch, **P2**
 
 ### 6.4 Gyms
 - **FR-23 (P0)** The built-in gym list loads from the backend and is **cached on the device** so it works offline. It refreshes when the device is online.
-- **FR-24 (P0)** Each built-in gym has: name, optional website, and one or more **pass templates** (type, name, entries, price in SGD, validity).
+- **FR-24 (P0)** Each built-in gym has: name, optional website, and one or more **pass templates** (type, name, entries). No price or validity.
 - **FR-25 (P0)** Users can add their own gym (name required, website optional) and their own pass templates. These are visible only to that user (D12).
 - **FR-26 (P1)** Users can hide built-in gyms they never go to, so the gym picker stays short.
 - **FR-27 (P0)** A gym list screen shows each gym with the user's active pass count.
@@ -144,7 +145,7 @@ Priority: **P0** = must have for launch, **P1** = should have for launch, **P2**
 - **FR-42 (P0)** Users who are not signed in see a gentle note that their data lives only on this device, plus a reminder to export it or sign in.
 
 ### 6.8 Settings and privacy
-- **FR-43 (P0)** Currency picker: common currencies with SGD as the default. It only changes the symbol and format. No values are converted (D18).
+- **FR-43 (P0)** All amounts are entered and shown in SGD (S$). There is no currency setting (D18).
 - **FR-44 (P0)** Reminder thresholds (see FR-33).
 - **FR-45 (P0)** **Export data** as CSV (passes and uses). Available with or without an account.
 - **FR-46 (P0)** **Delete account:** permanently deletes all of the user's data from the server and signs them out, with confirmation.
@@ -154,14 +155,14 @@ Priority: **P0** = must have for launch, **P1** = should have for launch, **P2**
 
 ## 7. Data model (logical)
 
-All user-owned records use client-generated UUIDs plus `created_at`, `updated_at`, and `deleted_at` (deletions are flagged rather than erased, so they can sync). Amounts are stored as plain numbers. The currency is a display setting only.
+All user-owned records use client-generated UUIDs plus `created_at`, `updated_at`, and `deleted_at` (deletions are flagged rather than erased, so they can sync). Amounts are stored as numbers in SGD.
 
 ```
 Gym (built-in, read-only to users)
   id, name, website?, is_active, sort_order
 
 GymTemplate (built-in)
-  id, gym_id, pass_type, name, entries?, price?, validity_months?, billing_period?
+  id, gym_id, pass_type, name, entries?, billing_period?
 
 UserGym (user-added, private)
   id, user_id, name, website?
@@ -189,7 +190,7 @@ Use
   id, pass_id, used_at (date + time), note?
 
 Settings
-  user_id?, currency (default "SGD"), expiry_reminder_days [14, 3],
+  user_id?, expiry_reminder_days [14, 3],
   low_entries_threshold 2, reminders_enabled flags, dismissed_banners
 ```
 
@@ -231,20 +232,31 @@ Settings
 | Local storage | IndexedDB via Dexie | Reliable on-device storage with offline queries. |
 | Backend | Supabase (Postgres, Auth, Row-Level Security) | Free tier, built-in Google sign-in, a database to hold the built-in gym list. |
 | Sync | Local-first: write to IndexedDB, then push and pull changed rows by `updated_at` | Offline-first, simple last-write-wins. |
-| Hosting | Vercel or Netlify (free tier) | HTTPS, CDN, preview deploys. |
+| Hosting | Vercel (see 10.1) | HTTPS, CDN, preview deploys, deploys automatically from GitHub. |
 | Testing | Vitest (unit), Playwright (end-to-end) | Covers the counting, expiry and sync logic and the core flows. |
+
+### 10.1 Hosting on Vercel
+
+Vercel works well for this stack. The app is a static Vite build (no server code), and Supabase runs separately, so Vercel only serves files.
+
+- **Setup:** import the GitHub repo into Vercel. It detects Vite automatically (build `npm run build`, output `dist`). Supabase keys are set as environment variables (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`). The anon key is safe to expose because row-level security protects the data.
+- **Routing:** add a `vercel.json` rewrite that sends every path to `index.html`, so deep links work in a single-page app.
+- **Service worker:** serve `sw.js` with `Cache-Control: no-cache` so users get app updates promptly.
+- **Google sign-in:** add the Vercel URL (and any custom domain) to the allowed redirect URLs in Supabase and Google Cloud.
+- **Plan limit to know about:** Vercel's free **Hobby plan is for non-commercial use only**. It is fine while the app is free. When the app starts making money, either upgrade to Vercel Pro (about US$20/month) or move to **Cloudflare Pages** or **Netlify**, whose free plans allow commercial use. Moving is low-effort because the app is just static files.
+- **Domain:** start on the free `climb-pass-tracker.vercel.app`-style subdomain (if available) and add a custom domain later.
 
 ## 11. Seed gym data
 
 The built-in list will cover the main Singapore climbing gym brands. Example brands include Boulder Planet, Boulder+, Fit Bloc, Climb Central, BFF Climb, Lighthouse Climbing, Ark Bloc, Z-Vertigo, and others.
 
-**Before launch, every gym's name, pass options, prices, and validity periods must be checked against the gym's current website or front desk.** This is tracked as a launch task. Prices are only used to fill in the add-pass form and can always be edited (D11).
+**Before launch, every gym's name and pass options (type and number of entries) must be checked against the gym's current website or front desk.** This is tracked as a launch task. No prices or validity periods are included in v1 (D11).
 
 ## 12. Release plan
 
 | Milestone | Scope |
 |---|---|
-| **M1 — Core, on-device only** | Dashboard, all four pass types, logging use with Undo, editing / backdating, gyms (built-in list stored with the app for now + user-added), history, in-app reminders, currency setting, CSV export, PWA install and offline support. |
+| **M1 — Core, on-device only** | Dashboard, all four pass types, logging use with Undo, editing / backdating, gyms (built-in list stored with the app for now + user-added), history, in-app reminders, CSV export, PWA install and offline support. |
 | **M2 — Accounts and sync** | Supabase setup, Google sign-in, built-in gym list moved to the database, merge on first sign-in, background sync, sign-out clearing, account deletion. |
 | **M3 — Launch polish** | Verified seed data, membership freezes, renew / buy again, hide gyms, privacy policy and terms, accessibility pass, end-to-end tests, production deploy. |
 
@@ -260,7 +272,8 @@ There are no analytics in v1, so success is judged by:
 - **Push notifications** for expiry and low-entry reminders.
 - **Gym suggestions:** users submit gyms they added to be considered for the built-in list.
 - **Stats:** cost per climb, total spent, visits per gym or month, entries wasted to expiry.
-- **Currency conversion** when the app currency is changed.
+- **Multiple currencies**, including conversion of existing amounts when the currency changes.
+- **Suggested prices and validity periods** for built-in gym pass options.
 - **Sharing with friends:** a read-only link, or sharing a pass across accounts.
 - **Languages** other than English.
 - **App store release** by wrapping the PWA with Capacitor.
@@ -270,6 +283,5 @@ There are no analytics in v1, so success is judged by:
 
 ## 15. Open questions
 
-1. **Prices shown in a non-SGD currency:** built-in prices are in SGD. If a user's currency is not SGD, should the price field be left blank instead of filled in, so an SGD amount isn't shown with another currency's symbol? *Suggested: only fill in prices when the currency is SGD.*
-2. **Seed data owner:** who checks and maintains gym prices after launch, and how often (e.g. every quarter)?
-3. **Domain name** and hosting account for the production deployment.
+1. **Custom domain:** whether to buy one for launch, or stay on the free Vercel subdomain for now.
+2. **Gym data upkeep:** who checks the built-in gym names and pass options after launch, and how often (e.g. every quarter)?
