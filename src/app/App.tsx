@@ -1,8 +1,20 @@
+import { Navigate, Route, Routes } from 'react-router-dom'
+import GymsPage from '../features/gyms/GymsPage'
+import HistoryPage from '../features/history/HistoryPage'
+import PassesPage from '../features/passes/PassesPage'
+import SettingsPage from '../features/settings/SettingsPage'
+import { Layout } from './Layout'
+
 export default function App() {
   return (
-    <main className="mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center gap-2 p-6 text-center">
-      <h1 className="text-2xl font-semibold">Climb Pass Tracker</h1>
-      <p className="text-slate-600 dark:text-slate-400">Track your gym passes. Coming soon.</p>
-    </main>
+    <Routes>
+      <Route element={<Layout />}>
+        <Route index element={<PassesPage />} />
+        <Route path="history" element={<HistoryPage />} />
+        <Route path="gyms" element={<GymsPage />} />
+        <Route path="settings" element={<SettingsPage />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Route>
+    </Routes>
   )
 }
