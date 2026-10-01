@@ -12,6 +12,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
       manifest: {
+        id: '/',
+        lang: 'en',
         name: 'Climb Pass Tracker',
         short_name: 'Climb Passes',
         description: 'Track your climbing gym passes: entries left and expiry dates.',
