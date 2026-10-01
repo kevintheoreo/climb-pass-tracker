@@ -1,6 +1,13 @@
-import type { FreezeInput, PassInput, UseInput } from './schemas'
+import type { FreezeInput, PassInput, UseInput, UserGymInput, UserTemplateInput } from './schemas'
 
-export type { FreezeInput, GymRef, PassInput, UseInput } from './schemas'
+export type {
+  FreezeInput,
+  GymRef,
+  PassInput,
+  UseInput,
+  UserGymInput,
+  UserTemplateInput,
+} from './schemas'
 
 /** Fields on every user-owned record. Deletes are soft (`deletedAt` set) so they can sync later. */
 export interface RecordMeta {
@@ -14,6 +21,10 @@ export interface RecordMeta {
 export type Pass = PassInput & RecordMeta
 export type Use = UseInput & RecordMeta
 export type Freeze = FreezeInput & RecordMeta
+export type UserGym = UserGymInput & RecordMeta
+export type UserTemplate = UserTemplateInput & RecordMeta
+/** A built-in gym the user has hidden from the picker. `id` is the built-in gym's id. */
+export type HiddenGym = RecordMeta
 
 export type PassType = Pass['passType']
 export type CountedPass = Extract<Pass, { passType: 'multipass' | 'class_pack' }>
