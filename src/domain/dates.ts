@@ -45,3 +45,13 @@ export function addMonthsToDate(date: LocalDate, months: number): LocalDate {
 export function dateToNumber(date: LocalDate): number {
   return Number(date.replaceAll('-', ''))
 }
+
+/** `2026-12-31` → `31 Dec 2026` */
+export function formatDate(date: LocalDate): string {
+  return format(parseISO(date), 'd MMM yyyy')
+}
+
+/** `2026-11-15` → `15 Nov` */
+export function formatDayMonth(date: LocalDate): string {
+  return format(parseISO(date), 'd MMM')
+}

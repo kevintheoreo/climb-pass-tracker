@@ -6,7 +6,7 @@ export function Layout() {
   return (
     <div className="min-h-dvh pb-[env(safe-area-inset-bottom)]">
       <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/95 pt-[env(safe-area-inset-top)] backdrop-blur dark:border-slate-800 dark:bg-slate-900/95">
-        <div className="mx-auto flex max-w-md items-center justify-between px-4">
+        <div className="mx-auto flex max-w-3xl items-center justify-between px-4">
           <span className="py-2 text-lg font-semibold">Climb Pass Tracker</span>
           <NavLink
             to="/settings"
