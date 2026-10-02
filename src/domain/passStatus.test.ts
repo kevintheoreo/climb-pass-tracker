@@ -1,42 +1,68 @@
 import { DEFAULT_SETTINGS } from './settings'
-import { daysLeft, effectiveEndDate, entriesLeft, getPassStatus, isFrozenOn } from './passStatus'
 import {
+  daysLeft,
+  effectiveEndDate,
+  entriesLeft,
+  entriesTotal,
+  getPassStatus,
+  isFrozenOn,
+  isPastEnd,
+} from './passStatus'
+import {
+  at,
   makeCounted,
   makeFreeze,
   makeMembership,
+  makeMonthly,
   makeSingle,
   makeUse,
   makeUses,
 } from './testFactories'
 
 const settings = DEFAULT_SETTINGS
+const today = '2026-10-01'
 
-describe('entriesLeft', () => {
-  it('is total minus already-used minus logged uses', () => {
+describe('entriesLeft / entriesTotal', () => {
+  it('counted: total minus already used minus recorded uses', () => {
     const pass = makeCounted({ totalEntries: 10, initialUsed: 2 })
-    expect(entriesLeft(pass, makeUses(pass.id, 3))).toBe(5)
+    expect(entriesLeft(pass, makeUses(pass.id, 3), today)).toBe(5)
+    expect(entriesTotal(pass)).toBe(10)
   })
 
-  it('ignores soft-deleted uses and uses of other passes', () => {
+  it('ignores soft-deleted uses and uses of other passes, and never goes below zero', () => {
     const pass = makeCounted({ totalEntries: 5 })
     const uses = [
       makeUse(pass.id),
       makeUse(pass.id, { deletedAt: '2026-06-02T00:00:00.000Z' }),
       makeUse('some-other-pass'),
     ]
-    expect(entriesLeft(pass, uses)).toBe(4)
+    expect(entriesLeft(pass, uses, today)).toBe(4)
+    expect(entriesLeft(makeCounted({ totalEntries: 2 }), makeUses(pass.id, 5), today)).toBe(2)
+    expect(entriesLeft(pass, makeUses(pass.id, 9), today)).toBe(0)
   })
 
-  it('never goes below zero', () => {
-    const pass = makeCounted({ totalEntries: 2 })
-    expect(entriesLeft(pass, makeUses(pass.id, 5))).toBe(0)
+  it('a single entry has exactly one', () => {
+    const pass = makeSingle()
+    expect(entriesLeft(pass, [], today)).toBe(1)
+    expect(entriesLeft(pass, makeUses(pass.id, 1), today)).toBe(0)
+    expect(entriesTotal(pass)).toBe(1)
+  })
+
+  it('an unlimited membership has no count; a monthly one counts this period', () => {
+    expect(entriesLeft(makeMembership(), [], today)).toBeNull()
+    expect(entriesTotal(makeMembership())).toBeNull()
+    const monthly = makeMonthly()
+    expect(
+      entriesLeft(monthly, [makeUse(monthly.id, { usedAt: at('2026-10-12') })], '2026-10-20'),
+    ).toBe(7)
+    expect(entriesTotal(monthly)).toBe(8)
   })
 })
 
 describe('effectiveEndDate', () => {
-  const m = makeMembership({ startDate: '2026-10-01', endDate: '2026-10-31' })
+  const m = makeMembership({ purchaseDate: '2026-10-01', expiryDate: '2026-10-31' })
 
-  it('is the base end date with no freezes', () => {
+  it('is the expiry date with no freezes', () => {
     expect(effectiveEndDate(m, [])).toBe('2026-10-31')
   })
 
@@ -67,22 +93,19 @@ describe('effectiveEndDate', () => {
   })
 
   it('counts a freeze that runs past the base end date', () => {
-    expect(effectiveEndDate(m, [makeFreeze(m.id, '2026-10-30', '2026-11-05')])).toBe('2026-11-07') // 7 days
+    expect(effectiveEndDate(m, [makeFreeze(m.id, '2026-10-30', '2026-11-05')])).toBe('2026-11-07')
   })
 
   it('counts a later freeze once an earlier one has pushed the end date out to it', () => {
     const freezes = [
-      makeFreeze(m.id, '2026-10-20', '2026-10-31'), // +12 → ends 11-12
-      makeFreeze(m.id, '2026-11-05', '2026-11-06'), // now inside the membership → +2
+      makeFreeze(m.id, '2026-10-20', '2026-10-31'),
+      makeFreeze(m.id, '2026-11-05', '2026-11-06'),
     ]
     expect(effectiveEndDate(m, freezes)).toBe('2026-11-14')
   })
 
-  it('ignores a freeze that starts after the membership has ended', () => {
+  it('ignores a freeze that starts after the end, ended before the start, was deleted or is for another pass', () => {
     expect(effectiveEndDate(m, [makeFreeze(m.id, '2026-12-01', '2026-12-10')])).toBe('2026-10-31')
-  })
-
-  it('ignores freezes that ended before the start, deleted freezes and other passes', () => {
     const freezes = [
       makeFreeze(m.id, '2026-09-01', '2026-09-05'),
       makeFreeze(m.id, '2026-10-10', '2026-10-12'),
@@ -93,8 +116,8 @@ describe('effectiveEndDate', () => {
   })
 })
 
-describe('isFrozenOn', () => {
-  it('includes both the first and last day of a freeze', () => {
+describe('isFrozenOn / daysLeft / isPastEnd', () => {
+  it('a freeze includes both its first and last day', () => {
     const m = makeMembership()
     const freezes = [makeFreeze(m.id, '2026-10-10', '2026-10-12')]
     expect(isFrozenOn('2026-10-09', m, freezes)).toBe(false)
@@ -102,26 +125,25 @@ describe('isFrozenOn', () => {
     expect(isFrozenOn('2026-10-12', m, freezes)).toBe(true)
     expect(isFrozenOn('2026-10-13', m, freezes)).toBe(false)
   })
-})
 
-describe('daysLeft', () => {
-  it('is 0 on the expiry date and negative after it', () => {
+  it('days left is 0 on the expiry date and negative after it', () => {
     const pass = makeCounted({ expiryDate: '2026-10-10' })
     expect(daysLeft(pass, [], '2026-10-09')).toBe(1)
     expect(daysLeft(pass, [], '2026-10-10')).toBe(0)
     expect(daysLeft(pass, [], '2026-10-11')).toBe(-1)
+    expect(isPastEnd(pass, [], '2026-10-10')).toBe(false)
+    expect(isPastEnd(pass, [], '2026-10-11')).toBe(true)
   })
 
-  it('uses the freeze-extended end for memberships and is null for single entries', () => {
-    const m = makeMembership({ endDate: '2026-10-31' })
+  it('uses the freeze-extended end for memberships and is null for a single entry with no expiry', () => {
+    const m = makeMembership({ expiryDate: '2026-10-31' })
     expect(daysLeft(m, [makeFreeze(m.id, '2026-10-10', '2026-10-16')], '2026-10-31')).toBe(7)
     expect(daysLeft(makeSingle(), [], '2026-10-31')).toBeNull()
+    expect(isPastEnd(makeSingle(), [], '2099-01-01')).toBe(false)
   })
 })
 
-describe('getPassStatus — counted passes', () => {
-  const today = '2026-10-01'
-
+describe('getPassStatus — multipass, class pack and single entry', () => {
   it('is active with no flags when plenty is left and expiry is far off', () => {
     const pass = makeCounted({ expiryDate: '2027-04-01' })
     const s = getPassStatus(pass, makeUses(pass.id, 3), [], today, settings)
@@ -129,17 +151,18 @@ describe('getPassStatus — counted passes', () => {
       state: 'active',
       isActive: true,
       entriesLeft: 7,
+      total: 10,
       expiringSoon: false,
       low: false,
     })
   })
 
   it('flags expiring soon from 14 days out, including exactly 14 and the expiry day', () => {
-    const at = (expiryDate: string) =>
+    const at14 = (expiryDate: string) =>
       getPassStatus(makeCounted({ expiryDate }), [], [], today, settings)
-    expect(at('2026-10-16').expiringSoon).toBe(false) // 15 days
-    expect(at('2026-10-15').expiringSoon).toBe(true) // 14 days
-    expect(at('2026-10-01')).toMatchObject({ state: 'active', expiringSoon: true, daysLeft: 0 })
+    expect(at14('2026-10-16').expiringSoon).toBe(false) // 15 days
+    expect(at14('2026-10-15').expiringSoon).toBe(true) // 14 days
+    expect(at14('2026-10-01')).toMatchObject({ state: 'active', expiringSoon: true, daysLeft: 0 })
   })
 
   it('flags low at the threshold and below, but not above', () => {
@@ -172,21 +195,17 @@ describe('getPassStatus — counted passes', () => {
       expiringSoon: false,
       low: false,
     })
+    expect(getPassStatus(makeCounted({ expiryDate: today }), [], [], today, settings).state).toBe(
+      'active',
+    )
   })
 
-  it('is still active on the expiry date itself', () => {
-    const pass = makeCounted({ expiryDate: today })
-    expect(getPassStatus(pass, [], [], today, settings).state).toBe('active')
-  })
-
-  it('counts initialUsed as already used', () => {
-    const pass = makeCounted({ totalEntries: 10, initialUsed: 10 })
-    expect(getPassStatus(pass, [], [], today, settings).state).toBe('used_up')
-  })
-
-  it('treats class packs like multipasses', () => {
-    const pass = makeCounted({ passType: 'class_pack', totalEntries: 4 })
-    expect(getPassStatus(pass, makeUses(pass.id, 3), [], today, settings)).toMatchObject({
+  it('counts initialUsed as already used, and treats class packs like multipasses', () => {
+    expect(getPassStatus(makeCounted({ initialUsed: 10 }), [], [], today, settings).state).toBe(
+      'used_up',
+    )
+    const pack = makeCounted({ passType: 'class_pack', totalEntries: 4 })
+    expect(getPassStatus(pack, makeUses(pack.id, 3), [], today, settings)).toMatchObject({
       state: 'active',
       entriesLeft: 1,
       low: true,
@@ -196,17 +215,50 @@ describe('getPassStatus — counted passes', () => {
   it('uses the configured thresholds', () => {
     const pass = makeCounted({ expiryDate: '2026-10-31', totalEntries: 10 })
     const custom = { expiryReminderDays: [30], lowEntriesThreshold: 5 }
-    const s = getPassStatus(pass, makeUses(pass.id, 5), [], today, custom)
-    expect(s).toMatchObject({ expiringSoon: true, low: true })
+    expect(getPassStatus(pass, makeUses(pass.id, 5), [], today, custom)).toMatchObject({
+      expiringSoon: true,
+      low: true,
+    })
+  })
+
+  it('a single entry is active until used, never "low", and finishes when used', () => {
+    const pass = makeSingle()
+    expect(getPassStatus(pass, [], [], today, settings)).toMatchObject({
+      state: 'active',
+      isActive: true,
+      entriesLeft: 1,
+      total: 1,
+      low: false,
+      daysLeft: null,
+      expiringSoon: false,
+    })
+    expect(getPassStatus(pass, makeUses(pass.id, 1), [], today, settings)).toMatchObject({
+      state: 'used_up',
+      isActive: false,
+    })
+    expect(getPassStatus(makeSingle({ initialUsed: 1 }), [], [], today, settings).state).toBe(
+      'used_up',
+    )
+  })
+
+  it('a single entry with an expiry can expire unused', () => {
+    const pass = makeSingle({ expiryDate: '2026-09-30' })
+    expect(getPassStatus(pass, [], [], today, settings)).toMatchObject({
+      state: 'expired',
+      unused: 1,
+    })
   })
 })
 
-describe('getPassStatus — memberships and single entries', () => {
-  it('is active, and expiring soon within the window', () => {
-    const m = makeMembership({ endDate: '2026-10-31' })
+describe('getPassStatus — memberships', () => {
+  it('unlimited: active, expiring soon within the window, no counter', () => {
+    const m = makeMembership({ expiryDate: '2026-10-31' })
     expect(getPassStatus(m, [], [], '2026-10-01', settings)).toMatchObject({
       state: 'active',
       isActive: true,
+      entriesLeft: null,
+      total: null,
+      nextReset: null,
       expiringSoon: false,
       daysLeft: 30,
     })
@@ -217,7 +269,7 @@ describe('getPassStatus — memberships and single entries', () => {
   })
 
   it('is expired the day after the (freeze-extended) end date', () => {
-    const m = makeMembership({ endDate: '2026-10-31' })
+    const m = makeMembership({ expiryDate: '2026-10-31' })
     const freezes = [makeFreeze(m.id, '2026-10-10', '2026-10-16')] // ends 2026-11-07
     expect(getPassStatus(m, [], freezes, '2026-11-07', settings).state).toBe('active')
     expect(getPassStatus(m, [], freezes, '2026-11-08', settings)).toMatchObject({
@@ -227,20 +279,51 @@ describe('getPassStatus — memberships and single entries', () => {
     expect(getPassStatus(m, [], [], '2026-11-01', settings).state).toBe('expired')
   })
 
-  it('is frozen during a freeze, stays on the dashboard, and shows no expiry badge', () => {
-    const m = makeMembership({ endDate: '2026-10-31' })
+  it('is frozen during a freeze, stays on the main list, and shows no expiry badge', () => {
+    const m = makeMembership({ expiryDate: '2026-10-31' })
     const freezes = [makeFreeze(m.id, '2026-10-20', '2026-10-30')]
-    const s = getPassStatus(m, [], freezes, '2026-10-25', settings)
-    expect(s).toMatchObject({ state: 'frozen', isActive: true, expiringSoon: false })
+    expect(getPassStatus(m, [], freezes, '2026-10-25', settings)).toMatchObject({
+      state: 'frozen',
+      isActive: true,
+      expiringSoon: false,
+    })
     expect(getPassStatus(m, [], freezes, '2026-10-31', settings).state).toBe('active')
   })
 
-  it('puts single entries straight into history', () => {
-    expect(getPassStatus(makeSingle(), [], [], '2026-10-01', settings)).toMatchObject({
-      state: 'visit',
+  it('monthly: shows this period’s entries and the next reset, and is never "used up" or "low"', () => {
+    const m = makeMonthly() // 8 a month, resets on the 10th, ends 2027-10-09
+    const s = getPassStatus(m, makeUses(m.id, 8, '2026-10-12'), [], '2026-10-20', settings)
+    expect(s).toMatchObject({
+      state: 'active',
+      isActive: true,
+      entriesLeft: 0,
+      total: 8,
+      nextReset: '2026-11-10',
+      daysToReset: 21,
+      low: false,
+      unused: null,
+    })
+    const nearly = getPassStatus(m, makeUses(m.id, 7, '2026-10-12'), [], '2026-10-20', settings)
+    expect(nearly).toMatchObject({ entriesLeft: 1, low: false })
+  })
+
+  it('monthly: the count comes back after the reset', () => {
+    const m = makeMonthly()
+    const uses = makeUses(m.id, 8, '2026-10-12')
+    expect(getPassStatus(m, uses, [], '2026-11-10', settings)).toMatchObject({
+      entriesLeft: 8,
+      nextReset: '2026-12-10',
+    })
+  })
+
+  it('monthly: finishes only when the membership ends, and then has no reset', () => {
+    const m = makeMonthly({ expiryDate: '2026-12-31' })
+    expect(getPassStatus(m, [], [], '2027-01-01', settings)).toMatchObject({
+      state: 'expired',
       isActive: false,
-      daysLeft: null,
-      entriesLeft: null,
+      nextReset: null,
+      daysToReset: null,
+      unused: null,
     })
   })
 })

@@ -40,3 +40,8 @@ export function addDays(date: LocalDate, days: number): LocalDate {
 export function addMonthsToDate(date: LocalDate, months: number): LocalDate {
   return toLocalDate(addMonths(parseISO(date), months))
 }
+
+/** `2026-11-15` → `20261115`. Used where a date has to be stored as a plain number. */
+export function dateToNumber(date: LocalDate): number {
+  return Number(date.replaceAll('-', ''))
+}

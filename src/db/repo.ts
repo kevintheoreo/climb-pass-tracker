@@ -1,27 +1,31 @@
+import { BUILTIN_GYMS } from '../data/gyms'
+import {
+  canUseEntry,
+  planGiveBack,
+  type GiveBackPlan,
+  type UseBlockReason,
+} from '../domain/counter'
+import { currentPeriod } from '../domain/cycle'
+import type { LocalDate } from '../domain/dates'
+import { buildGymList, resolveGymInput, type BuiltinGym, type GymEntry } from '../domain/gyms'
 import {
   freezeInputSchema,
   freezeRangeSchema,
   passInputSchema,
   settingsSchema,
-  useInputSchema,
   userGymInputSchema,
-  userTemplateInputSchema,
 } from '../domain/schemas'
 import { DEFAULT_SETTINGS, type Settings } from '../domain/settings'
-import type {
-  Freeze,
-  FreezeInput,
-  GymRef,
-  Pass,
-  PassBundle,
-  PassInput,
-  RecordMeta,
-  Use,
-  UseInput,
-  UserGym,
-  UserGymInput,
-  UserTemplate,
-  UserTemplateInput,
+import {
+  isMonthly,
+  type Freeze,
+  type FreezeInput,
+  type GymRef,
+  type Pass,
+  type PassBundle,
+  type PassInput,
+  type RecordMeta,
+  type Use,
 } from '../domain/types'
 import type { ClimbDB, SettingsRow } from './db'
 
@@ -33,33 +37,41 @@ export class NotFoundError extends Error {
   }
 }
 
-export class GymInUseError extends Error {
-  constructor(gymId: string) {
-    super(`Gym ${gymId} still has passes`)
-    this.name = 'GymInUseError'
-  }
-}
-
 export interface RepoOptions {
   /** ISO timestamp for "now". Injectable for tests. */
   now?: () => string
   newId?: () => string
+  /** The built-in gym list. Defaults to the bundled one. */
+  builtinGyms?: BuiltinGym[]
 }
 
+export type UseEntryResult = { ok: true; use: Use } | { ok: false; reason: UseBlockReason }
+export type GiveBackResult =
+  Extract<GiveBackPlan, { ok: true }> | Extract<GiveBackPlan, { ok: false }>
+
 const isLive = <T extends { deletedAt: string | null }>(row: T): boolean => row.deletedAt === null
+
+/** Midnight at the start of `date`, in the device's time zone, as an ISO timestamp. */
+function startOfDay(date: LocalDate): string {
+  const year = Number(date.slice(0, 4))
+  const month = Number(date.slice(5, 7))
+  const day = Number(date.slice(8, 10))
+  return new Date(year, month - 1, day).toISOString()
+}
 
 /**
  * All reads and writes the app makes to the on-device database.
  *
  * - Writes validate their input, always set `createdAt` / `updatedAt`, and never hard-delete:
  *   deleting sets `deletedAt` (so deletions can sync later). Reads return live rows only.
- * - This is storage, not business logic. Whether a use may be logged (entries left, expiry, ...)
- *   is decided by `canLogUse` in `src/domain/rules.ts` before `addUse` is called.
+ * - `−` and `+` (`useEntry`, `giveBackEntry`) check the rules from `src/domain/counter.ts` and
+ *   change the data inside one transaction, so a double tap can never count twice.
  * - Reads are plain async functions, so they can be used directly inside `useLiveQuery`.
  */
 export function createRepo(db: ClimbDB, options: RepoOptions = {}) {
   const now = options.now ?? (() => new Date().toISOString())
   const newId = options.newId ?? (() => crypto.randomUUID())
+  const builtinGyms = options.builtinGyms ?? BUILTIN_GYMS
 
   function create<T extends object>(input: T): T & RecordMeta {
     const t = now()
@@ -79,18 +91,41 @@ export function createRepo(db: ClimbDB, options: RepoOptions = {}) {
 
   // ---- Passes -----------------------------------------------------------------------------
 
-  async function createPass(input: PassInput): Promise<Pass> {
-    const pass: Pass = create(passInputSchema.parse(input))
-    await db.passes.add(pass)
-    return pass
+  /**
+   * Adds a pass. For a membership with a monthly allowance, `usedThisPeriod` records that many
+   * entries as already used this month (as uses stamped at the start of the current period), so
+   * they count now and drop away at the next reset. Not allowed for any other pass type, which
+   * has `initialUsed` instead.
+   */
+  async function createPass(
+    input: PassInput,
+    extra?: { usedThisPeriod: number; today: LocalDate },
+  ): Promise<Pass> {
+    const parsed = passInputSchema.parse(input)
+    const pass: Pass = create(parsed)
+    return db.transaction('rw', db.passes, db.uses, async () => {
+      await db.passes.add(pass)
+      if (extra && extra.usedThisPeriod > 0) {
+        if (!isMonthly(pass))
+          throw new Error('Only a membership with entries per month has a monthly count')
+        if (!Number.isInteger(extra.usedThisPeriod) || extra.usedThisPeriod > pass.monthlyEntries) {
+          throw new Error(`Used this month must be a whole number up to ${pass.monthlyEntries}`)
+        }
+        const usedAt = startOfDay(currentPeriod(pass, extra.today).start)
+        const uses = Array.from({ length: extra.usedThisPeriod }, (): Use =>
+          create({ passId: pass.id, usedAt }),
+        )
+        await db.uses.bulkAdd(uses)
+      }
+      return pass
+    })
   }
 
-  /** Replaces a pass's fields with `input` (the whole form). A pass can't change type. */
+  /** Replaces a pass's fields with `input` (the whole row). The type may change. */
   async function updatePass(id: string, input: PassInput): Promise<Pass> {
     const parsed = passInputSchema.parse(input)
     return db.transaction('rw', db.passes, async () => {
       const existing = requireLive(await db.passes.get(id), 'Pass', id)
-      if (existing.passType !== parsed.passType) throw new Error('A pass cannot change type')
       const updated: Pass = {
         ...parsed,
         id: existing.id,
@@ -112,7 +147,7 @@ export function createRepo(db: ClimbDB, options: RepoOptions = {}) {
     return (await db.passes.toArray()).filter(isLive)
   }
 
-  /** Every live pass with its live uses and freezes, as the dashboard and history load them. */
+  /** Every live pass with its live uses and freezes, as the main screen loads them. */
   async function listBundles(): Promise<PassBundle[]> {
     return db.transaction('r', db.passes, db.uses, db.freezes, async () => {
       const [passes, uses, freezes] = await Promise.all([
@@ -152,31 +187,47 @@ export function createRepo(db: ClimbDB, options: RepoOptions = {}) {
     })
   }
 
-  // ---- Uses -------------------------------------------------------------------------------
+  // ---- The counter: − and + ---------------------------------------------------------------
 
-  async function addUse(input: UseInput): Promise<Use> {
-    const parsed = useInputSchema.parse(input)
-    return db.transaction('rw', db.passes, db.uses, async () => {
-      requireLive(await db.passes.get(parsed.passId), 'Pass', parsed.passId)
-      const use: Use = create(parsed)
+  /**
+   * `−`: uses one entry, if the rules allow it (D25, FR-9, FR-11, FR-12). `today` is the local
+   * date; `at` is the moment recorded on the use (now, unless a test says otherwise).
+   */
+  async function useEntry(
+    passId: string,
+    today: LocalDate,
+    at: string = now(),
+  ): Promise<UseEntryResult> {
+    return db.transaction('rw', db.passes, db.uses, db.freezes, async () => {
+      const pass = requireLive(await db.passes.get(passId), 'Pass', passId)
+      const uses = (await db.uses.where('passId').equals(passId).toArray()).filter(isLive)
+      const freezes = (await db.freezes.where('passId').equals(passId).toArray()).filter(isLive)
+      const check = canUseEntry(pass, uses, freezes, today)
+      if (!check.ok) return check
+      const use: Use = create({ passId, usedAt: at })
       await db.uses.add(use)
-      return use
+      return { ok: true, use }
     })
   }
 
-  async function updateUse(id: string, changes: Pick<UseInput, 'usedAt' | 'note'>): Promise<Use> {
-    const parsed = useInputSchema.pick({ usedAt: true, note: true }).parse(changes)
-    return db.transaction('rw', db.uses, async () => {
-      const existing = requireLive(await db.uses.get(id), 'Use', id)
-      const updated: Use = { ...existing, ...parsed, updatedAt: now() }
-      await db.uses.put(updated)
-      return updated
-    })
-  }
-
-  async function deleteUse(id: string): Promise<void> {
-    await db.transaction('rw', db.uses, async () => {
-      await db.uses.put(tombstone(requireLive(await db.uses.get(id), 'Use', id), now()))
+  /** `+`: gives one entry back (FR-52). See `planGiveBack` for exactly what that means. */
+  async function giveBackEntry(passId: string, today: LocalDate): Promise<GiveBackResult> {
+    return db.transaction('rw', db.passes, db.uses, db.freezes, async () => {
+      const pass = requireLive(await db.passes.get(passId), 'Pass', passId)
+      const uses = (await db.uses.where('passId').equals(passId).toArray()).filter(isLive)
+      const freezes = (await db.freezes.where('passId').equals(passId).toArray()).filter(isLive)
+      const plan = planGiveBack(pass, uses, freezes, today)
+      if (!plan.ok) return plan
+      const t = now()
+      if (plan.action === 'remove_use') {
+        const use = uses.find((u) => u.id === plan.useId)!
+        await db.uses.put(tombstone(use, t))
+      } else if (pass.passType !== 'membership') {
+        // `initialUsed` is a plain number on every counted type; the spread over the union just
+        // trips up the compiler.
+        await db.passes.put({ ...pass, initialUsed: pass.initialUsed - 1, updatedAt: t } as Pass)
+      }
+      return plan
     })
   }
 
@@ -216,104 +267,33 @@ export function createRepo(db: ClimbDB, options: RepoOptions = {}) {
     })
   }
 
-  // ---- User-added gyms and templates ------------------------------------------------------
+  // ---- Gyms -------------------------------------------------------------------------------
 
-  async function addUserGym(input: UserGymInput): Promise<UserGym> {
-    const gym: UserGym = create(userGymInputSchema.parse(input))
-    await db.userGyms.add(gym)
-    return gym
-  }
-
-  async function updateUserGym(id: string, input: UserGymInput): Promise<UserGym> {
-    const parsed = userGymInputSchema.parse(input)
-    return db.transaction('rw', db.userGyms, async () => {
-      const updated: UserGym = {
-        ...requireLive(await db.userGyms.get(id), 'Gym', id),
-        ...parsed,
-        updatedAt: now(),
-      }
-      await db.userGyms.put(updated)
-      return updated
-    })
-  }
-
-  async function listUserGyms(): Promise<UserGym[]> {
+  async function listUserGyms() {
     return (await db.userGyms.toArray()).filter(isLive)
   }
 
-  /** Deletes a user gym and its templates. Refused while passes still belong to the gym. */
-  async function deleteUserGym(id: string): Promise<void> {
-    await db.transaction('rw', db.userGyms, db.userTemplates, db.passes, async () => {
-      const gym = requireLive(await db.userGyms.get(id), 'Gym', id)
-      const passes = await db.passes.where('gymRef.id').equals(id).toArray()
-      if (passes.some(isLive)) throw new GymInUseError(id)
-      const t = now()
-      const templates = (await db.userTemplates.where('gymRef.id').equals(id).toArray()).filter(
-        isLive,
-      )
-      await db.userGyms.put(tombstone(gym, t))
-      await db.userTemplates.bulkPut(templates.map((tpl) => tombstone(tpl, t)))
+  /** Built-in and user-added gyms together, sorted by name: the autocomplete's source. */
+  async function listGyms(): Promise<GymEntry[]> {
+    return buildGymList(builtinGyms, await listUserGyms())
+  }
+
+  /**
+   * Turns the text typed into a row's gym cell into a gym (D24, FR-25, FR-53). Text that equals an
+   * existing gym (ignoring case and punctuation) uses that gym; anything else is saved as a new
+   * private gym. The lookup and the save are one transaction, so two quick submits of the same new
+   * name create one gym, not two. Empty or too-long text throws a validation error.
+   */
+  async function findOrCreateGym(typed: string): Promise<{ ref: GymRef; created: boolean }> {
+    return db.transaction('rw', db.userGyms, async () => {
+      const gyms = buildGymList(builtinGyms, (await db.userGyms.toArray()).filter(isLive))
+      const choice = resolveGymInput(typed, gyms)
+      if (choice.kind === 'existing') return { ref: choice.gym.ref, created: false }
+      const { name } = userGymInputSchema.parse({ name: choice.kind === 'new' ? choice.name : '' })
+      const gym = create({ name })
+      await db.userGyms.add(gym)
+      return { ref: { kind: 'user', id: gym.id }, created: true }
     })
-  }
-
-  async function addUserTemplate(input: UserTemplateInput): Promise<UserTemplate> {
-    const template: UserTemplate = create(userTemplateInputSchema.parse(input))
-    await db.userTemplates.add(template)
-    return template
-  }
-
-  async function updateUserTemplate(id: string, input: UserTemplateInput): Promise<UserTemplate> {
-    const parsed = userTemplateInputSchema.parse(input)
-    return db.transaction('rw', db.userTemplates, async () => {
-      const updated: UserTemplate = {
-        ...requireLive(await db.userTemplates.get(id), 'Template', id),
-        ...parsed,
-        updatedAt: now(),
-      }
-      await db.userTemplates.put(updated)
-      return updated
-    })
-  }
-
-  async function deleteUserTemplate(id: string): Promise<void> {
-    await db.transaction('rw', db.userTemplates, async () => {
-      const row = requireLive(await db.userTemplates.get(id), 'Template', id)
-      await db.userTemplates.put(tombstone(row, now()))
-    })
-  }
-
-  /** User templates, optionally only those for one gym. */
-  async function listUserTemplates(gymRef?: GymRef): Promise<UserTemplate[]> {
-    const rows = gymRef
-      ? await db.userTemplates.where('gymRef.id').equals(gymRef.id).toArray()
-      : await db.userTemplates.toArray()
-    return rows.filter((r) => isLive(r) && (!gymRef || r.gymRef.kind === gymRef.kind))
-  }
-
-  // ---- Hidden built-in gyms ---------------------------------------------------------------
-
-  async function hideGym(gymId: string): Promise<void> {
-    await db.transaction('rw', db.hiddenGyms, async () => {
-      const t = now()
-      const existing = await db.hiddenGyms.get(gymId)
-      await db.hiddenGyms.put({
-        id: gymId,
-        createdAt: existing?.createdAt ?? t,
-        updatedAt: t,
-        deletedAt: null,
-      })
-    })
-  }
-
-  async function unhideGym(gymId: string): Promise<void> {
-    await db.transaction('rw', db.hiddenGyms, async () => {
-      const existing = await db.hiddenGyms.get(gymId)
-      if (existing && isLive(existing)) await db.hiddenGyms.put(tombstone(existing, now()))
-    })
-  }
-
-  async function listHiddenGymIds(): Promise<string[]> {
-    return (await db.hiddenGyms.toArray()).filter(isLive).map((g) => g.id)
   }
 
   // ---- Settings ---------------------------------------------------------------------------
@@ -365,24 +345,15 @@ export function createRepo(db: ClimbDB, options: RepoOptions = {}) {
     listPasses,
     listBundles,
     deletePass,
-    addUse,
-    updateUse,
-    deleteUse,
+    useEntry,
+    giveBackEntry,
     listUses,
     addFreeze,
     updateFreeze,
     deleteFreeze,
-    addUserGym,
-    updateUserGym,
     listUserGyms,
-    deleteUserGym,
-    addUserTemplate,
-    updateUserTemplate,
-    deleteUserTemplate,
-    listUserTemplates,
-    hideGym,
-    unhideGym,
-    listHiddenGymIds,
+    listGyms,
+    findOrCreateGym,
     getSettings,
     updateSettings,
     dismissReminder,

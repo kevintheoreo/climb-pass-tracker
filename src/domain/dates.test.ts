@@ -1,6 +1,7 @@
 import {
   addDays,
   addMonthsToDate,
+  dateToNumber,
   daysBetween,
   localDateOfTimestamp,
   todayLocal,
@@ -55,5 +56,12 @@ describe('local dates', () => {
   it('finds the local date of a timestamp', () => {
     const late = new Date(2026, 9, 1, 23, 30).toISOString()
     expect(localDateOfTimestamp(late)).toBe('2026-10-01')
+  })
+})
+
+describe('dateToNumber', () => {
+  it('turns a date into a number that sorts like the date', () => {
+    expect(dateToNumber('2026-11-15')).toBe(20261115)
+    expect(dateToNumber('2026-11-15')).toBeLessThan(dateToNumber('2027-01-02'))
   })
 })

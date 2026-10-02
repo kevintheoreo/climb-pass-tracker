@@ -6,9 +6,9 @@ The work follows the PRD's three milestones. Each milestone is split into steps 
 
 ---
 
-## 0. Where things stand after the redesign
+## 0. What the redesign changed in the existing code (done in step 1.5)
 
-Steps 1.1 to 1.4 were built for the earlier, multi-screen design. Step 1.5 (Gyms screens, PR #4) was built but **not merged**; the redesign replaces it, so PR #4 is to be closed without merging. Its branch `step-1-5-gyms` stays, because some files are worth taking from it.
+Steps 1.1 to 1.4 were built for the earlier, multi-screen design. The first version of step 1.5 (Gyms screens, PR #4) was built but never merged and PR #4 was closed; the redesign replaced it. Its branch `step-1-5-gyms` stays, because some files were taken from it.
 
 | Existing code | What happens to it |
 |---|---|
@@ -108,7 +108,7 @@ Goal: a complete, installable, offline app with no account and no backend.
 | **1.2 Domain logic + tests** ✅ | Pass status, entries left, freezes, reminders, dates, validation. *Parts are reworked in 1.5.* | FR-6, 22, 31–34 |
 | **1.3 Local database** ✅ | Dexie schema and repository with timestamps and soft deletes. *Reworked in 1.5.* | §7, FR-19, 36 |
 | **1.4 App shell + PWA** ✅ | Router, theme, offline precaching, manifest, iOS meta tags, persistent-storage request. *The tab bar is replaced in 1.5.* | §9 |
-| **1.5 Rework for the single-screen model** | Everything in section 0 marked Keep / Rework / Replace: unified pass schema (memberships gain `monthlyEntries` and `resetDay`), Dexie version 2, new repo functions (`findOrCreateGym`, counter adjustment), `counter.ts`, `cycle.ts` (monthly periods and reset dates, including short months), `rows.ts`, `gyms.ts` (matching), a third reminder kind (monthly reset) in `reminders.ts`, take over the files listed from `step-1-5-gyms`, built-in gym seed reduced to names, header with gear icon and two routes (no tab bar), delete the Gyms and History pages. Unit tests for all of it; the app still shows a placeholder main screen. | D23–D31, FR-51 |
+| **1.5 Rework for the single-screen model** ✅ | Everything in section 0 marked Keep / Rework / Replace: unified pass schema (memberships gain `monthlyEntries` and `resetDay`), Dexie version 2, new repo functions (`findOrCreateGym`, counter adjustment), `counter.ts`, `cycle.ts` (monthly periods and reset dates, including short months), `rows.ts`, `gyms.ts` (matching), a third reminder kind (monthly reset) in `reminders.ts`, take over the files listed from `step-1-5-gyms`, built-in gym seed reduced to names, header with gear icon and two routes (no tab bar), delete the Gyms and History pages. Unit tests for all of it; the app still shows a placeholder main screen. | D23–D31, FR-51 |
 | **1.6 Main screen: the list** | Rows (`Gym | Type | Expiry | Left`) from the database, sorted by soonest expiry; status badges and "days left"; the collapsed Finished section with "Used up" / "Expired – X unused"; empty state. The Left column shows `5 / 8` and "resets 15 Nov" for monthly memberships and "Unlimited" for the others. Read-only. Phone layout confirmed from a screenshot (PRD §15). | FR-1–3, 6, 8, 30, 50, D31 |
 | **1.7 The counter** | `−` and `+` on counted rows, wired to the transaction in 1.5; disabled at the limits; rows move to Finished at 0 (a monthly membership stays in the list and shows its reset date). | FR-4, 9, 11, 12, 14, 52, D25 |
 | **1.8 Add a row** | The blank row at the bottom: gym autocomplete with "Add “text” as a new gym", type, entries (for a membership, the optional entries per month), expiry with +6 / +12 month buttons; saves itself when complete and the user leaves the row or presses Enter; missing or invalid cells say so. | FR-15, 22, 25, 53, 54, D24, D29 |
@@ -184,4 +184,4 @@ During M1 I'll put in a few placeholder gyms so the app can be tested; you repla
 | Q3 | User-added templates | *Superseded.* There are no templates (D11, D30). |
 | Q4 | Icon | A simple generated placeholder icon until there is a logo. |
 | Q5 | CI | A GitHub Actions workflow runs lint, typecheck and tests on every PR. |
-| Q6 | Redesign | One screen of rows (D23–D31), as set out in PRD v2.0. |
+| Q6 | Redesign | One screen of rows (D23–D34, including monthly-allowance memberships), as set out in PRD v2.1. |

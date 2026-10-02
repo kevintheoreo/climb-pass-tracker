@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react'
+import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import App from './App'
@@ -10,39 +10,39 @@ const renderAt = (path = '/') =>
     </MemoryRouter>,
   )
 
-const nav = () => screen.getByRole('navigation', { name: 'Main' })
-
-describe('App shell', () => {
-  it('shows the four tabs and starts on Passes', () => {
+describe('App shell (D23)', () => {
+  it('opens on the main screen with a gear icon for Settings and no tab bar', () => {
     renderAt()
-    const links = within(nav()).getAllByRole('link')
-    expect(links.map((l) => l.textContent)).toEqual(['Passes', 'History', 'Gyms', 'Settings'])
     expect(screen.getByRole('heading', { level: 1, name: 'Passes' })).toBeInTheDocument()
-    expect(within(nav()).getByRole('link', { name: 'Passes' })).toHaveAttribute(
-      'aria-current',
-      'page',
-    )
+    expect(screen.getByText('Climb Pass Tracker')).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Settings' })).toHaveAttribute('href', '/settings')
+    expect(screen.queryByRole('navigation')).not.toBeInTheDocument()
+    expect(document.title).toBe('Passes · Climb Pass Tracker')
   })
 
-  it('navigates between tabs, marking the current one and updating the title', async () => {
+  it('goes to Settings from the gear and back from the back link, updating the title', async () => {
     const user = userEvent.setup()
     renderAt()
-    for (const name of ['History', 'Gyms', 'Settings', 'Passes']) {
-      await user.click(within(nav()).getByRole('link', { name }))
-      expect(screen.getByRole('heading', { level: 1, name })).toBeInTheDocument()
-      expect(within(nav()).getByRole('link', { name })).toHaveAttribute('aria-current', 'page')
-      expect(document.title).toBe(`${name} · Climb Pass Tracker`)
-    }
-    expect(within(nav()).getByRole('link', { name: 'History' })).not.toHaveAttribute('aria-current')
-  })
+    await user.click(screen.getByRole('link', { name: 'Settings' }))
+    expect(screen.getByRole('heading', { level: 1, name: 'Settings' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Settings' })).toHaveAttribute('aria-current', 'page')
+    expect(document.title).toBe('Settings · Climb Pass Tracker')
 
-  it('opens deep links directly', () => {
-    renderAt('/gyms')
-    expect(screen.getByRole('heading', { level: 1, name: 'Gyms' })).toBeInTheDocument()
-  })
-
-  it('sends unknown paths to Passes', () => {
-    renderAt('/no/such/page')
+    await user.click(screen.getByRole('link', { name: '‹ Passes' }))
     expect(screen.getByRole('heading', { level: 1, name: 'Passes' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Settings' })).not.toHaveAttribute('aria-current')
+  })
+
+  it('opens Settings directly', () => {
+    renderAt('/settings')
+    expect(screen.getByRole('heading', { level: 1, name: 'Settings' })).toBeInTheDocument()
+  })
+
+  it('has no Gyms or History screens: those paths go to the main screen', () => {
+    for (const path of ['/gyms', '/history', '/no/such/page']) {
+      const { unmount } = renderAt(path)
+      expect(screen.getByRole('heading', { level: 1, name: 'Passes' })).toBeInTheDocument()
+      unmount()
+    }
   })
 })
