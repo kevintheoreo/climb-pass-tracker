@@ -330,5 +330,5 @@ There are no analytics in v1, so success is judged by:
 
 ## 15. Open questions
 
-1. **Phone layout of the four columns:** on a 360 px wide screen `Gym | Type | Expiry | Left` is tight. The plan is to keep the columns and let a row wrap onto a second line if needed. This will be confirmed from a screenshot of the first build before more is built on it.
+1. **Phone layout of the four columns:** *resolved in step 1.6.* The four columns are kept. On a phone (under 640 px) each row wraps onto two lines: gym and count on the first, type and expiry on the second, with status badges below. From 640 px wide it is a table with the column headings Gym, Type, Expiry, Left. The `−` / `+` buttons (step 1.7) go around the count in the Left column.
 2. **Gym name review schedule:** how often the product owner checks the built-in gym names after launch (D22). To be planned later; it does not block development.
