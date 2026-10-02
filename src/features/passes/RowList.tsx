@@ -1,8 +1,9 @@
+import type { LocalDate } from '../../domain/dates'
 import type { Row } from '../../domain/rows'
 import { PassRow, WIDE_COLUMNS } from './PassRow'
 
 /** A bordered list of rows, with column headings on wide screens. */
-export function RowList({ rows, label }: { rows: Row[]; label: string }) {
+export function RowList({ rows, label, today }: { rows: Row[]; label: string; today: LocalDate }) {
   return (
     <div className="overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
       <div
@@ -16,7 +17,7 @@ export function RowList({ rows, label }: { rows: Row[]; label: string }) {
       </div>
       <ul aria-label={label} className="divide-y divide-slate-200 dark:divide-slate-800">
         {rows.map((row) => (
-          <PassRow key={row.pass.id} row={row} />
+          <PassRow key={row.pass.id} row={row} today={today} />
         ))}
       </ul>
     </div>

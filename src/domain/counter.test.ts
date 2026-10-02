@@ -1,4 +1,4 @@
-import { canUseEntry, hasCounter, planGiveBack } from './counter'
+import { canUseEntry, counterView, hasCounter, planGiveBack } from './counter'
 import {
   at,
   makeCounted,
@@ -145,6 +145,60 @@ describe('planGiveBack', () => {
     expect(planGiveBack(m, [lastMonth], [], '2026-11-15')).toEqual({ ok: false, reason: 'full' })
     expect(planGiveBack(m, [lastMonth, thisMonth], [], '2026-11-15')).toMatchObject({
       useId: thisMonth.id,
+    })
+  })
+})
+
+describe('counterView', () => {
+  it('a fresh pass can only be used; a part-used one can be used or given back', () => {
+    const pass = makeCounted({ totalEntries: 10 })
+    expect(counterView(pass, [], [], today)).toEqual({
+      visible: true,
+      canUse: true,
+      canGiveBack: false,
+    })
+    expect(counterView(pass, makeUses(pass.id, 3), [], today)).toEqual({
+      visible: true,
+      canUse: true,
+      canGiveBack: true,
+    })
+  })
+
+  it('a used-up row can only give an entry back (to undo a mis-tap)', () => {
+    const pass = makeCounted({ totalEntries: 2 })
+    expect(counterView(pass, makeUses(pass.id, 2), [], today)).toEqual({
+      visible: true,
+      canUse: false,
+      canGiveBack: true,
+    })
+  })
+
+  it('a monthly membership at 0 can only give back, until the reset', () => {
+    const m = makeMonthly()
+    const used = makeUses(m.id, 8, '2026-10-12')
+    expect(counterView(m, used, [], '2026-10-20')).toEqual({
+      visible: true,
+      canUse: false,
+      canGiveBack: true,
+    })
+    expect(counterView(m, used, [], '2026-11-10')).toEqual({
+      visible: true,
+      canUse: true,
+      canGiveBack: false,
+    })
+  })
+
+  it('an expired row and an unlimited membership have no buttons', () => {
+    const expired = makeCounted({ expiryDate: '2026-09-30' })
+    expect(counterView(expired, makeUses(expired.id, 2), [], today)).toEqual({
+      visible: false,
+      canUse: false,
+      canGiveBack: false,
+    })
+    expect(counterView(makeMembership(), [], [], today)).toEqual({
+      visible: false,
+      canUse: false,
+      canGiveBack: false,
     })
   })
 })

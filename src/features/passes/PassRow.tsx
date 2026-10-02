@@ -1,10 +1,11 @@
-import { badgesFor, expiryLabel, leftLabel, relativeDays, resetLabel } from '../../domain/format'
+import type { LocalDate } from '../../domain/dates'
+import { badgesFor, expiryLabel, relativeDays, resetLabel } from '../../domain/format'
 import type { BadgeTone } from '../../domain/format'
 import type { Row } from '../../domain/rows'
+import { Counter } from './Counter'
 
 /** Columns on a wide screen: Gym | Type | Expiry | Left. On a phone each row wraps onto two lines. */
-export const WIDE_COLUMNS =
-  'sm:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1.2fr)_minmax(0,1fr)]'
+export const WIDE_COLUMNS = 'sm:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1.2fr)_11.5rem]'
 
 const muted = 'text-slate-600 dark:text-slate-400'
 
@@ -14,7 +15,7 @@ const toneClass: Record<BadgeTone, string> = {
   muted: 'bg-slate-200 text-slate-800 dark:bg-slate-700 dark:text-slate-200',
 }
 
-export function PassRow({ row }: { row: Row }) {
+export function PassRow({ row, today }: { row: Row; today: LocalDate }) {
   const { status } = row
   const badges = badgesFor(row.pass, status)
   const reset = resetLabel(status)
@@ -29,11 +30,8 @@ export function PassRow({ row }: { row: Row }) {
         {row.gymName}
       </p>
 
-      <div className="col-start-2 row-start-1 text-right sm:col-start-4 sm:text-left">
-        <p className="text-lg font-semibold tabular-nums">
-          <span className="sr-only">Left: </span>
-          {leftLabel(status)}
-        </p>
+      <div className="col-start-2 row-start-1 flex flex-col items-end sm:col-start-4 sm:items-start">
+        <Counter row={row} today={today} />
         {reset && <p className={`text-sm ${muted}`}>{reset}</p>}
       </div>
 
