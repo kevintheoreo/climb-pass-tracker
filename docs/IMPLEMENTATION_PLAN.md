@@ -122,18 +122,18 @@ Goal: a complete, installable, offline app with no account and no backend.
 
 ## 3. Milestone 2 — Accounts and sync
 
-**What you need to set up first** (I'll give step-by-step instructions): a free Supabase project, a Google Cloud OAuth client, and the Supabase URL and anon key added to Netlify's environment variables.
+**What you need to set up first** (step-by-step instructions are in `docs/SETUP_ACCOUNTS.md`): a free Supabase project, a Google Cloud OAuth client, and the Supabase URL and anon key added to Netlify's environment variables.
 
 | Step | Work | PRD |
 |---|---|---|
-| **2.1 Database schema** | SQL migrations in `supabase/` for the tables in PRD §7 (gyms, user gyms, passes, freezes, uses, settings), each user table with `user_id`. Row-level security: users can only read and write their own rows; built-in gyms are read-only for everyone. A trigger sets a `server_updated_at` column on every write. Seed built-in gyms with the same fixed IDs as the bundled file. | §7, §9 Security, D11 |
+| **2.1 Database schema** ✅ | SQL migrations in `supabase/` for the tables in PRD §7 (gyms, user gyms, passes, freezes, uses, settings), each user table with `user_id`. Row-level security: users can only read and write their own rows; built-in gyms are read-only for everyone. A trigger sets a `server_updated_at` column on every write. Seed built-in gyms with the same fixed IDs as the bundled file. | §7, §9 Security, D11 |
 | **2.2 Google sign-in** | Sign in / out in Settings, session handling, redirect URLs for local, preview and production addresses. | FR-37 |
 | **2.3 Built-in gyms from the database** | Fetch built-in gym names when online, save them on the device, fall back to the bundled file on a first offline launch. | FR-23 |
 | **2.4 Sync engine** | Runs on sign-in, app start, when the device comes back online, and a short time after each local change. **Push:** send local rows changed since the last push. **Pull:** fetch server rows with `server_updated_at` after the last pull. **Conflicts:** keep the row with the later `updatedAt` (last write wins). Deletions travel as rows with `deletedAt` set. Sync status shown in Settings ("Synced just now" / "Offline — will sync later"). | FR-38–40 |
 | **2.5 First sign-in merge** | Attach `user_id` to every local row and push it. UUIDs never clash, so merging is just uploading. Settings: if the account already has settings, keep those. | FR-38, D13 |
 | **2.6 Sign-out** | Warn, then sync any pending changes, then clear the local database. If there are unsynced changes and the device is offline, warn that they will be lost. | FR-41, D14 |
 | **2.7 Delete account** | A Supabase Edge Function (it needs admin rights that the app itself must not have) deletes the user's rows and their login, then the app clears local data. | FR-46, D15 |
-| **2.8 Tests** | Unit tests for merge and conflict rules; an integration test against a local Supabase instance (Supabase CLI) covering two devices editing the same pass, and checking RLS blocks access to another user's data. | §13 |
+| **2.8 Tests** | Unit tests for merge and conflict rules; an integration test against a real PostgreSQL (a stand-in for Supabase's `auth` schema, no Docker or Supabase CLI needed) covering two devices editing the same pass, and checking row-level security blocks access to another user's data. The database part of it is written in step 2.1 (`supabase/tests/database.test.ts`). | §13 |
 
 Because `−` and `+` change recorded uses, two devices counting at the same time are merged by the same last-write-wins rule on each row; a double count is possible in that rare case and is accepted for v1.
 
