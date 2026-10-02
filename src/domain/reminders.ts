@@ -120,3 +120,30 @@ export function getReminders(
     (a, b) => rank[a.kind] - rank[b.kind] || order(a) - order(b) || (a.key < b.key ? -1 : 1),
   )
 }
+
+/** All the reminders about one pass, and the ones worth showing in its banner. */
+export interface ReminderGroup {
+  passId: string
+  /** Every reminder about the pass: dismissing the banner dismisses all of them. */
+  all: Reminder[]
+  /** What the banner says. A "low" reminder is left out when "expiring" already mentions it. */
+  shown: Reminder[]
+}
+
+/**
+ * One banner per pass, not one per reminder: a pass that is both expiring and low says so once
+ * ("expires in 10 days, 1 entry left"). Groups keep the order of the reminders they came from.
+ */
+export function groupByPass(reminders: Reminder[]): ReminderGroup[] {
+  const groups = new Map<string, Reminder[]>()
+  for (const reminder of reminders) {
+    const list = groups.get(reminder.passId)
+    if (list) list.push(reminder)
+    else groups.set(reminder.passId, [reminder])
+  }
+  return [...groups].map(([passId, all]) => ({
+    passId,
+    all,
+    shown: all.some((r) => r.kind === 'expiring') ? all.filter((r) => r.kind !== 'low') : all,
+  }))
+}

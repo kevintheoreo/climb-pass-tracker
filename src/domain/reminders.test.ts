@@ -1,5 +1,5 @@
 import { DEFAULT_SETTINGS, type Settings } from './settings'
-import { dismissalValue, getReminders, reminderKey } from './reminders'
+import { dismissalValue, getReminders, groupByPass, reminderKey } from './reminders'
 import {
   at,
   bundle,
@@ -213,5 +213,66 @@ describe('getReminders — ordering', () => {
       'd:low',
       'c:low',
     ])
+  })
+})
+
+describe('groupByPass', () => {
+  it('a pass that is expiring and low is one banner that says it once', () => {
+    const rs = getReminders(
+      [
+        bundle(
+          makeCounted({ id: 'p', expiryDate: '2026-10-08', totalEntries: 10, initialUsed: 9 }),
+        ),
+      ],
+      settings(),
+      today,
+    )
+    expect(summary(rs)).toEqual(['p:expiring', 'p:low'])
+    const [group, ...rest] = groupByPass(rs)
+    expect(rest).toEqual([])
+    expect(group!.passId).toBe('p')
+    expect(group!.shown.map((r) => r.kind)).toEqual(['expiring']) // "expires …, 1 entry left"
+    expect(group!.all.map((r) => r.kind)).toEqual(['expiring', 'low']) // both get dismissed
+  })
+
+  it('a pass that is only low keeps its low reminder', () => {
+    const rs = getReminders([bundle(makeCounted({ id: 'p', initialUsed: 8 }))], settings(), today)
+    const [group] = groupByPass(rs)
+    expect(group!.shown.map((r) => r.kind)).toEqual(['low'])
+  })
+
+  it('different passes stay separate, in the order of their first reminder', () => {
+    const rs = getReminders(
+      [
+        bundle(makeCounted({ id: 'low', initialUsed: 8 })),
+        bundle(makeCounted({ id: 'soon', expiryDate: '2026-10-05' })),
+      ],
+      settings(),
+      today,
+    )
+    expect(groupByPass(rs).map((g) => g.passId)).toEqual(['soon', 'low'])
+  })
+
+  it('a membership can be expiring and about to reset: both are said', () => {
+    const rs = getReminders(
+      [
+        bundle(
+          makeMonthly({
+            id: 'm',
+            purchaseDate: '2026-09-02',
+            expiryDate: '2026-10-10',
+            monthlyEntries: 8,
+          }),
+        ),
+      ],
+      settings(),
+      today,
+    )
+    const [group] = groupByPass(rs)
+    expect(group!.shown.map((r) => r.kind).sort()).toEqual(['expiring', 'reset'])
+  })
+
+  it('nothing in, nothing out', () => {
+    expect(groupByPass([])).toEqual([])
   })
 })

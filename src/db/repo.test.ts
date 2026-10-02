@@ -486,6 +486,26 @@ describe('settings', () => {
     const settings = await repo.dismissReminder('p2:reset', 20261110)
     expect(settings.dismissedReminders).toEqual({ 'p1:expiring': 14, 'p2:reset': 20261110 })
   })
+
+  it('dismisses several reminders in one write, keeping earlier ones', async () => {
+    const { repo } = makeTestRepo()
+    await repo.dismissReminder('p0:low', 2)
+    const settings = await repo.dismissReminders([
+      { key: 'p1:expiring', value: 3 },
+      { key: 'p1:low', value: 1 },
+    ])
+    expect(settings.dismissedReminders).toEqual({ 'p0:low': 2, 'p1:expiring': 3, 'p1:low': 1 })
+    expect(await repo.dismissReminders([])).toEqual(settings)
+  })
+
+  it('two dismissals at the same moment both stick', async () => {
+    const { repo } = makeTestRepo()
+    await Promise.all([
+      repo.dismissReminders([{ key: 'a:low', value: 2 }]),
+      repo.dismissReminders([{ key: 'b:low', value: 1 }]),
+    ])
+    expect((await repo.getSettings()).dismissedReminders).toEqual({ 'a:low': 2, 'b:low': 1 })
+  })
 })
 
 describe('meta, wipe and persistence', () => {

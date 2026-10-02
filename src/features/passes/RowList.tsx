@@ -11,6 +11,7 @@ export function RowList({
   today,
   gyms,
   openId,
+  reminded,
   onToggle,
   onClose,
   onUsedLast,
@@ -21,6 +22,8 @@ export function RowList({
   gyms: GymEntry[]
   /** The row whose details are open, if it is in this list. */
   openId: string | null
+  /** Ids of the passes a reminder banner is about. */
+  reminded: Set<string>
   onToggle: (passId: string) => void
   onClose: () => void
   onUsedLast?: ((row: Row) => void) | undefined
@@ -44,6 +47,7 @@ export function RowList({
             today={today}
             gyms={gyms}
             open={openId === row.pass.id}
+            highlighted={reminded.has(row.pass.id)}
             onToggle={() => onToggle(row.pass.id)}
             onClose={onClose}
             onUsedLast={onUsedLast}
