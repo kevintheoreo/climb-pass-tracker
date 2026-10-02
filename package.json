@@ -13,7 +13,8 @@
     "typecheck": "tsc -b",
     "test": "vitest run",
     "test:watch": "vitest",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "gyms:sql": "node scripts/generate-gym-seed.mjs"
   },
   "dependencies": {
     "date-fns": "^4.4.0",
@@ -32,6 +33,7 @@
     "@testing-library/react": "^16.3.3",
     "@testing-library/user-event": "^14.6.7",
     "@types/node": "^26.6.3",
+    "@types/pg": "^8.23.1",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.1",
@@ -41,6 +43,7 @@
     "fake-indexeddb": "^6.2.5",
     "globals": "^17.13.0",
     "jsdom": "^29.1.1",
+    "pg": "^8.23.1",
     "prettier": "^3.9.9",
     "sharp": "^0.35.5",
     "tailwindcss": "^4.3.3",
