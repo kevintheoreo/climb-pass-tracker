@@ -1,50 +1,59 @@
 import { ZodError } from 'zod'
-import { DEFAULT_SETTINGS } from '../domain/settings'
+import { at, makeUse } from '../domain/testFactories'
 import { getPassStatus } from '../domain/passStatus'
+import { DEFAULT_SETTINGS } from '../domain/settings'
 import type { PassInput } from '../domain/types'
 import { ClimbDB } from './db'
-import { createRepo, GymInUseError, NotFoundError } from './repo'
+import { createRepo, NotFoundError } from './repo'
 import { makeTestRepo } from './testRepo'
 
-const gymRef = { kind: 'builtin', id: 'gym-a' } as const
+const gymRef = { kind: 'builtin', id: 'b-fitbloc' } as const
+const today = '2026-10-15'
 
-const multipass = (
-  overrides: Partial<Extract<PassInput, { totalEntries: number }>> = {},
-): PassInput => ({
-  gymRef,
-  passType: 'multipass',
-  name: '10-Pass',
-  priceCents: 12000,
-  notes: null,
-  totalEntries: 10,
-  initialUsed: 0,
-  purchaseDate: '2026-01-01',
-  expiryDate: '2026-12-31',
-  ...overrides,
-})
+const multipass = (overrides: Record<string, unknown> = {}): PassInput =>
+  ({
+    gymRef,
+    passType: 'multipass',
+    priceCents: 12000,
+    comments: null,
+    purchaseDate: '2026-01-01',
+    expiryDate: '2026-12-31',
+    totalEntries: 10,
+    initialUsed: 0,
+    ...overrides,
+  }) as PassInput
 
-const membership = (): PassInput => ({
-  gymRef,
-  passType: 'membership',
-  name: 'Monthly',
-  priceCents: null,
-  notes: null,
-  billingPeriod: 'monthly',
-  startDate: '2026-10-01',
-  endDate: '2026-10-31',
-})
+const single = (overrides: Record<string, unknown> = {}): PassInput =>
+  ({
+    gymRef,
+    passType: 'single_entry',
+    priceCents: null,
+    comments: null,
+    purchaseDate: '2026-10-01',
+    expiryDate: null,
+    totalEntries: 1,
+    initialUsed: 0,
+    ...overrides,
+  }) as PassInput
 
-const useInput = (passId: string, usedAt = '2026-06-01T04:00:00.000Z') => ({
-  passId,
-  usedAt,
-  note: null,
-})
+const membership = (overrides: Record<string, unknown> = {}): PassInput =>
+  ({
+    gymRef,
+    passType: 'membership',
+    priceCents: null,
+    comments: null,
+    purchaseDate: '2026-10-10',
+    expiryDate: '2027-10-09',
+    monthlyEntries: null,
+    resetDay: null,
+    ...overrides,
+  }) as PassInput
 
 describe('passes', () => {
   it('creates a pass with id and timestamps and reads it back', async () => {
     const { repo } = makeTestRepo()
     const pass = await repo.createPass(multipass())
-    expect(pass).toMatchObject({ id: 'id-1', deletedAt: null, name: '10-Pass' })
+    expect(pass).toMatchObject({ id: 'id-1', deletedAt: null, totalEntries: 10 })
     expect(pass.createdAt).toBe(pass.updatedAt)
     expect(await repo.getPass('id-1')).toEqual(pass)
     expect(await repo.listPasses()).toEqual([pass])
@@ -59,28 +68,71 @@ describe('passes', () => {
     expect(await repo.listPasses()).toEqual([])
   })
 
+  it('stores a membership with a monthly allowance and a single entry with no expiry', async () => {
+    const { repo } = makeTestRepo()
+    const m = await repo.createPass(membership({ monthlyEntries: 8, resetDay: 15 }))
+    const s = await repo.createPass(single())
+    expect(m).toMatchObject({ monthlyEntries: 8, resetDay: 15 })
+    expect(s).toMatchObject({ expiryDate: null, totalEntries: 1 })
+  })
+
+  it('records entries already used this month for a monthly membership, only for this period', async () => {
+    const { repo } = makeTestRepo()
+    const pass = await repo.createPass(membership({ monthlyEntries: 8 }), {
+      usedThisPeriod: 3,
+      today,
+    })
+    const [bundle] = await repo.listBundles()
+    expect(bundle?.uses).toHaveLength(3)
+    // This period: 15 Oct is in the period that started 10 Oct, so 5 are left...
+    expect(getPassStatus(pass, bundle!.uses, [], today, DEFAULT_SETTINGS).entriesLeft).toBe(5)
+    // ...and at the next reset (10 Nov) they stop counting.
+    expect(getPassStatus(pass, bundle!.uses, [], '2026-11-10', DEFAULT_SETTINGS).entriesLeft).toBe(
+      8,
+    )
+  })
+
+  it('refuses "used this month" for other passes or more than the allowance', async () => {
+    const { repo } = makeTestRepo()
+    await expect(repo.createPass(multipass(), { usedThisPeriod: 2, today })).rejects.toThrow(
+      'monthly count',
+    )
+    await expect(
+      repo.createPass(membership({ monthlyEntries: 8 }), { usedThisPeriod: 9, today }),
+    ).rejects.toThrow('up to 8')
+    await expect(
+      repo.createPass(membership({ monthlyEntries: 8 }), { usedThisPeriod: 1.5, today }),
+    ).rejects.toThrow()
+    expect(await repo.listPasses()).toEqual([]) // the pass was rolled back with the failed uses
+  })
+
   it('updates fields, keeps createdAt and bumps updatedAt', async () => {
     const { repo } = makeTestRepo()
     const created = await repo.createPass(multipass())
     const updated = await repo.updatePass(
       created.id,
-      multipass({ expiryDate: '2027-03-31', name: 'Extended' }),
+      multipass({ expiryDate: '2027-03-31', comments: 'extended' }),
     )
-    expect(updated).toMatchObject({ id: created.id, name: 'Extended', expiryDate: '2027-03-31' })
+    expect(updated).toMatchObject({
+      id: created.id,
+      expiryDate: '2027-03-31',
+      comments: 'extended',
+    })
     expect(updated.createdAt).toBe(created.createdAt)
     expect(updated.updatedAt > created.updatedAt).toBe(true)
     expect(await repo.getPass(created.id)).toEqual(updated)
   })
 
-  it('refuses to change a pass type, validates updates, and rejects unknown passes', async () => {
+  it('lets a row change type, and validates and finds the pass on update', async () => {
     const { repo } = makeTestRepo()
     const created = await repo.createPass(multipass())
-    await expect(repo.updatePass(created.id, membership())).rejects.toThrow('cannot change type')
+    const changed = await repo.updatePass(created.id, membership())
+    expect(changed).toMatchObject({ id: created.id, passType: 'membership' })
+    expect(changed).not.toHaveProperty('totalEntries')
     await expect(
       repo.updatePass(created.id, multipass({ totalEntries: 0 })),
     ).rejects.toBeInstanceOf(ZodError)
     await expect(repo.updatePass('nope', multipass())).rejects.toBeInstanceOf(NotFoundError)
-    expect(await repo.getPass(created.id)).toEqual(created)
   })
 
   it('soft-deletes: hidden from reads but kept in the table with deletedAt set', async () => {
@@ -97,28 +149,23 @@ describe('passes', () => {
 
   it('deleting a pass also soft-deletes its uses and freezes, but not other passes (FR-19)', async () => {
     const { repo, db } = makeTestRepo()
-    const target = await repo.createPass(membership())
+    const target = await repo.createPass(membership({ monthlyEntries: 8 }))
     const other = await repo.createPass(multipass())
-    const use = await repo.addUse(useInput(target.id))
-    const keptUse = await repo.addUse(useInput(other.id))
-    const earlierDeleted = await repo.addUse(useInput(target.id))
-    await repo.deleteUse(earlierDeleted.id)
-    const earlierDeletedAt = (await db.uses.get(earlierDeleted.id))?.deletedAt
+    const used = await repo.useEntry(target.id, today)
+    const keptUse = await repo.useEntry(other.id, today)
     const freeze = await repo.addFreeze({
       passId: target.id,
-      startDate: '2026-10-10',
-      endDate: '2026-10-12',
+      startDate: '2026-10-20',
+      endDate: '2026-10-22',
     })
 
     await repo.deletePass(target.id)
 
     expect(await repo.listUses(target.id)).toEqual([])
-    expect((await db.uses.get(use.id))?.deletedAt).not.toBeNull()
+    expect((await db.uses.get((used as { use: { id: string } }).use.id))?.deletedAt).not.toBeNull()
     expect((await db.freezes.get(freeze.id))?.deletedAt).not.toBeNull()
-    // A use deleted earlier keeps its original deletion time.
-    expect((await db.uses.get(earlierDeleted.id))?.deletedAt).toBe(earlierDeletedAt)
-    // Unrelated data is untouched.
-    expect(await repo.listUses(other.id)).toEqual([keptUse])
+    expect(await repo.listUses(other.id)).toHaveLength(1)
+    expect(keptUse.ok).toBe(true)
     expect(await repo.getPass(other.id)).toBeDefined()
   })
 
@@ -126,51 +173,147 @@ describe('passes', () => {
     const { repo, db } = makeTestRepo()
     await repo.createPass(multipass())
     await repo.createPass(multipass({ gymRef: { kind: 'user', id: 'gym-b' } }))
-    const found = await db.passes.where('gymRef.id').equals('gym-b').toArray()
-    expect(found).toHaveLength(1)
+    expect(await db.passes.where('gymRef.id').equals('gym-b').toArray()).toHaveLength(1)
   })
 })
 
-describe('uses', () => {
-  it('adds, edits, lists and deletes uses', async () => {
+describe('useEntry (−)', () => {
+  it('records a use with a timestamp and nothing else (D3, D4, D26)', async () => {
     const { repo } = makeTestRepo()
     const pass = await repo.createPass(multipass())
-    const use = await repo.addUse({ ...useInput(pass.id), note: 'with friends' })
-    expect(await repo.listUses(pass.id)).toEqual([use])
-
-    const moved = await repo.updateUse(use.id, { usedAt: '2026-05-31T04:00:00.000Z', note: null })
-    expect(moved).toMatchObject({ usedAt: '2026-05-31T04:00:00.000Z', note: null, passId: pass.id })
-    expect(moved.updatedAt > use.updatedAt).toBe(true)
-
-    await repo.deleteUse(use.id)
-    expect(await repo.listUses(pass.id)).toEqual([])
-    await expect(repo.deleteUse(use.id)).rejects.toBeInstanceOf(NotFoundError)
-  })
-
-  it('needs an existing, undeleted pass and a valid timestamp', async () => {
-    const { repo } = makeTestRepo()
-    await expect(repo.addUse(useInput('missing'))).rejects.toBeInstanceOf(NotFoundError)
-    const pass = await repo.createPass(multipass())
-    await expect(repo.addUse({ ...useInput(pass.id), usedAt: 'yesterday' })).rejects.toBeInstanceOf(
-      ZodError,
-    )
-    await repo.deletePass(pass.id)
-    await expect(repo.addUse(useInput(pass.id))).rejects.toBeInstanceOf(NotFoundError)
-  })
-
-  it('does not store anything about who used the entry (D4)', async () => {
-    const { repo } = makeTestRepo()
-    const pass = await repo.createPass(multipass())
-    const use = await repo.addUse({ ...useInput(pass.id), name: 'Alex' } as never)
-    expect(Object.keys(use).sort()).toEqual([
+    const result = await repo.useEntry(pass.id, today, at(today))
+    expect(result.ok).toBe(true)
+    const [use] = await repo.listUses(pass.id)
+    expect(use).toMatchObject({ passId: pass.id, usedAt: at(today) })
+    expect(Object.keys(use!).sort()).toEqual([
       'createdAt',
       'deletedAt',
       'id',
-      'note',
       'passId',
       'updatedAt',
       'usedAt',
     ])
+  })
+
+  it('stops at zero and writes nothing more (FR-11)', async () => {
+    const { repo } = makeTestRepo()
+    const pass = await repo.createPass(multipass({ totalEntries: 2 }))
+    expect((await repo.useEntry(pass.id, today)).ok).toBe(true)
+    expect((await repo.useEntry(pass.id, today)).ok).toBe(true)
+    expect(await repo.useEntry(pass.id, today)).toEqual({ ok: false, reason: 'none_left' })
+    expect(await repo.listUses(pass.id)).toHaveLength(2)
+  })
+
+  it('a double tap on the last entry only counts once', async () => {
+    const { repo } = makeTestRepo()
+    const pass = await repo.createPass(multipass({ totalEntries: 1 }))
+    const results = await Promise.all([
+      repo.useEntry(pass.id, today),
+      repo.useEntry(pass.id, today),
+    ])
+    expect(results.filter((r) => r.ok)).toHaveLength(1)
+    expect(await repo.listUses(pass.id)).toHaveLength(1)
+  })
+
+  it('counts initialUsed, and works on the expiry day but not after it (FR-12)', async () => {
+    const { repo } = makeTestRepo()
+    const partly = await repo.createPass(multipass({ totalEntries: 3, initialUsed: 2 }))
+    expect((await repo.useEntry(partly.id, today)).ok).toBe(true)
+    expect(await repo.useEntry(partly.id, today)).toEqual({ ok: false, reason: 'none_left' })
+
+    const ending = await repo.createPass(multipass({ expiryDate: '2026-10-15' }))
+    expect((await repo.useEntry(ending.id, '2026-10-15')).ok).toBe(true)
+    expect(await repo.useEntry(ending.id, '2026-10-16')).toEqual({ ok: false, reason: 'finished' })
+  })
+
+  it('an unlimited membership has no counter', async () => {
+    const { repo } = makeTestRepo()
+    const m = await repo.createPass(membership())
+    expect(await repo.useEntry(m.id, today)).toEqual({ ok: false, reason: 'no_counter' })
+  })
+
+  it('a monthly membership runs out, then comes back at the reset', async () => {
+    const { repo } = makeTestRepo()
+    const m = await repo.createPass(membership({ monthlyEntries: 2 }))
+    expect((await repo.useEntry(m.id, '2026-10-12', at('2026-10-12'))).ok).toBe(true)
+    expect((await repo.useEntry(m.id, '2026-10-13', at('2026-10-13'))).ok).toBe(true)
+    expect(await repo.useEntry(m.id, '2026-10-14', at('2026-10-14'))).toEqual({
+      ok: false,
+      reason: 'none_left',
+    })
+    expect((await repo.useEntry(m.id, '2026-11-10', at('2026-11-10'))).ok).toBe(true) // new period
+  })
+
+  it('needs an existing pass', async () => {
+    const { repo } = makeTestRepo()
+    await expect(repo.useEntry('missing', today)).rejects.toBeInstanceOf(NotFoundError)
+    const pass = await repo.createPass(multipass())
+    await repo.deletePass(pass.id)
+    await expect(repo.useEntry(pass.id, today)).rejects.toBeInstanceOf(NotFoundError)
+  })
+})
+
+describe('giveBackEntry (+)', () => {
+  it('undoes the latest tap, one at a time, back to full (FR-52)', async () => {
+    const { repo } = makeTestRepo()
+    const pass = await repo.createPass(multipass())
+    await repo.useEntry(pass.id, today, at('2026-10-10'))
+    const later = await repo.useEntry(pass.id, today, at('2026-10-12'))
+    const first = await repo.giveBackEntry(pass.id, today)
+    expect(first).toEqual({
+      ok: true,
+      action: 'remove_use',
+      useId: (later as { use: { id: string } }).use.id,
+    })
+    expect((await repo.giveBackEntry(pass.id, today)).ok).toBe(true)
+    expect(await repo.giveBackEntry(pass.id, today)).toEqual({ ok: false, reason: 'full' })
+    expect(await repo.listUses(pass.id)).toEqual([])
+  })
+
+  it('with no recorded uses, lowers "already used" and bumps updatedAt', async () => {
+    const { repo } = makeTestRepo()
+    const pass = await repo.createPass(multipass({ initialUsed: 2 }))
+    expect(await repo.giveBackEntry(pass.id, today)).toEqual({
+      ok: true,
+      action: 'lower_initial_used',
+    })
+    const after = await repo.getPass(pass.id)
+    expect(after).toMatchObject({ initialUsed: 1 })
+    expect(after!.updatedAt > pass.updatedAt).toBe(true)
+  })
+
+  it('never goes above the total, and an expired row is inert', async () => {
+    const { repo } = makeTestRepo()
+    const pass = await repo.createPass(multipass({ expiryDate: '2026-10-14' }))
+    await repo.useEntry(pass.id, '2026-10-14')
+    expect(await repo.giveBackEntry(pass.id, '2026-10-15')).toEqual({
+      ok: false,
+      reason: 'finished',
+    })
+    expect(await repo.listUses(pass.id)).toHaveLength(1)
+  })
+
+  it('a used-up single entry can be undone', async () => {
+    const { repo } = makeTestRepo()
+    const pass = await repo.createPass(single())
+    await repo.useEntry(pass.id, today)
+    expect(await repo.useEntry(pass.id, today)).toEqual({ ok: false, reason: 'none_left' })
+    expect((await repo.giveBackEntry(pass.id, today)).ok).toBe(true)
+    expect((await repo.useEntry(pass.id, today)).ok).toBe(true)
+  })
+
+  it('a monthly membership only gives back this period’s uses', async () => {
+    const { repo } = makeTestRepo()
+    const m = await repo.createPass(membership({ monthlyEntries: 8 }))
+    await repo.useEntry(m.id, '2026-10-12', at('2026-10-12'))
+    expect(await repo.giveBackEntry(m.id, '2026-11-15')).toEqual({ ok: false, reason: 'full' }) // last month's use
+    expect((await repo.giveBackEntry(m.id, '2026-10-20')).ok).toBe(true)
+  })
+
+  it('an unlimited membership has nothing to give back', async () => {
+    const { repo } = makeTestRepo()
+    const m = await repo.createPass(membership())
+    expect(await repo.giveBackEntry(m.id, today)).toEqual({ ok: false, reason: 'no_counter' })
   })
 })
 
@@ -180,147 +323,112 @@ describe('freezes', () => {
     const m = await repo.createPass(membership())
     const freeze = await repo.addFreeze({
       passId: m.id,
-      startDate: '2026-10-10',
-      endDate: '2026-10-12',
+      startDate: '2026-10-20',
+      endDate: '2026-10-22',
     })
-    const edited = await repo.updateFreeze(freeze.id, {
-      startDate: '2026-10-10',
-      endDate: '2026-10-20',
-    })
-    expect(edited.endDate).toBe('2026-10-20')
+    expect(
+      (await repo.updateFreeze(freeze.id, { startDate: '2026-10-20', endDate: '2026-10-30' }))
+        .endDate,
+    ).toBe('2026-10-30')
     await expect(
-      repo.updateFreeze(freeze.id, { startDate: '2026-10-10', endDate: '2026-10-01' }),
+      repo.updateFreeze(freeze.id, { startDate: '2026-10-20', endDate: '2026-10-01' }),
     ).rejects.toBeInstanceOf(ZodError)
     await repo.deleteFreeze(freeze.id)
     expect((await repo.listBundles())[0]?.freezes).toEqual([])
-
     const counted = await repo.createPass(multipass())
     await expect(
-      repo.addFreeze({ passId: counted.id, startDate: '2026-10-10', endDate: '2026-10-12' }),
+      repo.addFreeze({ passId: counted.id, startDate: '2026-10-20', endDate: '2026-10-22' }),
     ).rejects.toThrow('Only memberships')
   })
 })
 
 describe('listBundles', () => {
   it('groups live uses and freezes under their pass and skips deleted rows', async () => {
-    const { repo } = makeTestRepo()
+    const { repo, db } = makeTestRepo()
     const a = await repo.createPass(multipass())
     const b = await repo.createPass(membership())
-    const gone = await repo.createPass(multipass({ name: 'Gone' }))
-    const u1 = await repo.addUse(useInput(a.id))
-    const u2 = await repo.addUse(useInput(a.id))
-    await repo.addUse(useInput(gone.id))
-    await repo.deleteUse(u2.id)
-    const f = await repo.addFreeze({ passId: b.id, startDate: '2026-10-10', endDate: '2026-10-12' })
+    const gone = await repo.createPass(multipass())
+    await repo.useEntry(a.id, today)
+    await repo.useEntry(a.id, today)
+    await repo.useEntry(gone.id, today)
+    const [first] = await repo.listUses(a.id)
+    await db.uses.put({ ...first!, deletedAt: '2026-10-02T00:00:00.000Z' })
+    const f = await repo.addFreeze({ passId: b.id, startDate: '2026-10-20', endDate: '2026-10-22' })
     await repo.deletePass(gone.id)
 
     const bundles = await repo.listBundles()
     expect(bundles.map((x) => x.pass.id).sort()).toEqual([a.id, b.id].sort())
-    expect(bundles.find((x) => x.pass.id === a.id)?.uses).toEqual([u1])
+    expect(bundles.find((x) => x.pass.id === a.id)?.uses).toHaveLength(1)
     expect(bundles.find((x) => x.pass.id === b.id)?.freezes).toEqual([f])
   })
 
-  it('feeds the domain logic: entries left reflect logged uses', async () => {
+  it('feeds the domain logic: entries left reflect taps', async () => {
     const { repo } = makeTestRepo()
     const pass = await repo.createPass(multipass({ totalEntries: 3 }))
-    await repo.addUse(useInput(pass.id))
-    await repo.addUse(useInput(pass.id))
+    await repo.useEntry(pass.id, today)
+    await repo.useEntry(pass.id, today)
     const [b] = await repo.listBundles()
-    const status = getPassStatus(b!.pass, b!.uses, b!.freezes, '2026-10-01', DEFAULT_SETTINGS)
-    expect(status).toMatchObject({ state: 'active', entriesLeft: 1, low: true })
+    expect(getPassStatus(b!.pass, b!.uses, b!.freezes, today, DEFAULT_SETTINGS)).toMatchObject({
+      state: 'active',
+      entriesLeft: 1,
+      low: true,
+    })
+    expect(makeUse(pass.id).passId).toBe(pass.id) // the factory builds rows the same shape
   })
 })
 
-describe('user gyms and templates', () => {
-  it('adds, edits and lists gyms; templates can hold price and validity (Q3)', async () => {
+describe('gyms', () => {
+  it('lists built-in and user gyms together, sorted by name', async () => {
     const { repo } = makeTestRepo()
-    const gym = await repo.addUserGym({ name: 'My Wall', website: null })
-    expect(
-      (await repo.updateUserGym(gym.id, { name: 'My Wall 2', website: 'https://example.com' }))
-        .name,
-    ).toBe('My Wall 2')
-    const ref = { kind: 'user', id: gym.id } as const
-    const tpl = await repo.addUserTemplate({
-      gymRef: ref,
-      passType: 'multipass',
-      name: '5-Pass',
-      totalEntries: 5,
-      priceCents: 7500,
-      validityMonths: 6,
-      billingPeriod: null,
-    })
-    expect(await repo.listUserGyms()).toHaveLength(1)
-    expect(await repo.listUserTemplates(ref)).toEqual([tpl])
-    expect(await repo.listUserTemplates({ kind: 'builtin', id: gym.id })).toEqual([])
-    await expect(repo.addUserGym({ name: '  ', website: null })).rejects.toBeInstanceOf(ZodError)
-    await expect(
-      repo.addUserTemplate({
-        gymRef: ref,
-        passType: 'multipass',
-        name: 'x',
-        totalEntries: null,
-        priceCents: null,
-        validityMonths: null,
-        billingPeriod: null,
-      }),
-    ).rejects.toBeInstanceOf(ZodError)
+    await repo.findOrCreateGym('Alpha Wall')
+    expect((await repo.listGyms()).map((g) => g.name)).toEqual([
+      'Alpha Wall',
+      'Boulder+',
+      'Fit Bloc',
+    ])
   })
 
-  it('lets a user add a template to a built-in gym', async () => {
+  it('creates a gym for a name that matches none, tidying the text (D24, FR-25)', async () => {
     const { repo } = makeTestRepo()
-    await repo.addUserTemplate({
-      gymRef,
-      passType: 'membership',
-      name: 'Student',
-      totalEntries: null,
-      priceCents: null,
-      validityMonths: 12,
-      billingPeriod: 'yearly',
-    })
-    expect(await repo.listUserTemplates(gymRef)).toHaveLength(1)
+    const result = await repo.findOrCreateGym('  Zig   Zag Wall ')
+    expect(result).toEqual({ ref: { kind: 'user', id: 'id-1' }, created: true })
+    expect(await repo.listUserGyms()).toMatchObject([{ id: 'id-1', name: 'Zig Zag Wall' }])
   })
 
-  it('deletes a gym and its templates, but refuses while it still has passes', async () => {
-    const { repo, db } = makeTestRepo()
-    const gym = await repo.addUserGym({ name: 'My Wall', website: null })
-    const ref = { kind: 'user', id: gym.id } as const
-    const tpl = await repo.addUserTemplate({
-      gymRef: ref,
-      passType: 'single_entry',
-      name: 'Day',
-      totalEntries: null,
-      priceCents: 2200,
-      validityMonths: null,
-      billingPeriod: null,
+  it('reuses an existing gym, ignoring case and punctuation, instead of creating a duplicate', async () => {
+    const { repo } = makeTestRepo()
+    expect(await repo.findOrCreateGym('fit  BLOC')).toEqual({ ref: gymRef, created: false })
+    expect(await repo.findOrCreateGym('boulder plus')).toEqual({
+      ref: { kind: 'builtin', id: 'b-plus' },
+      created: false,
     })
-    const pass = await repo.createPass(multipass({ gymRef: ref }))
-
-    await expect(repo.deleteUserGym(gym.id)).rejects.toBeInstanceOf(GymInUseError)
+    const first = await repo.findOrCreateGym('My Wall')
+    const second = await repo.findOrCreateGym('my wall')
+    expect(second).toEqual({ ref: first.ref, created: false })
     expect(await repo.listUserGyms()).toHaveLength(1)
+  })
 
-    await repo.deletePass(pass.id) // a deleted pass no longer blocks
-    await repo.deleteUserGym(gym.id)
+  it('two quick submits of the same new name make one gym', async () => {
+    const { repo } = makeTestRepo()
+    const [a, b] = await Promise.all([
+      repo.findOrCreateGym('Brand New Gym'),
+      repo.findOrCreateGym('Brand New Gym'),
+    ])
+    expect(a.ref).toEqual(b.ref)
+    expect(await repo.listUserGyms()).toHaveLength(1)
+  })
+
+  it('a partial name is a new gym, not a match', async () => {
+    const { repo } = makeTestRepo()
+    expect((await repo.findOrCreateGym('Fit')).created).toBe(true)
+  })
+
+  it('rejects empty, symbol-only and over-long names', async () => {
+    const { repo } = makeTestRepo()
+    await expect(repo.findOrCreateGym('')).rejects.toBeInstanceOf(ZodError)
+    await expect(repo.findOrCreateGym('  ?!  ')).rejects.toBeInstanceOf(ZodError)
+    await expect(repo.findOrCreateGym('x'.repeat(101))).rejects.toBeInstanceOf(ZodError)
     expect(await repo.listUserGyms()).toEqual([])
-    expect(await repo.listUserTemplates(ref)).toEqual([])
-    expect((await db.userTemplates.get(tpl.id))?.deletedAt).not.toBeNull()
-  })
-})
-
-describe('hidden gyms', () => {
-  it('hides, unhides and re-hides a built-in gym', async () => {
-    const { repo, db } = makeTestRepo()
-    await repo.hideGym('gym-a')
-    await repo.hideGym('gym-a') // idempotent
-    expect(await repo.listHiddenGymIds()).toEqual(['gym-a'])
-    const first = await db.hiddenGyms.get('gym-a')
-
-    await repo.unhideGym('gym-a')
-    expect(await repo.listHiddenGymIds()).toEqual([])
-    await repo.unhideGym('gym-a') // no-op
-
-    await repo.hideGym('gym-a')
-    expect(await repo.listHiddenGymIds()).toEqual(['gym-a'])
-    expect((await db.hiddenGyms.get('gym-a'))?.createdAt).toBe(first?.createdAt)
   })
 })
 
@@ -328,14 +436,19 @@ describe('settings', () => {
   it('returns defaults until changed, then merges changes', async () => {
     const { repo } = makeTestRepo()
     expect(await repo.getSettings()).toEqual(DEFAULT_SETTINGS)
-    const next = await repo.updateSettings({ lowEntriesThreshold: 4 })
-    expect(next).toEqual({ ...DEFAULT_SETTINGS, lowEntriesThreshold: 4 })
-    expect(await repo.getSettings()).toEqual(next)
-    await repo.updateSettings({ expiryRemindersEnabled: false })
-    expect(await repo.getSettings()).toMatchObject({
+    const next = await repo.updateSettings({ lowEntriesThreshold: 4, resetRemindersEnabled: false })
+    expect(next).toEqual({
+      ...DEFAULT_SETTINGS,
       lowEntriesThreshold: 4,
-      expiryRemindersEnabled: false,
+      resetRemindersEnabled: false,
     })
+    expect(await repo.getSettings()).toEqual(next)
+  })
+
+  it('fills in settings added later when reading an older saved row', async () => {
+    const { repo, db } = makeTestRepo()
+    await db.settings.put({ id: 'settings', updatedAt: 'x', lowEntriesThreshold: 5 } as never)
+    expect(await repo.getSettings()).toEqual({ ...DEFAULT_SETTINGS, lowEntriesThreshold: 5 })
   })
 
   it('rejects invalid values and keeps the old ones', async () => {
@@ -348,8 +461,8 @@ describe('settings', () => {
   it('remembers dismissed reminders alongside other dismissals', async () => {
     const { repo } = makeTestRepo()
     await repo.dismissReminder('p1:expiring', 14)
-    const settings = await repo.dismissReminder('p2:low', 2)
-    expect(settings.dismissedReminders).toEqual({ 'p1:expiring': 14, 'p2:low': 2 })
+    const settings = await repo.dismissReminder('p2:reset', 20261110)
+    expect(settings.dismissedReminders).toEqual({ 'p1:expiring': 14, 'p2:reset': 20261110 })
   })
 })
 
@@ -364,9 +477,8 @@ describe('meta, wipe and persistence', () => {
   it('clearAllData hard-deletes everything from every table', async () => {
     const { repo, db } = makeTestRepo()
     const pass = await repo.createPass(multipass())
-    await repo.addUse(useInput(pass.id))
-    await repo.addUserGym({ name: 'My Wall', website: null })
-    await repo.hideGym('gym-a')
+    await repo.useEntry(pass.id, today)
+    await repo.findOrCreateGym('My Wall')
     await repo.updateSettings({ lowEntriesThreshold: 4 })
     await repo.setMeta('k', 'v')
 
@@ -385,8 +497,7 @@ describe('meta, wipe and persistence', () => {
   })
 
   it('generates unique ids by default', async () => {
-    const db = new ClimbDB('default-ids')
-    const repo = createRepo(db)
+    const repo = createRepo(new ClimbDB('default-ids'))
     const a = await repo.createPass(multipass())
     const b = await repo.createPass(multipass())
     expect(a.id).not.toBe(b.id)

@@ -1,11 +1,14 @@
 import { DEFAULT_SETTINGS, type Settings } from './settings'
 import { dismissalValue, getReminders, reminderKey } from './reminders'
 import {
+  at,
   bundle,
   makeCounted,
   makeFreeze,
   makeMembership,
+  makeMonthly,
   makeSingle,
+  makeUse,
   makeUses,
 } from './testFactories'
 
@@ -28,29 +31,29 @@ describe('getReminders — expiring', () => {
 
   it('reports the tightest window reached', () => {
     const b = (expiryDate: string) => bundle(makeCounted({ id: 'p', expiryDate }))
-    expect(getReminders([b('2026-10-04')], settings(), today)[0]?.window).toBe(3) // 3 days
-    expect(getReminders([b('2026-10-05')], settings(), today)[0]?.window).toBe(14) // 4 days
-    expect(getReminders([b('2026-10-01')], settings(), today)[0]?.window).toBe(3) // 0 days
+    expect(getReminders([b('2026-10-04')], settings(), today)[0]?.window).toBe(3)
+    expect(getReminders([b('2026-10-05')], settings(), today)[0]?.window).toBe(14)
+    expect(getReminders([b('2026-10-01')], settings(), today)[0]?.window).toBe(3)
   })
 
-  it('also covers memberships', () => {
-    const m = bundle(makeMembership({ id: 'm', endDate: '2026-10-10' }))
+  it('also covers memberships, but not a single entry with no expiry', () => {
+    const m = bundle(makeMembership({ id: 'm', expiryDate: '2026-10-10' }))
     expect(summary(getReminders([m], settings(), today))).toEqual(['m:expiring'])
+    expect(getReminders([bundle(makeSingle({ id: 's' }))], settings(), today)).toEqual([])
   })
 
-  it('stays quiet for passes with nothing to lose or that are not active', () => {
+  it('stays quiet for passes that are not active', () => {
     const usedUp = bundle(makeCounted({ id: 'a', totalEntries: 1, expiryDate: '2026-10-05' }), {
       uses: makeUses('a', 1),
     })
     const expired = bundle(makeCounted({ id: 'b', expiryDate: '2026-09-30' }))
-    const single = bundle(makeSingle({ id: 'c' }))
-    const frozen = bundle(makeMembership({ id: 'd', endDate: '2026-10-10' }), {
+    const frozen = bundle(makeMembership({ id: 'd', expiryDate: '2026-10-10' }), {
       freezes: [makeFreeze('d', today, '2026-10-02')],
     })
     const deleted = bundle(
       makeCounted({ id: 'e', expiryDate: '2026-10-05', deletedAt: '2026-09-01T00:00:00.000Z' }),
     )
-    expect(getReminders([usedUp, expired, single, frozen, deleted], settings(), today)).toEqual([])
+    expect(getReminders([usedUp, expired, frozen, deleted], settings(), today)).toEqual([])
   })
 
   it('respects the on/off switch and custom windows', () => {
@@ -73,9 +76,17 @@ describe('getReminders — low entries', () => {
     expect(left(0)).toEqual([])
   })
 
-  it('never applies to memberships, and respects the switch and threshold', () => {
-    const m = bundle(makeMembership({ id: 'm' }))
-    expect(getReminders([m], settings(), today)).toEqual([])
+  it('never applies to memberships or single entries, and respects the switch and threshold', () => {
+    expect(getReminders([bundle(makeMembership({ id: 'm' }))], settings(), today)).toEqual([])
+    expect(getReminders([bundle(makeSingle({ id: 's' }))], settings(), today)).toEqual([])
+    const monthly = makeMonthly({ id: 'mm' })
+    expect(
+      getReminders(
+        [bundle(monthly, { uses: makeUses('mm', 7, '2026-10-12') })],
+        settings(),
+        '2026-10-20',
+      ),
+    ).toEqual([])
     const pass = makeCounted({ id: 'p', totalEntries: 10 })
     const b = bundle(pass, { uses: makeUses('p', 6) }) // 4 left
     expect(
@@ -93,21 +104,80 @@ describe('getReminders — low entries', () => {
   })
 })
 
+describe('getReminders — monthly reset (D34, FR-59)', () => {
+  const m = makeMonthly({ id: 'm' }) // 8 a month, resets on the 10th, ends 2027-10-09
+  const withUses = (n: number, date = '2026-10-12') => bundle(m, { uses: makeUses('m', n, date) })
+
+  it('appears 3 days before the reset when entries are left', () => {
+    expect(getReminders([withUses(3)], settings(), '2026-11-06')).toEqual([]) // 4 days
+    expect(getReminders([withUses(3)], settings(), '2026-11-07')).toEqual([
+      expect.objectContaining({
+        kind: 'reset',
+        passId: 'm',
+        entriesLeft: 5,
+        resetDate: '2026-11-10',
+        daysToReset: 3,
+      }),
+    ])
+    expect(summary(getReminders([withUses(3)], settings(), '2026-11-09'))).toEqual(['m:reset'])
+  })
+
+  it('stays quiet when nothing is left to lose', () => {
+    expect(getReminders([withUses(8)], settings(), '2026-11-08')).toEqual([])
+  })
+
+  it('follows the shortest configured window and the on/off switch', () => {
+    expect(
+      summary(getReminders([withUses(3)], settings({ expiryReminderDays: [14, 5] }), '2026-11-05')),
+    ).toEqual(['m:reset'])
+    expect(
+      getReminders([withUses(3)], settings({ expiryReminderDays: [14, 5] }), '2026-11-04'),
+    ).toEqual([])
+    expect(
+      getReminders([withUses(3)], settings({ resetRemindersEnabled: false }), '2026-11-08'),
+    ).toEqual([])
+    expect(getReminders([withUses(3)], settings({ expiryReminderDays: [] }), '2026-11-08')).toEqual(
+      [],
+    )
+  })
+
+  it('is not raised when the membership ends before the next reset', () => {
+    const ending = makeMonthly({ id: 'e', expiryDate: '2026-11-08' })
+    const b = bundle(ending, { uses: makeUses('e', 3, '2026-10-12') })
+    expect(summary(getReminders([b], settings(), '2026-11-08'))).toEqual(['e:expiring']) // only the end-date banner
+  })
+
+  it('stays hidden once dismissed until the next period (FR-34)', () => {
+    const shown = getReminders([withUses(3)], settings(), '2026-11-08')[0]!
+    expect(dismissalValue(shown)).toBe(20261110)
+    const dismissed = settings({ dismissedReminders: { [shown.key]: dismissalValue(shown) } })
+    expect(getReminders([withUses(3)], dismissed, '2026-11-09')).toEqual([])
+    // A month later the next reset (10 Dec) is the one in range, so it shows again.
+    const later = bundle(m, { uses: [makeUse('m', { usedAt: at('2026-11-12') })] })
+    expect(summary(getReminders([later], dismissed, '2026-12-08'))).toEqual(['m:reset'])
+  })
+
+  it('never fires for an unlimited membership', () => {
+    const unlimited = bundle(makeMembership({ id: 'u', expiryDate: '2027-10-31' }))
+    expect(getReminders([unlimited], settings(), '2026-11-08')).toEqual([])
+  })
+})
+
 describe('getReminders — dismissal (FR-34)', () => {
   it('hides a dismissed expiring banner while still in the same window', () => {
     const pass = makeCounted({ id: 'p', expiryDate: '2026-10-15' })
     const shown = getReminders([bundle(pass)], settings(), today)[0]!
     expect(dismissalValue(shown)).toBe(14)
     const dismissed = settings({ dismissedReminders: { [shown.key]: dismissalValue(shown) } })
-    expect(getReminders([bundle(pass)], dismissed, today)).toEqual([]) // 14 days left
-    expect(getReminders([bundle(pass)], dismissed, '2026-10-10')).toEqual([]) // 5 days left
+    expect(getReminders([bundle(pass)], dismissed, today)).toEqual([])
+    expect(getReminders([bundle(pass)], dismissed, '2026-10-10')).toEqual([])
   })
 
   it('comes back in the 3-day window after being dismissed in the 14-day window', () => {
     const pass = makeCounted({ id: 'p', expiryDate: '2026-10-15' })
     const dismissed = settings({ dismissedReminders: { [reminderKey('p', 'expiring')]: 14 } })
-    expect(getReminders([bundle(pass)], dismissed, '2026-10-10')).toEqual([]) // 5 days left
-    expect(getReminders([bundle(pass)], dismissed, '2026-10-12')).toHaveLength(1) // 3 days left
+    expect(getReminders([bundle(pass)], dismissed, '2026-10-10')).toEqual([])
+    expect(getReminders([bundle(pass)], dismissed, '2026-10-12')).toHaveLength(1)
   })
 
   it('stays hidden once dismissed in the tightest window', () => {
@@ -119,22 +189,27 @@ describe('getReminders — dismissal (FR-34)', () => {
   it('brings a dismissed low banner back when fewer entries are left', () => {
     const pass = makeCounted({ id: 'p', totalEntries: 10 })
     const dismissed = settings({ dismissedReminders: { [reminderKey('p', 'low')]: 2 } })
-    expect(getReminders([bundle(pass, { uses: makeUses('p', 8) })], dismissed, today)).toEqual([]) // still 2
+    expect(getReminders([bundle(pass, { uses: makeUses('p', 8) })], dismissed, today)).toEqual([])
     expect(getReminders([bundle(pass, { uses: makeUses('p', 9) })], dismissed, today)).toHaveLength(
       1,
-    ) // now 1
+    )
   })
 })
 
 describe('getReminders — ordering', () => {
-  it('lists expiring first (soonest first), then low (fewest first)', () => {
+  it('lists expiring first, then resets, then low ones, each soonest or fewest first', () => {
     const a = bundle(makeCounted({ id: 'a', expiryDate: '2026-10-12' }))
     const b = bundle(makeCounted({ id: 'b', expiryDate: '2026-10-05' }))
-    const c = bundle(makeCounted({ id: 'c', totalEntries: 10 }), { uses: makeUses('c', 8) }) // 2 left
-    const d = bundle(makeCounted({ id: 'd', totalEntries: 10 }), { uses: makeUses('d', 9) }) // 1 left
-    expect(summary(getReminders([c, a, d, b], settings(), today))).toEqual([
+    const c = bundle(makeCounted({ id: 'c', totalEntries: 10 }), { uses: makeUses('c', 8) })
+    const d = bundle(makeCounted({ id: 'd', totalEntries: 10 }), { uses: makeUses('d', 9) })
+    const r = bundle(
+      makeMonthly({ id: 'r', purchaseDate: '2026-09-03', expiryDate: '2027-09-02' }),
+      { uses: makeUses('r', 2, '2026-09-10') },
+    )
+    expect(summary(getReminders([c, r, a, d, b], settings(), '2026-10-01'))).toEqual([
       'b:expiring',
       'a:expiring',
+      'r:reset',
       'd:low',
       'c:low',
     ])

@@ -1,32 +1,31 @@
 import { test, expect } from '@playwright/test'
 
-test('opens on Passes and moves between tabs', async ({ page }) => {
+test('opens on the main screen; the gear opens Settings and the back link returns', async ({
+  page,
+}) => {
   await page.goto('/')
   await expect(page.getByRole('heading', { level: 1, name: 'Passes' })).toBeVisible()
-  const nav = page.getByRole('navigation', { name: 'Main' })
-  await expect(nav).toBeVisible()
-  for (const name of ['History', 'Gyms', 'Settings']) {
-    await nav.getByRole('link', { name }).click()
-    await expect(page.getByRole('heading', { level: 1, name })).toBeVisible()
-  }
+  await expect(page.getByRole('navigation')).toHaveCount(0) // no tab bar
+  await page.getByRole('link', { name: 'Settings' }).click()
+  await expect(page.getByRole('heading', { level: 1, name: 'Settings' })).toBeVisible()
+  await page.getByRole('link', { name: '‹ Passes' }).click()
+  await expect(page.getByRole('heading', { level: 1, name: 'Passes' })).toBeVisible()
 })
 
-test('tab bar targets are at least 44px and stay inside the phone viewport', async ({ page }) => {
+test('the gear is at least 44px and the page fits the phone viewport', async ({ page }) => {
   await page.goto('/')
   const viewport = page.viewportSize()!
-  for (const link of await page.getByRole('navigation', { name: 'Main' }).getByRole('link').all()) {
-    const box = (await link.boundingBox())!
-    expect(box.height).toBeGreaterThanOrEqual(44)
-    expect(box.width).toBeGreaterThanOrEqual(44)
-    expect(box.x + box.width).toBeLessThanOrEqual(viewport.width)
-  }
+  const box = (await page.getByRole('link', { name: 'Settings' }).boundingBox())!
+  expect(box.height).toBeGreaterThanOrEqual(44)
+  expect(box.width).toBeGreaterThanOrEqual(44)
+  expect(box.x + box.width).toBeLessThanOrEqual(viewport.width)
   const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth)
   expect(scrollWidth).toBeLessThanOrEqual(viewport.width)
 })
 
 test('deep links work (SPA fallback)', async ({ page }) => {
-  await page.goto('/gyms')
-  await expect(page.getByRole('heading', { level: 1, name: 'Gyms' })).toBeVisible()
+  await page.goto('/settings')
+  await expect(page.getByRole('heading', { level: 1, name: 'Settings' })).toBeVisible()
 })
 
 test('follows the system dark mode', async ({ page }) => {
@@ -71,6 +70,6 @@ test('works offline after the first visit, including deep links', async ({ page,
   await expect(page.getByRole('heading', { level: 1, name: 'Settings' })).toBeVisible()
   await page.reload()
   await expect(page.getByRole('heading', { level: 1, name: 'Settings' })).toBeVisible()
-  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Passes' }).click()
+  await page.getByRole('link', { name: '‹ Passes' }).click()
   await expect(page.getByRole('heading', { level: 1, name: 'Passes' })).toBeVisible()
 })

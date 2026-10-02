@@ -1,16 +1,35 @@
-import { freezeInputSchema, passInputSchema, useInputSchema } from './schemas'
+import {
+  freezeInputSchema,
+  passInputSchema,
+  settingsSchema,
+  useInputSchema,
+  userGymInputSchema,
+} from './schemas'
+import { DEFAULT_SETTINGS } from './settings'
 
 const gymRef = { kind: 'builtin', id: 'g1' } as const
-const counted = {
-  gymRef,
+const common = { gymRef, priceCents: 12000, comments: null, purchaseDate: '2026-01-01' }
+
+const multipass = {
+  ...common,
   passType: 'multipass',
-  name: '10-Pass',
-  priceCents: 12000,
-  notes: null,
   totalEntries: 10,
   initialUsed: 0,
-  purchaseDate: '2026-01-01',
   expiryDate: '2026-07-01',
+} as const
+const single = {
+  ...common,
+  passType: 'single_entry',
+  totalEntries: 1,
+  initialUsed: 0,
+  expiryDate: null,
+} as const
+const membership = {
+  ...common,
+  passType: 'membership',
+  expiryDate: '2026-12-31',
+  monthlyEntries: null,
+  resetDay: null,
 } as const
 
 const messages = (input: unknown) => {
@@ -19,90 +38,119 @@ const messages = (input: unknown) => {
 }
 
 describe('passInputSchema', () => {
-  it('accepts a valid multipass, class pack, membership and single entry', () => {
-    expect(passInputSchema.safeParse(counted).success).toBe(true)
-    expect(passInputSchema.safeParse({ ...counted, passType: 'class_pack' }).success).toBe(true)
-    expect(
-      passInputSchema.safeParse({
-        gymRef,
-        passType: 'membership',
-        name: 'Monthly',
-        priceCents: null,
-        notes: null,
-        billingPeriod: 'monthly',
-        startDate: '2026-10-01',
-        endDate: '2026-10-31',
-      }).success,
-    ).toBe(true)
-    expect(
-      passInputSchema.safeParse({
-        gymRef,
-        passType: 'single_entry',
-        name: 'Day pass',
-        priceCents: 2200,
-        notes: null,
-        visitDate: '2026-10-01',
-      }).success,
-    ).toBe(true)
+  it('accepts each kind of pass', () => {
+    expect(messages(multipass)).toEqual([])
+    expect(messages({ ...multipass, passType: 'class_pack', totalEntries: 4 })).toEqual([])
+    expect(messages(single)).toEqual([])
+    expect(messages(membership)).toEqual([])
+    expect(messages({ ...membership, monthlyEntries: 8, resetDay: 15 })).toEqual([])
+    expect(messages({ ...membership, monthlyEntries: 8 })).toEqual([]) // reset day: purchase day
+  })
+
+  it('has no name, billing period or visit date any more', () => {
+    const parsed = passInputSchema.parse({
+      ...multipass,
+      name: '10-Pass',
+      billingPeriod: 'monthly',
+    })
+    expect(parsed).not.toHaveProperty('name')
+    expect(parsed).not.toHaveProperty('billingPeriod')
   })
 
   it('requires at least 1 entry (FR-22)', () => {
-    expect(messages({ ...counted, totalEntries: 0 })).toEqual([
+    expect(messages({ ...multipass, totalEntries: 0 })).toEqual([
       'totalEntries: Entries must be at least 1',
     ])
+    expect(messages({ ...multipass, totalEntries: 1001 })).toEqual([
+      'totalEntries: Enter 1000 entries or fewer',
+    ])
+    expect(messages({ ...multipass, totalEntries: 2.5 })).toHaveLength(1)
   })
 
   it('rejects an expiry before the purchase date (FR-22) but allows the same day', () => {
-    expect(messages({ ...counted, expiryDate: '2025-12-31' })).toEqual([
+    expect(messages({ ...multipass, expiryDate: '2025-12-31' })).toEqual([
       'expiryDate: Expiry date cannot be before the purchase date',
     ])
-    expect(messages({ ...counted, expiryDate: '2026-01-01' })).toEqual([])
+    expect(messages({ ...multipass, expiryDate: '2026-01-01' })).toEqual([])
+    expect(messages({ ...membership, expiryDate: '2025-12-31' })).toEqual([
+      'expiryDate: Expiry date cannot be before the purchase date',
+    ])
+    expect(messages({ ...single, expiryDate: '2025-12-31' })).toEqual([
+      'expiryDate: Expiry date cannot be before the purchase date',
+    ])
+  })
+
+  it('requires an expiry for everything except a single entry (FR-17)', () => {
+    expect(messages({ ...multipass, expiryDate: null })).not.toEqual([])
+    expect(messages({ ...membership, expiryDate: null })).not.toEqual([])
+    expect(messages({ ...single, expiryDate: null })).toEqual([])
   })
 
   it('rejects more entries already used than the total, but allows all of them', () => {
-    expect(messages({ ...counted, initialUsed: 11 })).toEqual([
+    expect(messages({ ...multipass, initialUsed: 11 })).toEqual([
       'initialUsed: Cannot be more than the total entries',
     ])
-    expect(messages({ ...counted, initialUsed: 10 })).toEqual([])
+    expect(messages({ ...multipass, initialUsed: 10 })).toEqual([])
+    expect(messages({ ...single, initialUsed: 1 })).toEqual([])
+    expect(messages({ ...single, initialUsed: 2 })).not.toEqual([])
   })
 
-  it('rejects a membership ending before it starts', () => {
-    const m = {
-      gymRef,
-      passType: 'membership',
-      name: 'M',
-      priceCents: null,
-      notes: null,
-      billingPeriod: 'custom',
-      startDate: '2026-10-10',
-      endDate: '2026-10-09',
-    }
-    expect(messages(m)).toEqual(['endDate: End date cannot be before the start date'])
+  it('a single entry has exactly one entry', () => {
+    expect(messages({ ...single, totalEntries: 2 })).not.toEqual([])
   })
 
-  it('rejects blank names, negative or fractional prices and impossible dates', () => {
-    expect(messages({ ...counted, name: '   ' })).toEqual(['name: Enter a name'])
-    expect(messages({ ...counted, priceCents: -1 })).toHaveLength(1)
-    expect(messages({ ...counted, priceCents: 10.5 })).toHaveLength(1)
-    expect(messages({ ...counted, purchaseDate: '2026-02-30' })).not.toEqual([])
-    expect(messages({ ...counted, passType: 'bogus' })).not.toEqual([])
+  it('checks entries per month and the reset day on a membership (FR-22, FR-58)', () => {
+    expect(messages({ ...membership, monthlyEntries: 0 })).toEqual([
+      'monthlyEntries: Entries per month must be at least 1',
+    ])
+    expect(messages({ ...membership, monthlyEntries: 8, resetDay: 0 })).toEqual([
+      'resetDay: Enter a day from 1 to 31',
+    ])
+    expect(messages({ ...membership, monthlyEntries: 8, resetDay: 32 })).toEqual([
+      'resetDay: Enter a day from 1 to 31',
+    ])
+    expect(messages({ ...membership, monthlyEntries: 8, resetDay: 31 })).toEqual([])
+    expect(messages({ ...membership, monthlyEntries: 8, resetDay: 1 })).toEqual([])
+    // A reset day only means something when there is a monthly allowance.
+    expect(messages({ ...membership, monthlyEntries: null, resetDay: 15 })).toEqual([
+      'resetDay: A reset day only applies to a membership with entries per month',
+    ])
+  })
+
+  it('reports every problem at once', () => {
+    const problems = messages({
+      ...multipass,
+      totalEntries: 0,
+      priceCents: -5,
+      expiryDate: '2025-01-01',
+    })
+    expect(problems).toHaveLength(3)
+  })
+
+  it('rejects negative or fractional prices, long comments, impossible dates and unknown types', () => {
+    expect(messages({ ...multipass, priceCents: -1 })).toHaveLength(1)
+    expect(messages({ ...multipass, priceCents: 10.5 })).toHaveLength(1)
+    expect(messages({ ...multipass, comments: 'x'.repeat(501) })).toEqual([
+      'comments: Keep comments under 500 characters',
+    ])
+    expect(messages({ ...multipass, purchaseDate: '2026-02-30' })).not.toEqual([])
+    expect(messages({ ...multipass, passType: 'bogus' })).not.toEqual([])
   })
 })
 
 describe('useInputSchema and freezeInputSchema', () => {
   it('accepts UTC and offset timestamps and rejects other strings', () => {
-    const use = { passId: 'p', note: null }
-    expect(useInputSchema.safeParse({ ...use, usedAt: new Date().toISOString() }).success).toBe(
-      true,
-    )
-    expect(useInputSchema.safeParse({ ...use, usedAt: '2026-10-01T09:00:00+08:00' }).success).toBe(
-      true,
-    )
-    expect(useInputSchema.safeParse({ ...use, usedAt: '2026-10-01' }).success).toBe(false)
+    expect(
+      useInputSchema.safeParse({ passId: 'p', usedAt: new Date().toISOString() }).success,
+    ).toBe(true)
+    expect(
+      useInputSchema.safeParse({ passId: 'p', usedAt: '2026-10-01T09:00:00+08:00' }).success,
+    ).toBe(true)
+    expect(useInputSchema.safeParse({ passId: 'p', usedAt: '2026-10-01' }).success).toBe(false)
   })
 
-  it('has no field for a person, so names cannot be stored (D4)', () => {
-    expect(Object.keys(useInputSchema.shape).sort()).toEqual(['note', 'passId', 'usedAt'])
+  it('has no field for a person or a note, so neither can be stored (D4, D26)', () => {
+    expect(Object.keys(useInputSchema.shape).sort()).toEqual(['passId', 'usedAt'])
   })
 
   it('rejects a freeze that ends before it starts', () => {
@@ -114,5 +162,29 @@ describe('useInputSchema and freezeInputSchema', () => {
       freezeInputSchema.safeParse({ passId: 'p', startDate: '2026-10-05', endDate: '2026-10-05' })
         .success,
     ).toBe(true)
+  })
+})
+
+describe('userGymInputSchema', () => {
+  it('needs a name and nothing else', () => {
+    expect(userGymInputSchema.safeParse({ name: 'My Wall' }).success).toBe(true)
+    expect(userGymInputSchema.safeParse({ name: '   ' }).success).toBe(false)
+    expect(userGymInputSchema.safeParse({ name: 'x'.repeat(101) }).success).toBe(false)
+    expect(Object.keys(userGymInputSchema.shape)).toEqual(['name'])
+  })
+})
+
+describe('settingsSchema', () => {
+  it('accepts the defaults and rejects nonsense', () => {
+    expect(settingsSchema.safeParse(DEFAULT_SETTINGS).success).toBe(true)
+    expect(settingsSchema.safeParse({ ...DEFAULT_SETTINGS, lowEntriesThreshold: -1 }).success).toBe(
+      false,
+    )
+    expect(settingsSchema.safeParse({ ...DEFAULT_SETTINGS, expiryReminderDays: [0] }).success).toBe(
+      false,
+    )
+    expect(
+      settingsSchema.safeParse({ ...DEFAULT_SETTINGS, resetRemindersEnabled: 'yes' }).success,
+    ).toBe(false)
   })
 })

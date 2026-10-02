@@ -130,7 +130,7 @@ Priority: **P0** = must have for launch, **P1** = should have for launch, **P2**
 - **FR-6 (P0)** Each row shows its status where it applies: *Expiring soon*, *Low* (not for monthly memberships, D34), *Frozen*. Finished rows show *Used up* or *Expired – X unused*.
 - **FR-7 (P0)** Reminder banners at the top of the list (see 6.6).
 - **FR-8 (P0)** Empty state: only the blank add row, with a prompt such as "Type a gym to add your first pass".
-- **FR-50 (P0)** **Finished section:** a collapsed "Finished (n)" section at the bottom lists used-up and expired passes in the same columns, newest expiry first. Their counters are inert. Each can be deleted (FR-19), and editing the expiry date to a later date moves the row back up (D8, D27).
+- **FR-50 (P0)** **Finished section:** a collapsed "Finished (n)" section at the bottom lists used-up and expired passes in the same columns, newest expiry first. Their counters are inert, except that `+` on a used-up row gives the last entry back, to undo a mis-tap (FR-52). Each can be deleted (FR-19), and editing the expiry date to a later date moves the row back up (D8, D27).
 - **FR-51 (P0)** A gear icon in the header opens Settings. There is no other screen and no bottom tab bar (D23).
 - **FR-56 (P0)** Tapping a row (outside its buttons and cells) opens its details section (see 6.3).
 
@@ -171,7 +171,7 @@ Priority: **P0** = must have for launch, **P1** = should have for launch, **P2**
 
 ### 6.6 Reminders (in-app, v1)
 - **FR-31 (P0)** **Expiring soon:** show a banner when a counted pass with entries left, or a membership, is within the reminder windows. Defaults: **14 days** and **3 days** before expiry.
-- **FR-32 (P0)** **Low entries:** show a banner when a counted pass has **2 or fewer** entries left. This does not apply to memberships with a monthly allowance (D34).
+- **FR-32 (P0)** **Low entries:** show a banner when a counted pass has **2 or fewer** entries left. This does not apply to memberships with a monthly allowance (D34) or to a single entry, which only ever has one.
 - **FR-33 (P0)** Users can change both thresholds in Settings, or turn each reminder type off (expiring soon, low entries, monthly reset).
 - **FR-34 (P1)** Banners can be dismissed. A dismissed banner reappears when the pass reaches the next reminder window.
 - **FR-35 (P2)** An app icon badge with the number of active reminders, using the Badging API where supported.
