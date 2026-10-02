@@ -169,7 +169,8 @@ describe('saving', () => {
         expect((await repo.listPasses()).length).toBe(entries === '10' ? 1 : 2),
       )
     }
-    expect(await mainRows()).toHaveLength(2)
+    // The screen follows the database a moment later.
+    await waitFor(async () => expect(await mainRows()).toHaveLength(2))
     expect(await repo.listUserGyms()).toHaveLength(1)
   })
 })
@@ -285,8 +286,11 @@ describe('the other types', () => {
     expect(expiryBox()).toHaveAccessibleName('Expiry (optional)')
     await user.click(await gymBox())
     await user.keyboard('{Enter}')
-    await waitFor(async () => expect(await repo.listPasses()).toHaveLength(1))
-    const [row] = await mainRows()
+    const [row] = await waitFor(async () => {
+      const rows = await mainRows()
+      expect(rows).toHaveLength(1)
+      return rows
+    })
     expect(row).toHaveTextContent('Single entry')
     expect(row).toHaveTextContent('1 / 1')
     expect(row).toHaveTextContent('No expiry')
