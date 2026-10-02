@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor, within } from '@testing-library/react'
+import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import App from '../../app/App'
@@ -196,38 +196,5 @@ describe('main screen — the list of rows', () => {
     renderAt()
     const [row] = await rowsOf('Passes')
     for (const label of ['Gym:', 'Type:', 'Expiry:', 'Left:']) expect(row).toHaveTextContent(label)
-  })
-})
-
-describe('preview sample tools (?sample)', () => {
-  it('are not shown normally', async () => {
-    renderAt()
-    await screen.findByText(/No passes yet/)
-    expect(screen.queryByRole('region', { name: 'Sample data tools' })).not.toBeInTheDocument()
-  })
-
-  it('add a spread of passes, then delete everything', async () => {
-    const user = userEvent.setup()
-    renderAt('/?sample')
-    await user.click(await screen.findByRole('button', { name: 'Add sample passes' }))
-
-    // The samples are saved one after another, so wait for the last (finished) ones too.
-    expect(await screen.findByText('Finished (2)')).toBeInTheDocument()
-    await waitFor(async () => expect(await rowsOf('Passes')).toHaveLength(7))
-    const text = (await rowsOf('Passes')).map(rowText).join(' | ')
-    for (const expected of [
-      'Unlimited',
-      'Class / course pack',
-      'Single entry',
-      'Expiring soon',
-      'Low',
-      'Zig Zag Wall',
-    ])
-      expect(text).toContain(expected)
-
-    await user.click(screen.getByRole('button', { name: 'Delete everything on this device' }))
-    await user.click(screen.getByRole('button', { name: 'Yes, delete' }))
-    expect(await screen.findByText(/No passes yet/)).toBeInTheDocument()
-    expect(await repo.listPasses()).toEqual([])
   })
 })

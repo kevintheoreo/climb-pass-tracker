@@ -41,3 +41,10 @@ export function isMembership(pass: Pass): pass is MembershipPass {
 export function isMonthly(pass: Pass): pass is MonthlyMembership {
   return pass.passType === 'membership' && pass.monthlyEntries !== null
 }
+
+/** A pass's fields before its gym is known (the gym cell's text is turned into a gym on save). */
+export type PassFields = PassInput extends infer P
+  ? P extends unknown
+    ? Omit<P, 'gymRef'>
+    : never
+  : never
