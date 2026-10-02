@@ -184,4 +184,4 @@ During M1 I'll put in a few placeholder gyms so the app can be tested; you repla
 | Q3 | User-added templates | *Superseded.* There are no templates (D11, D30). |
 | Q4 | Icon | A simple generated placeholder icon until there is a logo. |
 | Q5 | CI | A GitHub Actions workflow runs lint, typecheck and tests on every PR. |
-| Q6 | Redesign | One screen of rows (D23–D31), as set out in PRD v2.0. |
+| Q6 | Redesign | One screen of rows (D23–D34, including monthly-allowance memberships), as set out in PRD v2.1. |
