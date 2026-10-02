@@ -1,13 +1,13 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useMemo } from 'react'
 import { repo } from '../../db'
-import { findGym } from '../../domain/gyms'
+import { findGym, type GymEntry } from '../../domain/gyms'
 import type { LocalDate } from '../../domain/dates'
 import { buildRows, type Rows } from '../../domain/rows'
 import { useToday } from './useToday'
 
 /** The main screen's rows, kept live as the database changes. Undefined while loading. */
-export function usePassRows(): (Rows & { today: LocalDate }) | undefined {
+export function usePassRows(): (Rows & { today: LocalDate; gyms: GymEntry[] }) | undefined {
   const today = useToday()
   const bundles = useLiveQuery(() => repo.listBundles(), [])
   const gyms = useLiveQuery(() => repo.listGyms(), [])
@@ -21,6 +21,6 @@ export function usePassRows(): (Rows & { today: LocalDate }) | undefined {
       today,
       settings,
     )
-    return { ...rows, today }
+    return { ...rows, today, gyms }
   }, [bundles, gyms, settings, today])
 }

@@ -1,8 +1,8 @@
 import { test, expect, type Page } from '@playwright/test'
+import { seedSamples } from './seed'
 
 async function addSamples(page: Page) {
-  await page.goto('/?sample')
-  await page.getByRole('button', { name: 'Add sample passes' }).click()
+  await seedSamples(page)
   await expect(page.getByText('Finished (2)')).toBeVisible()
   await expect(page.getByRole('list', { name: 'Passes' }).locator(':scope > li')).toHaveCount(7)
 }

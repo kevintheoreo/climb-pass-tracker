@@ -23,6 +23,7 @@ import {
   type GymRef,
   type Pass,
   type PassBundle,
+  type PassFields,
   type PassInput,
   type RecordMeta,
   type Use,
@@ -296,6 +297,18 @@ export function createRepo(db: ClimbDB, options: RepoOptions = {}) {
     })
   }
 
+  /**
+   * Saves a new row from the main screen (FR-54): turns the gym cell's text into a gym and creates
+   * the pass for it, in one transaction. If the pass is invalid nothing is saved, so a failed row
+   * never leaves a stray gym behind.
+   */
+  async function createPassForGymText(gymText: string, pass: PassFields): Promise<Pass> {
+    return db.transaction('rw', db.userGyms, db.passes, db.uses, async () => {
+      const { ref } = await findOrCreateGym(gymText)
+      return createPass({ ...pass, gymRef: ref } as PassInput)
+    })
+  }
+
   // ---- Settings ---------------------------------------------------------------------------
 
   async function getSettings(): Promise<Settings> {
@@ -354,6 +367,7 @@ export function createRepo(db: ClimbDB, options: RepoOptions = {}) {
     listUserGyms,
     listGyms,
     findOrCreateGym,
+    createPassForGymText,
     getSettings,
     updateSettings,
     dismissReminder,

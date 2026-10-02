@@ -418,6 +418,28 @@ describe('gyms', () => {
     expect(await repo.listUserGyms()).toHaveLength(1)
   })
 
+  it('saves a row: the gym and the pass together, reusing a gym that exists', async () => {
+    const { repo } = makeTestRepo()
+    const { gymRef: _gym, ...fields } = multipass()
+    void _gym
+    const first = await repo.createPassForGymText('  New   Wall ', fields)
+    const second = await repo.createPassForGymText('new wall', fields)
+    const third = await repo.createPassForGymText('fit bloc', fields)
+    expect(first.gymRef).toEqual(second.gymRef)
+    expect(third.gymRef).toEqual(gymRef)
+    expect(await repo.listUserGyms()).toMatchObject([{ name: 'New Wall' }])
+    expect(await repo.listPasses()).toHaveLength(3)
+  })
+
+  it('a row with an invalid pass saves nothing, not even its new gym', async () => {
+    const { repo } = makeTestRepo()
+    const { gymRef: _gym, ...fields } = multipass({ totalEntries: 0 })
+    void _gym
+    await expect(repo.createPassForGymText('Stray Gym', fields)).rejects.toBeInstanceOf(ZodError)
+    expect(await repo.listUserGyms()).toEqual([])
+    expect(await repo.listPasses()).toEqual([])
+  })
+
   it('a partial name is a new gym, not a match', async () => {
     const { repo } = makeTestRepo()
     expect((await repo.findOrCreateGym('Fit')).created).toBe(true)
