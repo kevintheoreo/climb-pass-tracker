@@ -5,7 +5,7 @@ import {
   type GiveBackPlan,
   type UseBlockReason,
 } from '../domain/counter'
-import { currentPeriod } from '../domain/cycle'
+import { currentPeriod, usesInPeriod } from '../domain/cycle'
 import type { LocalDate } from '../domain/dates'
 import { buildGymList, resolveGymInput, type BuiltinGym, type GymEntry } from '../domain/gyms'
 import {
@@ -21,6 +21,7 @@ import {
   type Freeze,
   type FreezeInput,
   type GymRef,
+  type MonthlyMembership,
   type Pass,
   type PassBundle,
   type PassFields,
@@ -309,6 +310,59 @@ export function createRepo(db: ClimbDB, options: RepoOptions = {}) {
     })
   }
 
+  /**
+   * Saves an edited row from its details panel (FR-17, FR-18, FR-58): the gym text becomes a gym,
+   * the pass fields replace the old ones, and for a monthly membership `usedThisMonth` (when not
+   * null) sets how many entries count as used in the current period. All in one transaction, so a
+   * failure changes nothing. Changing the reset day or the allowance needs no extra step: the
+   * count is derived from the recorded uses.
+   */
+  async function saveRow(
+    id: string,
+    gymText: string,
+    fields: PassFields,
+    options: { usedThisMonth: number | null; today: LocalDate },
+  ): Promise<Pass> {
+    return db.transaction('rw', db.userGyms, db.passes, db.uses, async () => {
+      const { ref } = await findOrCreateGym(gymText)
+      const pass = await updatePass(id, { ...fields, gymRef: ref } as PassInput)
+      if (options.usedThisMonth !== null && isMonthly(pass)) {
+        await setUsedThisPeriod(pass, options.usedThisMonth, options.today)
+      }
+      return pass
+    })
+  }
+
+  /**
+   * Makes this period's count of used entries `target`. More: adds uses stamped at the start of
+   * the period (as `createPass` does). Fewer: removes the most recent uses of the period.
+   */
+  async function setUsedThisPeriod(
+    pass: MonthlyMembership,
+    target: number,
+    today: LocalDate,
+  ): Promise<void> {
+    if (!Number.isInteger(target) || target < 0 || target > pass.monthlyEntries) {
+      throw new Error(`Used this month must be a whole number up to ${pass.monthlyEntries}`)
+    }
+    const period = currentPeriod(pass, today)
+    const uses = (await db.uses.where('passId').equals(pass.id).toArray()).filter(isLive)
+    const inPeriod = usesInPeriod(pass, uses, period).sort((a, b) =>
+      a.usedAt < b.usedAt ? -1 : a.usedAt > b.usedAt ? 1 : 0,
+    )
+    if (target > inPeriod.length) {
+      const usedAt = startOfDay(period.start)
+      const added = Array.from({ length: target - inPeriod.length }, (): Use =>
+        create({ passId: pass.id, usedAt }),
+      )
+      await db.uses.bulkAdd(added)
+    } else if (target < inPeriod.length) {
+      const t = now()
+      const removed = inPeriod.slice(target).map((use) => tombstone(use, t))
+      await db.uses.bulkPut(removed)
+    }
+  }
+
   // ---- Settings ---------------------------------------------------------------------------
 
   async function getSettings(): Promise<Settings> {
@@ -368,6 +422,7 @@ export function createRepo(db: ClimbDB, options: RepoOptions = {}) {
     listGyms,
     findOrCreateGym,
     createPassForGymText,
+    saveRow,
     getSettings,
     updateSettings,
     dismissReminder,

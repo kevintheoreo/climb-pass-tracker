@@ -1,9 +1,30 @@
 import type { LocalDate } from '../../domain/dates'
+import type { GymEntry } from '../../domain/gyms'
 import type { Row } from '../../domain/rows'
-import { PassRow, WIDE_COLUMNS } from './PassRow'
+import { WIDE_COLUMNS } from './fields'
+import { PassRow } from './PassRow'
 
 /** A bordered list of rows, with column headings on wide screens. */
-export function RowList({ rows, label, today }: { rows: Row[]; label: string; today: LocalDate }) {
+export function RowList({
+  rows,
+  label,
+  today,
+  gyms,
+  openId,
+  onToggle,
+  onClose,
+  onUsedLast,
+}: {
+  rows: Row[]
+  label: string
+  today: LocalDate
+  gyms: GymEntry[]
+  /** The row whose details are open, if it is in this list. */
+  openId: string | null
+  onToggle: (passId: string) => void
+  onClose: () => void
+  onUsedLast?: ((row: Row) => void) | undefined
+}) {
   return (
     <div className="overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
       <div
@@ -17,7 +38,16 @@ export function RowList({ rows, label, today }: { rows: Row[]; label: string; to
       </div>
       <ul aria-label={label} className="divide-y divide-slate-200 dark:divide-slate-800">
         {rows.map((row) => (
-          <PassRow key={row.pass.id} row={row} today={today} />
+          <PassRow
+            key={row.pass.id}
+            row={row}
+            today={today}
+            gyms={gyms}
+            open={openId === row.pass.id}
+            onToggle={() => onToggle(row.pass.id)}
+            onClose={onClose}
+            onUsedLast={onUsedLast}
+          />
         ))}
       </ul>
     </div>

@@ -526,3 +526,150 @@ describe('meta, wipe and persistence', () => {
     expect(a.id).toMatch(/^[0-9a-f-]{36}$/)
   })
 })
+
+describe('saving an edited row', () => {
+  const fieldsOf = (input: PassInput) => {
+    const { gymRef: _gym, ...fields } = input
+    void _gym
+    return fields as Parameters<ReturnType<typeof makeTestRepo>['repo']['saveRow']>[2]
+  }
+
+  it('changes the fields and the gym together, keeping the id and the creation time', async () => {
+    const { repo } = makeTestRepo()
+    const created = await repo.createPass(multipass())
+    const saved = await repo.saveRow(
+      created.id,
+      '  Brand   New Gym ',
+      fieldsOf(multipass({ totalEntries: 20, priceCents: 9900, comments: 'sale' })),
+      { usedThisMonth: null, today },
+    )
+    expect(saved).toMatchObject({
+      id: created.id,
+      createdAt: created.createdAt,
+      totalEntries: 20,
+      priceCents: 9900,
+      comments: 'sale',
+    })
+    expect(saved.updatedAt > created.updatedAt).toBe(true)
+    expect((await repo.listUserGyms()).map((g) => g.name)).toEqual(['Brand New Gym'])
+    expect(saved.gymRef).toEqual({ kind: 'user', id: (await repo.listUserGyms())[0]!.id })
+  })
+
+  it('reuses an existing gym instead of making a copy', async () => {
+    const { repo } = makeTestRepo()
+    const created = await repo.createPass(multipass({ gymRef: { kind: 'builtin', id: 'b-plus' } }))
+    const saved = await repo.saveRow(created.id, 'fit  bloc', fieldsOf(multipass()), {
+      usedThisMonth: null,
+      today,
+    })
+    expect(saved.gymRef).toEqual(gymRef)
+    expect(await repo.listUserGyms()).toEqual([])
+  })
+
+  it('an invalid edit changes nothing, not even the gym', async () => {
+    const { repo } = makeTestRepo()
+    const created = await repo.createPass(multipass())
+    await expect(
+      repo.saveRow(created.id, 'Stray Gym', fieldsOf(multipass({ totalEntries: 0 })), {
+        usedThisMonth: null,
+        today,
+      }),
+    ).rejects.toBeInstanceOf(ZodError)
+    expect(await repo.getPass(created.id)).toEqual(created)
+    expect(await repo.listUserGyms()).toEqual([])
+  })
+
+  it('editing a deleted row fails and leaves no stray gym', async () => {
+    const { repo } = makeTestRepo()
+    const created = await repo.createPass(multipass())
+    await repo.deletePass(created.id)
+    await expect(
+      repo.saveRow(created.id, 'Stray Gym', fieldsOf(multipass()), { usedThisMonth: null, today }),
+    ).rejects.toBeInstanceOf(NotFoundError)
+    expect(await repo.listUserGyms()).toEqual([])
+  })
+
+  it('moving the expiry of a used-up or expired pass later brings it back (D8, D27)', async () => {
+    const { repo } = makeTestRepo()
+    const created = await repo.createPass(multipass({ expiryDate: '2026-10-01' }))
+    const status = async () => {
+      const [b] = await repo.listBundles()
+      return getPassStatus(b!.pass, b!.uses, b!.freezes, today, DEFAULT_SETTINGS)
+    }
+    expect((await status()).state).toBe('expired')
+    await repo.saveRow(created.id, 'Fit Bloc', fieldsOf(multipass({ expiryDate: '2027-03-01' })), {
+      usedThisMonth: null,
+      today,
+    })
+    expect((await status()).isActive).toBe(true)
+  })
+
+  describe('entries used this month', () => {
+    const monthly = (overrides: Record<string, unknown> = {}) =>
+      membership({ monthlyEntries: 8, purchaseDate: '2026-10-01', ...overrides })
+
+    const usedNow = async (repo: ReturnType<typeof makeTestRepo>['repo']) => {
+      const [b] = await repo.listBundles()
+      return getPassStatus(b!.pass, b!.uses, b!.freezes, today, DEFAULT_SETTINGS).entriesLeft
+    }
+
+    it('raises and lowers this period’s count, leaving other periods alone', async () => {
+      const { repo } = makeTestRepo()
+      const created = await repo.createPass(monthly())
+      await repo.useEntry(created.id, today, at('2026-10-05')) // a real tap this month
+      await repo.useEntry(created.id, today, at('2026-09-20')) // last period: ignored
+      expect(await usedNow(repo)).toBe(7)
+
+      await repo.saveRow(created.id, 'Fit Bloc', fieldsOf(monthly()), { usedThisMonth: 5, today })
+      expect(await usedNow(repo)).toBe(3)
+
+      await repo.saveRow(created.id, 'Fit Bloc', fieldsOf(monthly()), { usedThisMonth: 1, today })
+      expect(await usedNow(repo)).toBe(7)
+
+      await repo.saveRow(created.id, 'Fit Bloc', fieldsOf(monthly()), { usedThisMonth: 0, today })
+      expect(await usedNow(repo)).toBe(8)
+      const kept = await repo.listUses(created.id)
+      expect(kept.map((u) => u.usedAt)).toEqual([at('2026-09-20')])
+    })
+
+    it('null leaves the count alone', async () => {
+      const { repo } = makeTestRepo()
+      const created = await repo.createPass(monthly())
+      await repo.useEntry(created.id, today, at('2026-10-05'))
+      await repo.saveRow(created.id, 'Fit Bloc', fieldsOf(monthly()), {
+        usedThisMonth: null,
+        today,
+      })
+      expect(await usedNow(repo)).toBe(7)
+    })
+
+    it('refuses more than the allowance, and changes nothing', async () => {
+      const { repo } = makeTestRepo()
+      const created = await repo.createPass(monthly())
+      await expect(
+        repo.saveRow(created.id, 'Stray Gym', fieldsOf(monthly()), { usedThisMonth: 9, today }),
+      ).rejects.toThrow('Used this month')
+      expect(await repo.listUserGyms()).toEqual([])
+    })
+
+    it('changing the reset day recalculates the count straight away (FR-58)', async () => {
+      const { repo } = makeTestRepo()
+      const created = await repo.createPass(monthly({ resetDay: 1 }))
+      await repo.useEntry(created.id, today, at('2026-10-05'))
+      expect(await usedNow(repo)).toBe(7)
+      // Reset on the 10th: today (15th) is in the period that began on the 10th, so the use on the 5th no longer counts.
+      await repo.saveRow(created.id, 'Fit Bloc', fieldsOf(monthly({ resetDay: 10 })), {
+        usedThisMonth: null,
+        today,
+      })
+      expect(await usedNow(repo)).toBe(8)
+    })
+
+    it('is ignored for a pass that is not a monthly membership', async () => {
+      const { repo } = makeTestRepo()
+      const created = await repo.createPass(multipass())
+      await repo.saveRow(created.id, 'Fit Bloc', fieldsOf(multipass()), { usedThisMonth: 3, today })
+      expect(await repo.listUses(created.id)).toEqual([])
+    })
+  })
+})

@@ -3,6 +3,7 @@ import { counterView } from '../../domain/counter'
 import type { LocalDate } from '../../domain/dates'
 import { expiryLabel, leftLabel } from '../../domain/format'
 import type { Row } from '../../domain/rows'
+import { isMonthly } from '../../domain/types'
 
 const button =
   'inline-flex size-11 shrink-0 items-center justify-center rounded-full text-2xl leading-none disabled:cursor-not-allowed'
@@ -22,10 +23,21 @@ async function ignoreMissing(action: Promise<unknown>) {
  * pass). The rules and the saving are in the domain and repository, so a double tap can't count
  * twice; the screen just reflects the database.
  */
-export function Counter({ row, today }: { row: Row; today: LocalDate }) {
+export function Counter({
+  row,
+  today,
+  onUsedLast,
+}: {
+  row: Row
+  today: LocalDate
+  /** Called after `−` uses the last entry of a pass, which moves its row to Finished. */
+  onUsedLast?: ((row: Row) => void) | undefined
+}) {
   const { pass, bundle } = row
   const view = counterView(pass, bundle.uses, bundle.freezes, today)
   const what = `${row.gymName}, ${row.typeLabel}, ${expiryLabel(row.expiry)}`
+  // A monthly membership stays in the main list at 0, so only the other passes leave it.
+  const lastEntry = !isMonthly(pass) && row.status.entriesLeft === 1
 
   return (
     <div className="flex items-center gap-1">
@@ -34,7 +46,13 @@ export function Counter({ row, today }: { row: Row; today: LocalDate }) {
           type="button"
           aria-label={`Use one entry: ${what}`}
           disabled={!view.canUse}
-          onClick={() => void ignoreMissing(repo.useEntry(pass.id, today))}
+          onClick={() =>
+            void ignoreMissing(
+              repo.useEntry(pass.id, today).then((result) => {
+                if (result.ok && lastEntry) onUsedLast?.(row)
+              }),
+            )
+          }
           className={`${button} bg-teal-700 text-white hover:bg-teal-800 disabled:bg-slate-200 disabled:text-slate-400 disabled:hover:bg-slate-200 dark:disabled:bg-slate-800 dark:disabled:text-slate-600 dark:disabled:hover:bg-slate-800`}
         >
           <span aria-hidden="true">−</span>
