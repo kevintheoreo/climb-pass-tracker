@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Draft v2.1 — single-screen redesign, with monthly-allowance memberships, for review |
+| **Status** | Draft v2.2 — single-screen redesign, with monthly-allowance memberships, for review |
 | **Date** | 2026-10-02 |
 | **Product** | Climb Pass Tracker |
 | **Platform** | Progressive Web App (PWA), phone-first |
@@ -102,6 +102,8 @@ Status column: **Active**, **Updated** (still applies, reworded for v2.0) or **S
 | D32 | Monthly memberships | A membership has an optional **entries per month**. Left blank it is unlimited. With a number it has a counter for the current month that returns to the full allowance at each reset. Unused entries do **not** roll over. A freeze moves only the end date, not the reset day. | New |
 | D33 | Reset day | The count resets on the same day of the month as the purchase (start) date. The user can change that day. A day the month doesn't have (such as the 31st in April) means the last day of that month. | New |
 | D34 | Reset reminder | A banner 3 days before a reset when entries are left (the shortest of the reminder windows, so it follows the Settings value). It has its own on/off switch. The "low entries" banner and badge don't apply to monthly memberships, because they would appear every month. | New |
+| D35 | Moved-to-Finished notice | When `−` uses the last entry of a pass and its row leaves the main list, a short notice at the bottom says where it went, with an Undo button that gives the entry back (the same as `+` in Finished). It narrows the removal of the Undo toast (FR-5): only this one case, because the row disappearing and the next row taking its place is confusing. | New |
+| D36 | Editing | Tapping a row opens a panel under it with every field, including the gym, type, entries and expiry. The row's own cells stay read-only. The panel saves itself under the same rule as a new row (D29). | New |
 
 ## 5. Pass types
 
@@ -126,13 +128,13 @@ Priority: **P0** = must have for launch, **P1** = should have for launch, **P2**
 - **FR-2 (P0)** A multipass, class-pack or single-entry row shows entries left with the total (`7 / 10`), the expiry date, and the days left in small text. A membership with a monthly allowance shows this month's entries left (`5 / 8`) and the date it next resets.
 - **FR-3 (P0)** A membership without a monthly allowance shows "Unlimited", the end date and the days left.
 - **FR-4 (P0)** Counted rows and memberships with a monthly allowance have large `−` and `+` buttons (at least 44 px tap targets). See 6.2.
-- **FR-5** **Removed.** There is no Undo toast: `+` is the undo (D25).
+- **FR-5** **Removed.** There is no general Undo toast: `+` is the undo (D25). The one exception is FR-60.
 - **FR-6 (P0)** Each row shows its status where it applies: *Expiring soon*, *Low* (not for monthly memberships, D34), *Frozen*. Finished rows show *Used up* or *Expired – X unused*.
 - **FR-7 (P0)** Reminder banners at the top of the list (see 6.6).
 - **FR-8 (P0)** Empty state: only the blank add row, with a prompt such as "Type a gym to add your first pass".
 - **FR-50 (P0)** **Finished section:** a collapsed "Finished (n)" section at the bottom lists used-up and expired passes in the same columns, newest expiry first. Their counters are inert, except that `+` on a used-up row gives the last entry back, to undo a mis-tap (FR-52). Each can be deleted (FR-19), and editing the expiry date to a later date moves the row back up (D8, D27).
 - **FR-51 (P0)** A gear icon in the header opens Settings. There is no other screen and no bottom tab bar (D23).
-- **FR-56 (P0)** Tapping a row (outside its buttons and cells) opens its details section (see 6.3).
+- **FR-56 (P0)** Tapping a row (outside its buttons) opens its details panel (see 6.3, D36). The gym name is also a button that opens and closes it, for keyboard and screen-reader users. Only one panel is open at a time.
 
 ### 6.2 Counter
 - **FR-9 (P0)** `−` uses one entry immediately, with no confirmation.
@@ -149,7 +151,7 @@ Priority: **P0** = must have for launch, **P1** = should have for launch, **P2**
 - **FR-15 (P0)** **Add a row:** the blank row at the bottom of the list is always visible. Its cells are Gym (autocomplete text box, FR-53), Type (default Multipass), Entries (counted types; a single entry is fixed at 1; for a membership it is the optional *entries per month*, left blank for unlimited) and Expiry.
 - **FR-16** **Removed.** There are no pass templates (D11, D30).
 - **FR-17 (P0)** Fields. In the row: gym, type, entries (the total), expiry (with +6 / +12 month quick buttons that count from the purchase date, D7). In the details section: purchase date (defaults to today; a membership's start date), price paid in S$ (optional), "already used" (entries used before the pass was added to the app), and comments (optional free text, up to 500 characters, for the user's own reference). For a membership with a monthly allowance: the reset day (FR-58), and "already used this month" in place of "already used".
-- **FR-18 (P0)** Every field can be edited later: the row's cells directly, the rest in the details section.
+- **FR-18 (P0)** Every field can be edited later in the details panel (D36): gym, type, entries, expiry, purchase date, price, already used, comments, and for a monthly membership the reset day and the entries already used this month. The panel saves itself when every field is valid and focus leaves it, or on Enter. Nothing half-finished is saved; every problem is listed at once; Close drops an invalid edit. Changing the type clears entries whose meaning changes (entries versus entries per month).
 - **FR-19 (P0)** **Delete a row** from its details section, with confirmation. This also removes its recorded uses and freezes.
 - **FR-20 (P1)** **Freeze** a membership: in the details section enter a start and end date. The end date is pushed back by the freeze length. Several freezes are allowed, and each can be edited or removed. A freeze moves only the end date; the monthly reset day is not affected (D32).
 - **FR-21 (P1)** **Buy again** (details section): create a new row with the same gym, type, entries and price, leaving the expiry empty.
@@ -177,6 +179,8 @@ Priority: **P0** = must have for launch, **P1** = should have for launch, **P2**
 - **FR-35 (P2)** An app icon badge with the number of active reminders, using the Badging API where supported.
 - **FR-55 (P0)** The row a banner is about is highlighted, so the warning and the pass are easy to match.
 - **FR-59 (P0)** **Monthly reset reminder (D34):** show a banner when a membership with a monthly allowance has entries left and its next reset is within the shortest reminder window (default 3 days), for example "Climb Central: 3 entries reset in 3 days". A dismissed banner stays hidden until the next reset.
+- **FR-60 (P0)** **Moved to Finished notice (D35):** when `−` uses the last entry of a counted pass or a single entry, a notice at the bottom of the screen reads "<gym>, <type> moved to Finished" with an **Undo** button. Undo gives the entry back. The notice goes away after 8 seconds (it waits while hovered or focused), when the entry is given back some other way, or when a newer notice replaces it. A monthly membership never shows it, because it stays in the main list at 0. The page leaves room to scroll the last rows above it.
+- **FR-61 (P2)** **Row motion (M3):** when a row moves to or from Finished, it slides out to the side while the rows below move up, and the reverse when it comes back. Skipped when the device's reduced-motion setting is on.
 
 ### 6.7 Accounts and sync
 - **FR-36 (P0)** The app works fully without signing in. Data is stored on the device.

@@ -200,7 +200,12 @@ describe('rows with no buttons', () => {
     const finished = screen.getByRole('list', { name: 'Finished passes' })
     expect(within(finished).getByText('Expired – 6 unused')).toBeInTheDocument()
     expect(within(finished).getByText('6 / 10')).toBeInTheDocument()
-    expect(within(finished).queryByRole('button')).not.toBeInTheDocument()
+    expect(
+      within(finished).queryByRole('button', { name: /^Use one entry/ }),
+    ).not.toBeInTheDocument()
+    expect(
+      within(finished).queryByRole('button', { name: /^Give one entry back/ }),
+    ).not.toBeInTheDocument()
   })
 
   it('keeps working when a row is deleted just before the tap', async () => {
