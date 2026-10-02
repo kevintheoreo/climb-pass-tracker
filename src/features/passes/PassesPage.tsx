@@ -41,7 +41,7 @@ export default function PassesPage() {
 
   if (!rows) return <Page title="Passes" />
 
-  const { active, finished } = rows
+  const { active, finished, today } = rows
   return (
     <Page title="Passes">
       {params.has('sample') && <SampleTools />}
@@ -55,7 +55,7 @@ export default function PassesPage() {
         <p className="mb-4 text-slate-600 dark:text-slate-400">No active passes.</p>
       )}
 
-      {active.length > 0 && <RowList rows={active} label="Passes" />}
+      {active.length > 0 && <RowList rows={active} label="Passes" today={today} />}
 
       {finished.length > 0 && (
         <details className="group mt-6">
@@ -69,7 +69,7 @@ export default function PassesPage() {
             Finished ({finished.length})
           </summary>
           <div className="mt-2">
-            <RowList rows={finished} label="Finished passes" />
+            <RowList rows={finished} label="Finished passes" today={today} />
           </div>
         </details>
       )}

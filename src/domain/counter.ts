@@ -81,3 +81,22 @@ export function planGiveBack(
   if (isCounted(pass) && pass.initialUsed > 0) return { ok: true, action: 'lower_initial_used' }
   return { ok: false, reason: 'full' }
 }
+
+/** What a row's `−` / `+` buttons should look like right now. */
+export interface CounterView {
+  /** False for an unlimited membership and for an expired row, which are inert (FR-12, FR-50). */
+  visible: boolean
+  canUse: boolean
+  canGiveBack: boolean
+}
+
+export function counterView(
+  pass: Pass,
+  uses: Use[],
+  freezes: Freeze[],
+  today: LocalDate,
+): CounterView {
+  const canUse = canUseEntry(pass, uses, freezes, today).ok
+  const canGiveBack = planGiveBack(pass, uses, freezes, today).ok
+  return { visible: hasCounter(pass) && (canUse || canGiveBack), canUse, canGiveBack }
+}

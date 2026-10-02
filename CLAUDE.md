@@ -8,7 +8,7 @@ Climb Pass Tracker is a phone-first PWA for climbers to track gym passes, starti
 
 `docs/PRD.md` (v2.1, the single-screen redesign) is the source of truth for scope and behaviour; `docs/IMPLEMENTATION_PLAN.md` is the step-by-step build plan (milestones M1–M3). Read both before implementing anything, and cite decision IDs (D1–D34) and requirement IDs (FR-1…FR-59) when relevant. IDs are stable across versions; superseded ones are marked in the PRD, so do not follow a D/FR that the PRD marks Superseded or Removed.
 
-Progress: steps 1.1 to 1.6 are merged: setup, domain logic, local database, app shell, the rework for the single-screen model, and the read-only list of rows. You cannot add or change passes yet, and Settings is empty. **Next is step 1.7, the `−` / `+` counter.** Work happens on a feature branch per step, merged into `main` through a PR (CI runs on PRs only). The old Gyms-screens branch `step-1-5-gyms` (PR #4, closed unmerged) is only a source of ideas now; do not merge it.
+Progress: steps 1.1 to 1.7 are merged: setup, domain logic, local database, app shell, the rework for the single-screen model, the list of rows, and the `−` / `+` counter (`Counter.tsx`, rules in `counterView` in `src/domain/counter.ts`). You cannot add or edit passes by hand yet, and Settings is empty. **Next is step 1.8, adding a row.** Work happens on a feature branch per step, merged into `main` through a PR (CI runs on PRs only). The old Gyms-screens branch `step-1-5-gyms` (PR #4, closed unmerged) is only a source of ideas now; do not merge it.
 
 Where things live:
 
