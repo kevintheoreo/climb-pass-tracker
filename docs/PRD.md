@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Draft v2.0 — single-screen redesign, for review |
+| **Status** | Draft v2.1 — single-screen redesign, with monthly-allowance memberships, for review |
 | **Date** | 2026-10-02 |
 | **Product** | Climb Pass Tracker |
 | **Platform** | Progressive Web App (PWA), phone-first |
@@ -18,6 +18,7 @@ v1.x described a dashboard of cards grouped by gym, plus separate Gyms and Histo
 - **Rows, not groups.** A row is `Gym | Type | Expiry | Left`. The same gym can appear in many rows, for example two separate multipasses (D23).
 - **Gyms are typed, not managed.** The first column is a text box with autocomplete. A name that matches no gym is saved as a new gym automatically (D24).
 - **A plain counter.** `−` uses an entry and `+` gives one back (D25). Individual uses are recorded silently but never shown (D26).
+- **Monthly memberships.** A membership can have a monthly allowance of entries that resets every month, on a day the user can change (D32–D34).
 - **Removed:** pass templates and pass options, per-use history and backdating, the use Undo toast, hiding gyms, the gym list screen, pass names and billing periods.
 
 Requirement (FR) and decision (D) numbers are kept stable so references elsewhere stay valid. Anything replaced is marked **Superseded** or **Removed** where it stands.
@@ -82,7 +83,7 @@ Status column: **Active**, **Updated** (still applies, reworded for v2.0) or **S
 | D13 | First sign-in | Data already on the device is **merged** into the account. | Active |
 | D14 | Sign-out | Data is **cleared** from the device, since it is safe in the account. | Active |
 | D15 | Privacy | Data export (CSV) and account deletion are included. | Active |
-| D16 | Pass types | **Multipass**, **Class / course pack** (behaves like a multipass), **Membership** (unlimited, no counter), **Single entry** (a pass with exactly 1 entry, D28). | Updated |
+| D16 | Pass types | **Multipass**, **Class / course pack** (behaves like a multipass), **Membership** (unlimited, or with a monthly allowance of entries, D32), **Single entry** (a pass with exactly 1 entry, D28). | Updated |
 | D17 | Language | English only. | Active |
 | D18 | Currency | **SGD only** in v1. There is no currency setting. | Active |
 | D19 | Analytics | None in v1, to keep the free database tier small. | Active |
@@ -91,13 +92,16 @@ Status column: **Active**, **Updated** (still applies, reworded for v2.0) or **S
 | D22 | Gym data upkeep | The product owner checks the built-in gym names. How often is still to be decided. | Updated |
 | D23 | Layout | **One main screen** of rows, `Gym \| Type \| Expiry \| Left`, not grouped by gym. Settings is reached from a **gear icon in the header**. No bottom tab bar (a two-item bar would waste space on a data-dense screen), no Gyms screen, no History screen. | New |
 | D24 | Entering a gym | The first column is a text box with an autocomplete dropdown of existing gyms (built-in and the user's own). Typing a name that matches no gym saves it as a new gym. | New |
-| D25 | Counter | `−` uses one entry. `+` gives one back. The counter stays between 0 and the total entered when the row was created. | New |
+| D25 | Counter | `−` uses one entry. `+` gives one back. The counter stays between 0 and the total entered when the row was created (for a monthly membership, between 0 and the monthly allowance). | New |
 | D26 | Use records | Each `−` is recorded silently with its timestamp, which keeps `+` (undo) working and leaves room for stats later. No screen shows these records in v1. | New |
 | D27 | Finished passes | Used-up and expired passes move to a collapsed **Finished** section at the bottom, where they can be deleted. | New |
-| D28 | Membership and single entry | A membership shows "Unlimited" and has no counter. A single entry is a 1-entry pass. | New |
+| D28 | Membership and single entry | A membership shows "Unlimited" unless it has a monthly allowance (D32). A single entry is a 1-entry pass. | New |
 | D29 | Adding a row | An always-visible blank row at the bottom. It saves itself once every required cell is valid and the user leaves the row (or presses Enter). | New |
 | D30 | Extra fields | Price paid, purchase date, "already used" and comments live in a section that opens when a row is tapped. | New |
 | D31 | Order | Rows are sorted by soonest expiry first. Passes with no expiry come last. | New |
+| D32 | Monthly memberships | A membership has an optional **entries per month**. Left blank it is unlimited. With a number it has a counter for the current month that returns to the full allowance at each reset. Unused entries do **not** roll over. A freeze moves only the end date, not the reset day. | New |
+| D33 | Reset day | The count resets on the same day of the month as the purchase (start) date. The user can change that day. A day the month doesn't have (such as the 31st in April) means the last day of that month. | New |
+| D34 | Reset reminder | A banner 3 days before a reset when entries are left (the shortest of the reminder windows, so it follows the Settings value). It has its own on/off switch. The "low entries" banner and badge don't apply to monthly memberships, because they would appear every month. | New |
 
 ## 5. Pass types
 
@@ -105,10 +109,13 @@ Status column: **Active**, **Updated** (still applies, reworded for v2.0) or **S
 |---|---|---|---|---|
 | **Multipass** | `7 / 10` with `−` and `+` | Required | Uses one entry | 0 left, or past the expiry date |
 | **Class / course pack** | `3 / 4` with `−` and `+` (sessions) | Required | Uses one session | 0 left, or past the expiry date |
-| **Membership** | "Unlimited", no controls | Required (the end date; freezes push it back) | — | Past the (freeze-extended) end date |
+| **Membership** (unlimited) | "Unlimited", no controls | Required (the end date; freezes push it back) | — | Past the (freeze-extended) end date |
+| **Membership with monthly entries** | `5 / 8` with `−` and `+`, and "resets 15 Nov" | Required (the end date; freezes push it back) | Uses one of this month's entries | Past the (freeze-extended) end date. Reaching 0 does **not** finish it: the count returns at the next reset |
 | **Single entry** | `1 / 1` with `−` and `+` | Optional | Uses it | 0 left, or past the expiry date if there is one |
 
 Class packs behave exactly like multipasses with a different label. A pass is usable through the whole of its expiry date.
+
+A membership's monthly allowance runs in periods. Each period starts on a reset day and lasts until the next one. The first period starts on the purchase date and gets the full allowance, even if it is shorter than a month.
 
 ## 6. Functional requirements
 
@@ -116,11 +123,11 @@ Priority: **P0** = must have for launch, **P1** = should have for launch, **P2**
 
 ### 6.1 Main screen
 - **FR-1 (P0)** The main screen is a list of rows, one per active pass, with the columns **Gym | Type | Expiry | Left**. Rows are not grouped by gym, and the same gym can appear in many rows. Sorted by soonest expiry first (D31).
-- **FR-2 (P0)** A multipass, class-pack or single-entry row shows entries left with the total (`7 / 10`), the expiry date, and the days left in small text.
-- **FR-3 (P0)** A membership row shows "Unlimited", the end date and the days left.
-- **FR-4 (P0)** Counted rows have large `−` and `+` buttons (at least 44 px tap targets). See 6.2.
+- **FR-2 (P0)** A multipass, class-pack or single-entry row shows entries left with the total (`7 / 10`), the expiry date, and the days left in small text. A membership with a monthly allowance shows this month's entries left (`5 / 8`) and the date it next resets.
+- **FR-3 (P0)** A membership without a monthly allowance shows "Unlimited", the end date and the days left.
+- **FR-4 (P0)** Counted rows and memberships with a monthly allowance have large `−` and `+` buttons (at least 44 px tap targets). See 6.2.
 - **FR-5** **Removed.** There is no Undo toast: `+` is the undo (D25).
-- **FR-6 (P0)** Each row shows its status where it applies: *Expiring soon*, *Low*, *Frozen*. Finished rows show *Used up* or *Expired – X unused*.
+- **FR-6 (P0)** Each row shows its status where it applies: *Expiring soon*, *Low* (not for monthly memberships, D34), *Frozen*. Finished rows show *Used up* or *Expired – X unused*.
 - **FR-7 (P0)** Reminder banners at the top of the list (see 6.6).
 - **FR-8 (P0)** Empty state: only the blank add row, with a prompt such as "Type a gym to add your first pass".
 - **FR-50 (P0)** **Finished section:** a collapsed "Finished (n)" section at the bottom lists used-up and expired passes in the same columns, newest expiry first. Their counters are inert. Each can be deleted (FR-19), and editing the expiry date to a later date moves the row back up (D8, D27).
@@ -130,21 +137,23 @@ Priority: **P0** = must have for launch, **P1** = should have for launch, **P2**
 ### 6.2 Counter
 - **FR-9 (P0)** `−` uses one entry immediately, with no confirmation.
 - **FR-10** **Removed.** Every row has its own counter (D6 superseded).
-- **FR-11 (P0)** `−` is disabled when 0 entries are left. The row then moves to Finished.
+- **FR-11 (P0)** `−` is disabled when 0 entries are left. The row then moves to Finished. A monthly membership is the exception: at 0 it stays in the main list with `−` disabled until the next reset (FR-57).
 - **FR-12 (P0)** A pass is usable through the whole of its expiry date. After that its row is Finished and the counter does nothing; editing the expiry date to a later date brings it back.
 - **FR-13** **Removed.** There is no adding, changing or deleting of individual past uses.
 - **FR-14 (P0)** Each `−` silently records a use: the timestamp only. No names and no notes are stored (D4, D26).
-- **FR-52 (P0)** `+` gives one entry back by removing the most recent recorded use. If no use is recorded (for example the pass was entered with some entries already used), it lowers the "already used" count instead. `+` is disabled when all entries are available.
+- **FR-52 (P0)** `+` gives one entry back by removing the most recent recorded use. If no use is recorded (for example the pass was entered with some entries already used), it lowers the "already used" count instead. `+` is disabled when all entries are available. For a monthly membership it removes the latest use in the current period, and is disabled when nothing was used this period.
+- **FR-57 (P0)** **Monthly allowance (D32):** a membership may have *entries per month*. Its counter shows this month's entries left out of that allowance, and the date of the next reset. `−` and `+` work as above. At each reset the count returns to the full allowance and unused entries are lost.
+- **FR-58 (P0)** **Reset day (D33):** the day of the month the count resets. It defaults to the day of the purchase date and can be changed in the details section (1 to 31). In a month without that day the reset happens on the month's last day. Changing the reset day or the allowance recalculates the current count straight away from the recorded uses.
 
 ### 6.3 Adding and editing rows
-- **FR-15 (P0)** **Add a row:** the blank row at the bottom of the list is always visible. Its cells are Gym (autocomplete text box, FR-53), Type (default Multipass), Entries (counted types; a single entry is fixed at 1; a membership has none) and Expiry.
+- **FR-15 (P0)** **Add a row:** the blank row at the bottom of the list is always visible. Its cells are Gym (autocomplete text box, FR-53), Type (default Multipass), Entries (counted types; a single entry is fixed at 1; for a membership it is the optional *entries per month*, left blank for unlimited) and Expiry.
 - **FR-16** **Removed.** There are no pass templates (D11, D30).
-- **FR-17 (P0)** Fields. In the row: gym, type, entries (the total), expiry (with +6 / +12 month quick buttons that count from the purchase date, D7). In the details section: purchase date (defaults to today; a membership's start date), price paid in S$ (optional), "already used" (entries used before the pass was added to the app), and comments (optional free text, up to 500 characters, for the user's own reference).
+- **FR-17 (P0)** Fields. In the row: gym, type, entries (the total), expiry (with +6 / +12 month quick buttons that count from the purchase date, D7). In the details section: purchase date (defaults to today; a membership's start date), price paid in S$ (optional), "already used" (entries used before the pass was added to the app), and comments (optional free text, up to 500 characters, for the user's own reference). For a membership with a monthly allowance: the reset day (FR-58), and "already used this month" in place of "already used".
 - **FR-18 (P0)** Every field can be edited later: the row's cells directly, the rest in the details section.
 - **FR-19 (P0)** **Delete a row** from its details section, with confirmation. This also removes its recorded uses and freezes.
-- **FR-20 (P1)** **Freeze** a membership: in the details section enter a start and end date. The end date is pushed back by the freeze length. Several freezes are allowed, and each can be edited or removed.
+- **FR-20 (P1)** **Freeze** a membership: in the details section enter a start and end date. The end date is pushed back by the freeze length. Several freezes are allowed, and each can be edited or removed. A freeze moves only the end date; the monthly reset day is not affected (D32).
 - **FR-21 (P1)** **Buy again** (details section): create a new row with the same gym, type, entries and price, leaving the expiry empty.
-- **FR-22 (P0)** Validation, reporting every problem at once: entries between 1 and 1000, expiry not before the purchase date, "already used" not more than the total.
+- **FR-22 (P0)** Validation, reporting every problem at once: entries (or entries per month) between 1 and 1000, reset day between 1 and 31, expiry not before the purchase date, "already used" not more than the total.
 - **FR-54 (P0)** **A new row saves itself** once every required cell is valid and focus leaves the row (or Enter is pressed). Until then nothing is saved, and the cells that are missing or invalid say so. Afterwards the blank row is empty again, ready for the next pass (D29).
 
 ### 6.4 Gyms
@@ -162,11 +171,12 @@ Priority: **P0** = must have for launch, **P1** = should have for launch, **P2**
 
 ### 6.6 Reminders (in-app, v1)
 - **FR-31 (P0)** **Expiring soon:** show a banner when a counted pass with entries left, or a membership, is within the reminder windows. Defaults: **14 days** and **3 days** before expiry.
-- **FR-32 (P0)** **Low entries:** show a banner when a counted pass has **2 or fewer** entries left.
-- **FR-33 (P0)** Users can change both thresholds in Settings, or turn each reminder type off.
+- **FR-32 (P0)** **Low entries:** show a banner when a counted pass has **2 or fewer** entries left. This does not apply to memberships with a monthly allowance (D34).
+- **FR-33 (P0)** Users can change both thresholds in Settings, or turn each reminder type off (expiring soon, low entries, monthly reset).
 - **FR-34 (P1)** Banners can be dismissed. A dismissed banner reappears when the pass reaches the next reminder window.
 - **FR-35 (P2)** An app icon badge with the number of active reminders, using the Badging API where supported.
 - **FR-55 (P0)** The row a banner is about is highlighted, so the warning and the pass are easy to match.
+- **FR-59 (P0)** **Monthly reset reminder (D34):** show a banner when a membership with a monthly allowance has entries left and its next reset is within the shortest reminder window (default 3 days), for example "Climb Central: 3 entries reset in 3 days". A dismissed banner stays hidden until the next reset.
 
 ### 6.7 Accounts and sync
 - **FR-36 (P0)** The app works fully without signing in. Data is stored on the device.
@@ -205,6 +215,10 @@ Pass (one row on the main screen)
   price?, comments?
   -- multipass, class_pack, single_entry (total fixed at 1)
   total_entries, initial_used
+  -- membership only
+  monthly_entries?         -- entries per month; absent = unlimited
+  reset_day?               -- 1-31, the day of the month the count resets.
+                              Defaults to the day of purchase_date
 
 Freeze (memberships only)
   id, pass_id, start_date, end_date
@@ -220,6 +234,7 @@ Settings
 **Derived values (calculated, not stored):**
 - `entries_left = total_entries − initial_used − count(uses not deleted)`, never below 0
 - `effective_end_date = expiry_date + sum(freeze lengths)` for a membership
+- for a monthly membership, the current period runs from the latest reset date on or before today (or the purchase date, if there is none yet) to the next reset date, and `entries_left = monthly_entries − count(uses in the current period)`, never below 0
 - `status` and "Finished" are worked out from entries left, today's date, expiry, and any freezes.
 
 **Gone since v1.x:** GymTemplate, UserTemplate, HiddenGym, the pass name, the membership billing period, the separate single-entry visit date, and the note on a use.
@@ -233,7 +248,8 @@ Settings
 5. **Gym not in the list:** type its name and finish the row; it is saved as your gym and shows up in autocomplete next time.
 6. **Expiry warning:** a banner at the top says "Boulder Planet 10-pass expires in 14 days — 4 entries left", and that row is highlighted.
 7. **Pass runs out or expires:** the row moves to the collapsed Finished section.
-8. **Second device:** Settings → Sign in with Google → local data merged → sign in on another device → same list.
+8. **Monthly membership:** type a gym, choose Membership, enter 8 entries per month and the end date. The row shows `8 / 8`, "resets 15 Nov" (the purchase date's day). Tap `−` at the gym; at `0 / 8` the button is disabled until 15 Nov, when it shows `8 / 8` again. Three days before, a banner warns if entries are left.
+9. **Second device:** Settings → Sign in with Google → local data merged → sign in on another device → same list.
 
 ## 9. Non-functional requirements
 
@@ -284,7 +300,7 @@ The built-in list holds **gym names only**. It covers the main Singapore climbin
 
 | Milestone | Scope |
 |---|---|
-| **M1 — Core, on-device only** | The main screen: rows, sorting, status and reminder highlights, counter with `−` / `+`, the blank add row with gym autocomplete (built-in names bundled with the app), tap-to-open details, delete, the Finished section, reminder banners, Settings (reminder thresholds, CSV export, delete local data, install instructions), PWA install and offline support. |
+| **M1 — Core, on-device only** | The main screen: rows, sorting, status and reminder highlights, counter with `−` / `+` (including memberships with a monthly allowance), the blank add row with gym autocomplete (built-in names bundled with the app), tap-to-open details, delete, the Finished section, reminder banners, Settings (reminder thresholds, CSV export, delete local data, install instructions), PWA install and offline support. |
 | **M2 — Accounts and sync** | Supabase setup, Google sign-in, built-in gym names moved to the database, merge on first sign-in, background sync, sign-out clearing, account deletion. |
 | **M3 — Launch polish** | Verified gym names, membership freezes, buy again, privacy policy and terms, accessibility pass, end-to-end tests, production deploy. |
 
@@ -302,6 +318,7 @@ There are no analytics in v1, so success is judged by:
 - **Gym suggestions:** users submit gyms they added to be considered for the built-in list.
 - **Use history and stats:** the silently recorded uses (D26) can drive cost per climb, total spent, visits per gym or month, and entries wasted to expiry, with backdating and editing of past uses.
 - **Type a number straight into the counter** to set entries left.
+- **Roll-over of unused monthly entries**, and a record of entries lost at each reset, if gyms offer it.
 - **Multiple currencies**, including conversion of existing amounts when the currency changes.
 - **Suggested prices and validity periods** for built-in gyms.
 - **Sharing with friends:** a read-only link, or sharing a pass across accounts.

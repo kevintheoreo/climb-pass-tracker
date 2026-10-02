@@ -1,6 +1,6 @@
 # Climb Pass Tracker — Implementation Plan
 
-Based on [PRD v2.0](./PRD.md) (the single-screen redesign). Requirement IDs (FR-x) and decision IDs (Dx) refer to the PRD, whose numbers are stable across versions.
+Based on [PRD v2.1](./PRD.md) (the single-screen redesign). Requirement IDs (FR-x) and decision IDs (Dx) refer to the PRD, whose numbers are stable across versions.
 
 The work follows the PRD's three milestones. Each milestone is split into steps that are small enough to be one pull request each, so every step can be reviewed and previewed on Netlify before merging.
 
@@ -46,6 +46,7 @@ src/
   domain/        Pure business logic, no React or database code (fully unit-tested)
     types.ts       Pass, Use, Freeze, Gym, Settings
     passStatus.ts  entriesLeft, effectiveEndDate, status, daysLeft
+    cycle.ts       monthly membership periods: current period, next reset, entries left this month (D32, D33)
     rows.ts        view-model for the main screen: sorted active rows, Finished split, highlights
     counter.ts     what − and + do and when they are allowed (D25, FR-9, FR-11, FR-52)
     gyms.ts        gym name matching, search and "find or create" decisions (FR-53)
@@ -83,7 +84,7 @@ Keeping all rules in `src/domain/` means the tricky logic (counts, expiry, statu
 | Pass type | Status order (first match wins) |
 |---|---|
 | Multipass / class pack / single entry | Used up (0 left) → Expired – X unused (today > expiry, if there is one) → Active, with *Expiring soon* and *Low* flags |
-| Membership | Expired (today > effective end) → Frozen (today inside a freeze) → Active, with an *Expiring soon* flag |
+| Membership | Expired (today > effective end) → Frozen (today inside a freeze) → Active, with an *Expiring soon* flag. A membership with a monthly allowance is never *Used up* or *Low*: at 0 this month it stays Active until the next reset |
 
 **Active** rows (including frozen memberships) are listed in the main list, sorted by soonest expiry. **Used up** and **Expired** rows are listed in the collapsed Finished section.
 
@@ -92,6 +93,8 @@ Keeping all rules in `src/domain/` means the tricky logic (counts, expiry, statu
 - `−` records a use (timestamp only) when entries are left and the pass is active.
 - `+` removes the most recent recorded use; with none recorded it lowers `initialUsed`; it does nothing at the full total.
 - Both change the stored data in one database transaction, so a double tap never counts twice.
+- A monthly membership counts only the uses inside the **current period** (`cycle.ts`): from the latest reset date on or before today (or the purchase date, if none yet) up to the next reset date. `+` removes the latest use in that period and does nothing when there is none. Because the count is derived from timestamped uses, changing the reset day or the allowance recalculates it immediately, and nothing needs resetting by a timer.
+- "Already used this month" entered when adding a monthly membership is saved as that many uses stamped at the start of the current period.
 
 ---
 
@@ -105,13 +108,13 @@ Goal: a complete, installable, offline app with no account and no backend.
 | **1.2 Domain logic + tests** ✅ | Pass status, entries left, freezes, reminders, dates, validation. *Parts are reworked in 1.5.* | FR-6, 22, 31–34 |
 | **1.3 Local database** ✅ | Dexie schema and repository with timestamps and soft deletes. *Reworked in 1.5.* | §7, FR-19, 36 |
 | **1.4 App shell + PWA** ✅ | Router, theme, offline precaching, manifest, iOS meta tags, persistent-storage request. *The tab bar is replaced in 1.5.* | §9 |
-| **1.5 Rework for the single-screen model** | Everything in section 0 marked Keep / Rework / Replace: unified pass schema, Dexie version 2, new repo functions (`findOrCreateGym`, counter adjustment), `counter.ts`, `rows.ts`, `gyms.ts` (matching), take over the files listed from `step-1-5-gyms`, built-in gym seed reduced to names, header with gear icon and two routes (no tab bar), delete the Gyms and History pages. Unit tests for all of it; the app still shows a placeholder main screen. | D23–D31, FR-51 |
-| **1.6 Main screen: the list** | Rows (`Gym | Type | Expiry | Left`) from the database, sorted by soonest expiry; status badges and "days left"; the collapsed Finished section with "Used up" / "Expired – X unused"; empty state. Read-only. Phone layout confirmed from a screenshot (PRD §15). | FR-1–3, 6, 8, 30, 50, D31 |
-| **1.7 The counter** | `−` and `+` on counted rows, wired to the transaction in 1.5; disabled at the limits; rows move to Finished at 0. | FR-4, 9, 11, 12, 14, 52, D25 |
-| **1.8 Add a row** | The blank row at the bottom: gym autocomplete with "Add “text” as a new gym", type, entries, expiry with +6 / +12 month buttons; saves itself when complete and the user leaves the row or presses Enter; missing or invalid cells say so. | FR-15, 22, 25, 53, 54, D24, D29 |
-| **1.9 Edit a row and its details** | Edit cells in place; tap a row to open details (purchase date, price, already used, comments); delete with confirmation; editing the expiry of a Finished row brings it back. | FR-17–19, 22, 56, D30 |
-| **1.10 Reminders + Settings** | Reminder banners with dismiss and row highlights. Settings (gear icon): reminder thresholds and on/off, CSV export (passes + recorded uses), delete all local data, app version, "data only on this device" notice, install instructions for iOS and Android. | FR-7, 31–34, 42–45, 47, 49, 55 |
-| **1.11 End-to-end tests** | Playwright on a phone-sized viewport: first launch → add a row by typing a new gym → tap `−` three times and `+` once → two rows at one gym stay separate → row moves to Finished → reminder banner → CSV download → everything still works offline. | §13 |
+| **1.5 Rework for the single-screen model** | Everything in section 0 marked Keep / Rework / Replace: unified pass schema (memberships gain `monthlyEntries` and `resetDay`), Dexie version 2, new repo functions (`findOrCreateGym`, counter adjustment), `counter.ts`, `cycle.ts` (monthly periods and reset dates, including short months), `rows.ts`, `gyms.ts` (matching), a third reminder kind (monthly reset) in `reminders.ts`, take over the files listed from `step-1-5-gyms`, built-in gym seed reduced to names, header with gear icon and two routes (no tab bar), delete the Gyms and History pages. Unit tests for all of it; the app still shows a placeholder main screen. | D23–D31, FR-51 |
+| **1.6 Main screen: the list** | Rows (`Gym | Type | Expiry | Left`) from the database, sorted by soonest expiry; status badges and "days left"; the collapsed Finished section with "Used up" / "Expired – X unused"; empty state. The Left column shows `5 / 8` and "resets 15 Nov" for monthly memberships and "Unlimited" for the others. Read-only. Phone layout confirmed from a screenshot (PRD §15). | FR-1–3, 6, 8, 30, 50, D31 |
+| **1.7 The counter** | `−` and `+` on counted rows, wired to the transaction in 1.5; disabled at the limits; rows move to Finished at 0 (a monthly membership stays in the list and shows its reset date). | FR-4, 9, 11, 12, 14, 52, D25 |
+| **1.8 Add a row** | The blank row at the bottom: gym autocomplete with "Add “text” as a new gym", type, entries (for a membership, the optional entries per month), expiry with +6 / +12 month buttons; saves itself when complete and the user leaves the row or presses Enter; missing or invalid cells say so. | FR-15, 22, 25, 53, 54, D24, D29 |
+| **1.9 Edit a row and its details** | Edit cells in place; tap a row to open details (purchase date, price, already used, comments, and for monthly memberships the reset day); delete with confirmation; editing the expiry of a Finished row brings it back. | FR-17–19, 22, 56, D30 |
+| **1.10 Reminders + Settings** | Reminder banners with dismiss and row highlights, including the monthly reset banner 3 days before a reset. Settings (gear icon): reminder thresholds and on/off (expiring soon, low entries, monthly reset), CSV export (passes + recorded uses), delete all local data, app version, "data only on this device" notice, install instructions for iOS and Android. | FR-7, 31–34, 42–45, 47, 49, 55 |
+| **1.11 End-to-end tests** | Playwright on a phone-sized viewport: first launch → add a row by typing a new gym → tap `−` three times and `+` once → a monthly membership counts down, stops at 0 and shows its reset date → two rows at one gym stay separate → row moves to Finished → reminder banner → CSV download → everything still works offline. | §13 |
 
 **M1 done when:** everything above works offline in Chrome (Android) and Safari (iOS) when installed, unit and end-to-end tests pass, and it is deployed on a Netlify preview URL for you to try.
 
