@@ -20,6 +20,7 @@ export function PassRow({
   today,
   gyms,
   open,
+  highlighted,
   onToggle,
   onClose,
   onUsedLast,
@@ -28,6 +29,8 @@ export function PassRow({
   today: LocalDate
   gyms: GymEntry[]
   open: boolean
+  /** A reminder banner is about this row (FR-55). */
+  highlighted: boolean
   onToggle: () => void
   onClose: () => void
   onUsedLast?: ((row: Row) => void) | undefined
@@ -39,7 +42,14 @@ export function PassRow({
   const panelId = `details-${row.pass.id}`
 
   return (
-    <li className={open ? 'bg-slate-50 dark:bg-slate-950' : undefined}>
+    <li
+      className={[
+        open ? 'bg-slate-50 dark:bg-slate-950' : '',
+        highlighted
+          ? 'bg-amber-50 ring-2 ring-inset ring-amber-400 dark:bg-amber-950/40 dark:ring-amber-500'
+          : '',
+      ].join(' ')}
+    >
       {/* A tap anywhere on the row that is not a button opens its details (FR-56). The gym name is
           the keyboard and screen-reader way in. */}
       <div
@@ -51,6 +61,7 @@ export function PassRow({
         className={`grid cursor-pointer grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-1 px-4 py-3 sm:items-center ${WIDE_COLUMNS}`}
       >
         <p className="col-start-1 row-start-1 min-w-0 break-words font-medium">
+          {highlighted && <span className="sr-only">Has a reminder. </span>}
           <span className="sr-only">Gym: </span>
           <button
             type="button"

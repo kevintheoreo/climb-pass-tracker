@@ -1,6 +1,13 @@
 import { DEFAULT_SETTINGS } from './settings'
 import { getPassStatus } from './passStatus'
-import { badgesFor, expiryLabel, leftLabel, relativeDays, resetLabel } from './format'
+import {
+  badgesFor,
+  expiryLabel,
+  leftLabel,
+  relativeDays,
+  resetLabel,
+  reminderMessage,
+} from './format'
 import { formatDate, formatDayMonth } from './dates'
 import {
   makeCounted,
@@ -112,5 +119,60 @@ describe('badgesFor', () => {
   it('an expired membership just says "Expired"', () => {
     const m = makeMembership({ expiryDate: '2026-10-01' })
     expect(labels(m, status(m))).toEqual(['Expired'])
+  })
+})
+
+describe('reminderMessage', () => {
+  const base = {
+    key: 'p:x',
+    passId: 'p',
+    daysLeft: null,
+    entriesLeft: null,
+    window: null,
+    resetDate: null,
+    daysToReset: null,
+  }
+  const label = 'Fitbloc, Multipass'
+
+  it('expiring: says when, and how many entries are left', () => {
+    const r = { ...base, kind: 'expiring' as const, daysLeft: 3, entriesLeft: 5, window: 3 }
+    expect(reminderMessage(r, label)).toBe('Fitbloc, Multipass: expires in 3 days, 5 entries left')
+    expect(reminderMessage({ ...r, entriesLeft: 1 }, label)).toBe(
+      'Fitbloc, Multipass: expires in 3 days, 1 entry left',
+    )
+    expect(reminderMessage({ ...r, daysLeft: 0 }, label)).toContain('expires today')
+    expect(reminderMessage({ ...r, daysLeft: 1 }, label)).toContain('expires tomorrow')
+  })
+
+  it('expiring: a membership has no entries to mention', () => {
+    const r = { ...base, kind: 'expiring' as const, daysLeft: 14, window: 14 }
+    expect(reminderMessage(r, 'Fitbloc, Membership')).toBe(
+      'Fitbloc, Membership: expires in 14 days',
+    )
+  })
+
+  it('low: says how many are left', () => {
+    const r = { ...base, kind: 'low' as const, entriesLeft: 2 }
+    expect(reminderMessage(r, label)).toBe('Fitbloc, Multipass: 2 entries left')
+    expect(reminderMessage({ ...r, entriesLeft: 1 }, label)).toBe(
+      'Fitbloc, Multipass: 1 entry left',
+    )
+  })
+
+  it('reset: says how many entries will reset and when (FR-59)', () => {
+    const r = {
+      ...base,
+      kind: 'reset' as const,
+      entriesLeft: 3,
+      daysToReset: 3,
+      resetDate: '2026-10-15',
+    }
+    expect(reminderMessage(r, 'Climb Central, Membership')).toBe(
+      'Climb Central, Membership: 3 entries reset in 3 days',
+    )
+    expect(reminderMessage({ ...r, entriesLeft: 1, daysToReset: 1 }, label)).toBe(
+      'Fitbloc, Multipass: 1 entry resets tomorrow',
+    )
+    expect(reminderMessage({ ...r, daysToReset: 0 }, label)).toContain('reset today')
   })
 })

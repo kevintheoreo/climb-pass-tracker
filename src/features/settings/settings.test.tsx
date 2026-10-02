@@ -1,0 +1,250 @@
+import { render, screen, waitFor, within } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { MemoryRouter } from 'react-router-dom'
+import App from '../../app/App'
+import { BUILTIN_GYMS } from '../../data/gyms'
+import { repo } from '../../db'
+import { addDays, todayLocal } from '../../domain/dates'
+import { DEFAULT_SETTINGS } from '../../domain/settings'
+import type { PassInput } from '../../domain/types'
+
+const today = todayLocal()
+const gymRef = { kind: 'builtin', id: BUILTIN_GYMS[0]!.id } as const
+
+const multipass = (overrides: Record<string, unknown> = {}) =>
+  ({
+    gymRef,
+    passType: 'multipass',
+    priceCents: 12050,
+    comments: 'sale, 2 for 1',
+    purchaseDate: addDays(today, -30),
+    expiryDate: addDays(today, 100),
+    totalEntries: 10,
+    initialUsed: 0,
+    ...overrides,
+  }) as PassInput
+
+function renderSettings() {
+  return render(
+    <MemoryRouter initialEntries={['/settings']}>
+      <App />
+    </MemoryRouter>,
+  )
+}
+
+const days = () => screen.findByLabelText('Days before expiry')
+const low = () => screen.getByLabelText(/^Remind me at this many entries/)
+
+let downloads: { filename: string; text: string }[] = []
+
+beforeEach(async () => {
+  await repo.clearAllData()
+  downloads = []
+  const blobs = new Map<string, Blob>()
+  URL.createObjectURL = vi.fn((blob: Blob) => {
+    const url = `blob:test/${blobs.size}`
+    blobs.set(url, blob)
+    return url
+  })
+  URL.revokeObjectURL = vi.fn()
+  vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (
+    this: HTMLAnchorElement,
+  ) {
+    // Read the bytes, and keep the byte-order mark that Blob.text() would drop.
+    void blobs
+      .get(this.href)
+      ?.arrayBuffer()
+      .then((bytes) => {
+        const text = new TextDecoder('utf-8', { ignoreBOM: true }).decode(bytes)
+        downloads.push({ filename: this.download, text })
+      })
+  })
+})
+
+afterEach(() => vi.restoreAllMocks())
+
+describe('reminder settings', () => {
+  it('start at the defaults', async () => {
+    renderSettings()
+    expect(await days()).toHaveValue('14, 3')
+    expect(low()).toHaveValue('2')
+    for (const name of [
+      'Pass expiring soon',
+      'Few entries left',
+      'Monthly entries about to reset',
+    ]) {
+      expect(screen.getByRole('checkbox', { name: new RegExp(name) })).toBeChecked()
+    }
+  })
+
+  it('a switch saves as soon as it is tapped', async () => {
+    const user = userEvent.setup()
+    renderSettings()
+    const few = await screen.findByRole('checkbox', { name: /Few entries left/ })
+    await user.click(few)
+    expect(few).not.toBeChecked() // flips at once, before the save finishes
+    await waitFor(async () => expect((await repo.getSettings()).lowRemindersEnabled).toBe(false))
+    expect(few).not.toBeChecked()
+    await user.click(screen.getByRole('checkbox', { name: /Monthly entries about to reset/ }))
+    await user.click(screen.getByRole('checkbox', { name: /Pass expiring soon/ }))
+    await waitFor(async () => {
+      const s = await repo.getSettings()
+      expect([s.resetRemindersEnabled, s.expiryRemindersEnabled]).toEqual([false, false])
+    })
+  })
+
+  it('the days save when you leave the box, biggest first', async () => {
+    const user = userEvent.setup()
+    renderSettings()
+    const box = await days()
+    await user.clear(box)
+    await user.type(box, '3, 30 7')
+    expect((await repo.getSettings()).expiryReminderDays).toEqual([14, 3]) // not yet
+    await user.tab()
+    await waitFor(async () =>
+      expect((await repo.getSettings()).expiryReminderDays).toEqual([30, 7, 3]),
+    )
+    await waitFor(() => expect(box).toHaveValue('30, 7, 3'))
+  })
+
+  it('Enter saves too and keeps focus in the box', async () => {
+    const user = userEvent.setup()
+    renderSettings()
+    const box = await days()
+    await user.clear(box)
+    await user.type(box, '21{Enter}')
+    await waitFor(async () => expect((await repo.getSettings()).expiryReminderDays).toEqual([21]))
+    expect(box).toHaveFocus()
+  })
+
+  it('an invalid box says what is wrong and saves nothing', async () => {
+    const user = userEvent.setup()
+    renderSettings()
+    const box = await days()
+    await user.clear(box)
+    await user.type(box, 'soon')
+    await user.tab()
+    expect(
+      await screen.findByText('Enter up to 5 numbers of days from 1 to 365, like 14, 3'),
+    ).toBeVisible()
+    expect(box).toHaveAttribute('aria-invalid', 'true')
+    expect((await repo.getSettings()).expiryReminderDays).toEqual(
+      DEFAULT_SETTINGS.expiryReminderDays,
+    )
+    await user.type(box, '{Control>}a{/Control}10')
+    expect(screen.queryByText(/Enter up to 5/)).not.toBeInTheDocument()
+  })
+
+  it('the entries threshold saves, and rejects 0', async () => {
+    const user = userEvent.setup()
+    renderSettings()
+    await days()
+    await user.clear(low())
+    await user.type(low(), '0')
+    await user.tab()
+    expect(await screen.findByText('Enter a number from 1 to 100')).toBeVisible()
+    await user.clear(low())
+    await user.type(low(), '4')
+    await user.tab()
+    await waitFor(async () => expect((await repo.getSettings()).lowEntriesThreshold).toBe(4))
+  })
+
+  it('goes back to the defaults when all data is deleted', async () => {
+    const user = userEvent.setup()
+    await repo.updateSettings({ expiryReminderDays: [30], lowEntriesThreshold: 5 })
+    renderSettings()
+    expect(await days()).toHaveValue('30')
+    await user.click(screen.getByRole('button', { name: 'Delete all data on this device' }))
+    await user.click(screen.getByRole('button', { name: 'Yes, delete' }))
+    await waitFor(() => expect(screen.getByLabelText('Days before expiry')).toHaveValue('14, 3'))
+    expect(low()).toHaveValue('2')
+  })
+})
+
+describe('your data', () => {
+  it('says the data is only on this device', async () => {
+    renderSettings()
+    const section = await screen.findByRole('region', { name: 'Your data' })
+    expect(section).toHaveTextContent('only on this device')
+  })
+
+  it('downloads the passes as a CSV file', async () => {
+    const user = userEvent.setup()
+    const pass = await repo.createPass(multipass())
+    renderSettings()
+    await user.click(await screen.findByRole('button', { name: 'Download passes (CSV)' }))
+    await waitFor(() => expect(downloads).toHaveLength(1))
+    const [file] = downloads
+    expect(file!.filename).toBe(`climb-passes-${today}.csv`)
+    expect(file!.text.startsWith('﻿Pass ID,Gym,Type')).toBe(true)
+    expect(file!.text).toContain(pass.id)
+    expect(file!.text).toContain(BUILTIN_GYMS[0]!.name)
+    expect(file!.text).toContain('120.50,"sale, 2 for 1"')
+    expect(await screen.findByText('Passes file downloaded.')).toBeVisible()
+  })
+
+  it('downloads the recorded uses as a CSV file', async () => {
+    const user = userEvent.setup()
+    const pass = await repo.createPass(multipass())
+    await repo.useEntry(pass.id, today)
+    await repo.useEntry(pass.id, today)
+    renderSettings()
+    await user.click(await screen.findByRole('button', { name: 'Download recorded uses (CSV)' }))
+    await waitFor(() => expect(downloads).toHaveLength(1))
+    expect(downloads[0]!.filename).toBe(`climb-pass-uses-${today}.csv`)
+    const lines = downloads[0]!.text.trimEnd().split('\r\n')
+    expect(lines).toHaveLength(3)
+    expect(lines[0]).toBe('﻿Pass ID,Gym,Type,Used at')
+  })
+
+  it('exporting with no passes still gives a file with the headings', async () => {
+    const user = userEvent.setup()
+    renderSettings()
+    await user.click(await screen.findByRole('button', { name: 'Download passes (CSV)' }))
+    await waitFor(() => expect(downloads).toHaveLength(1))
+    expect(downloads[0]!.text.trimEnd().split('\r\n')).toHaveLength(1)
+  })
+
+  it('deleting asks first; Cancel keeps everything', async () => {
+    const user = userEvent.setup()
+    const pass = await repo.createPass(multipass())
+    renderSettings()
+    await user.click(await screen.findByRole('button', { name: 'Delete all data on this device' }))
+    expect(screen.getByRole('alertdialog')).toBeVisible()
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(await repo.getPass(pass.id)).toBeDefined()
+  })
+
+  it('deleting removes passes, the gyms you added and the settings', async () => {
+    const user = userEvent.setup()
+    const pass = await repo.createPass(multipass())
+    await repo.useEntry(pass.id, today)
+    await repo.findOrCreateGym('My Own Wall')
+    await repo.updateSettings({ lowEntriesThreshold: 9 })
+    renderSettings()
+    await user.click(await screen.findByRole('button', { name: 'Delete all data on this device' }))
+    await user.click(screen.getByRole('button', { name: 'Yes, delete' }))
+    expect(await screen.findByText('All data on this device was deleted.')).toBeVisible()
+    expect(await repo.listPasses()).toEqual([])
+    expect(await repo.listUserGyms()).toEqual([])
+    expect((await repo.getSettings()).lowEntriesThreshold).toBe(
+      DEFAULT_SETTINGS.lowEntriesThreshold,
+    )
+  })
+})
+
+describe('install and version', () => {
+  it('explains how to add the app to the home screen on iPhone and Android', async () => {
+    renderSettings()
+    const section = await screen.findByRole('region', { name: 'Add to your home screen' })
+    expect(within(section).getByText('iPhone or iPad (Safari)')).toBeVisible()
+    expect(within(section).getByText(/Add to Home Screen/)).toBeVisible()
+    expect(within(section).getByText('Android (Chrome)')).toBeVisible()
+    expect(within(section).getByText(/Install app/)).toBeVisible()
+  })
+
+  it('shows the app version', async () => {
+    renderSettings()
+    expect(await screen.findByText(/version \d+\.\d+\.\d+/)).toBeVisible()
+  })
+})

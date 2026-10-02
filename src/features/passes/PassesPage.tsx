@@ -3,6 +3,7 @@ import { Page } from '../../components/Page'
 import { repo } from '../../db'
 import type { Row } from '../../domain/rows'
 import { NewRow } from './NewRow'
+import { ReminderBanners } from './ReminderBanners'
 import { RowList } from './RowList'
 import { UndoNotice, type Notice } from './UndoNotice'
 import { usePassRows } from './usePassRows'
@@ -15,7 +16,7 @@ export default function PassesPage() {
 
   if (!rows) return <Page title="Passes" />
 
-  const { active, finished, today, gyms } = rows
+  const { active, finished, today, gyms, reminders } = rows
   const toggle = (passId: string) => setOpenId((open) => (open === passId ? null : passId))
   const close = () => setOpenId(null)
   const usedLast = (row: Row) =>
@@ -35,7 +36,16 @@ export default function PassesPage() {
   // Only while the pass is still in Finished: give the entry back some other way and it goes away.
   const shownNotice =
     notice && finished.some((row) => row.pass.id === notice.passId) ? notice : null
-  const lists = { gyms, today, openId, onToggle: toggle, onClose: close, onUsedLast: usedLast }
+  const reminded = new Set(reminders.map((r) => r.passId))
+  const lists = {
+    gyms,
+    today,
+    openId,
+    reminded,
+    onToggle: toggle,
+    onClose: close,
+    onUsedLast: usedLast,
+  }
 
   return (
     <Page title="Passes">
@@ -47,6 +57,8 @@ export default function PassesPage() {
       {active.length === 0 && finished.length > 0 && (
         <p className="mb-4 text-slate-600 dark:text-slate-400">No active passes.</p>
       )}
+
+      <ReminderBanners reminders={reminders} rows={active} />
 
       {active.length > 0 && <RowList rows={active} label="Passes" {...lists} />}
 

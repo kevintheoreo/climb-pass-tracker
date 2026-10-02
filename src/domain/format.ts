@@ -1,5 +1,6 @@
 import { formatDate, formatDayMonth, type LocalDate } from './dates'
 import type { PassStatus } from './passStatus'
+import type { Reminder } from './reminders'
 import type { Pass } from './types'
 
 /** "today", "tomorrow", "in 12 days", "yesterday", "10 days ago". */
@@ -53,4 +54,25 @@ export function badgesFor(pass: Pass, status: PassStatus): Badge[] {
   if (status.expiringSoon) badges.push({ label: 'Expiring soon', tone: 'warn' })
   if (status.low) badges.push({ label: 'Low', tone: 'warn' })
   return badges
+}
+
+const entries = (n: number) => `${n} ${n === 1 ? 'entry' : 'entries'}`
+
+/** What a reminder says about its pass, without the pass's name. */
+export function reminderText(reminder: Reminder): string {
+  if (reminder.kind === 'low') return `${entries(reminder.entriesLeft as number)} left`
+  if (reminder.kind === 'reset') {
+    const left = entries(reminder.entriesLeft as number)
+    return `${left} ${left.startsWith('1 ') ? 'resets' : 'reset'} ${relativeDays(reminder.daysToReset as number)}`
+  }
+  const left = reminder.entriesLeft === null ? '' : `, ${entries(reminder.entriesLeft)} left`
+  return `expires ${relativeDays(reminder.daysLeft as number)}${left}`
+}
+
+/**
+ * The words of a reminder banner (FR-31, FR-32, FR-59). `label` names the pass, "Gym, Type", since
+ * one gym can have several. For example "Fitbloc, Multipass: expires in 3 days, 5 entries left".
+ */
+export function reminderMessage(reminder: Reminder, label: string): string {
+  return `${label}: ${reminderText(reminder)}`
 }

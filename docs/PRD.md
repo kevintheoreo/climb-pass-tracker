@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Draft v2.2 — single-screen redesign, with monthly-allowance memberships, for review |
+| **Status** | Draft v2.3 — single-screen redesign, with monthly-allowance memberships, for review |
 | **Date** | 2026-10-02 |
 | **Product** | Climb Pass Tracker |
 | **Platform** | Progressive Web App (PWA), phone-first |
@@ -130,7 +130,7 @@ Priority: **P0** = must have for launch, **P1** = should have for launch, **P2**
 - **FR-4 (P0)** Counted rows and memberships with a monthly allowance have large `−` and `+` buttons (at least 44 px tap targets). See 6.2.
 - **FR-5** **Removed.** There is no general Undo toast: `+` is the undo (D25). The one exception is FR-60.
 - **FR-6 (P0)** Each row shows its status where it applies: *Expiring soon*, *Low* (not for monthly memberships, D34), *Frozen*. Finished rows show *Used up* or *Expired – X unused*.
-- **FR-7 (P0)** Reminder banners at the top of the list (see 6.6).
+- **FR-7 (P0)** Reminder banners at the top of the list, one per pass (see 6.6): a pass that is both expiring and low says so in one banner.
 - **FR-8 (P0)** Empty state: only the blank add row, with a prompt such as "Type a gym to add your first pass".
 - **FR-50 (P0)** **Finished section:** a collapsed "Finished (n)" section at the bottom lists used-up and expired passes in the same columns, newest expiry first. Their counters are inert, except that `+` on a used-up row gives the last entry back, to undo a mis-tap (FR-52). Each can be deleted (FR-19), and editing the expiry date to a later date moves the row back up (D8, D27).
 - **FR-51 (P0)** A gear icon in the header opens Settings. There is no other screen and no bottom tab bar (D23).
@@ -175,7 +175,7 @@ Priority: **P0** = must have for launch, **P1** = should have for launch, **P2**
 - **FR-31 (P0)** **Expiring soon:** show a banner when a counted pass with entries left, or a membership, is within the reminder windows. Defaults: **14 days** and **3 days** before expiry.
 - **FR-32 (P0)** **Low entries:** show a banner when a counted pass has **2 or fewer** entries left. This does not apply to memberships with a monthly allowance (D34) or to a single entry, which only ever has one.
 - **FR-33 (P0)** Users can change both thresholds in Settings, or turn each reminder type off (expiring soon, low entries, monthly reset).
-- **FR-34 (P1)** Banners can be dismissed. A dismissed banner reappears when the pass reaches the next reminder window.
+- **FR-34 (P1)** Banners can be dismissed. Dismissing a banner dismisses everything it says. A dismissed reminder reappears when the pass reaches the next reminder window or has fewer entries left than when it was dismissed.
 - **FR-35 (P2)** An app icon badge with the number of active reminders, using the Badging API where supported.
 - **FR-55 (P0)** The row a banner is about is highlighted, so the warning and the pass are easy to match.
 - **FR-59 (P0)** **Monthly reset reminder (D34):** show a banner when a membership with a monthly allowance has entries left and its next reset is within the shortest reminder window (default 3 days), for example "Climb Central: 3 entries reset in 3 days". A dismissed banner stays hidden until the next reset.
@@ -194,11 +194,11 @@ Priority: **P0** = must have for launch, **P1** = should have for launch, **P2**
 ### 6.8 Settings and privacy
 - **FR-43 (P0)** All amounts are entered and shown in SGD (S$). There is no currency setting (D18).
 - **FR-44 (P0)** Reminder thresholds (see FR-33).
-- **FR-45 (P0)** **Export data** as CSV (passes and recorded uses). Available with or without an account.
+- **FR-45 (P0)** **Export data** as CSV, in two files: the passes (one row each, with price, comments, entries left) and the recorded uses (a pass and a timestamp each). Text that starts like a spreadsheet formula is defused. Available with or without an account.
 - **FR-46 (P0)** **Delete account:** permanently deletes all of the user's data from the server and signs them out, with confirmation.
 - **FR-47 (P1)** **Delete all local data** for users without an account.
 - **FR-48 (P0)** Links to the privacy policy and terms, plus the app version.
-- **FR-49 (P1)** "Install app" prompt with instructions for adding it to the home screen on iOS and Android.
+- **FR-49 (P1)** "Install app" prompt with instructions for adding it to the home screen on iOS and Android. The app shows the steps; it does not add its own install button in v1.
 
 ## 7. Data model (logical)
 

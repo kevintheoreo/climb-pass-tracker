@@ -3,11 +3,13 @@ import { useMemo } from 'react'
 import { repo } from '../../db'
 import { findGym, type GymEntry } from '../../domain/gyms'
 import type { LocalDate } from '../../domain/dates'
+import { getReminders, type Reminder } from '../../domain/reminders'
 import { buildRows, type Rows } from '../../domain/rows'
 import { useToday } from './useToday'
 
 /** The main screen's rows, kept live as the database changes. Undefined while loading. */
-export function usePassRows(): (Rows & { today: LocalDate; gyms: GymEntry[] }) | undefined {
+export function usePassRows():
+  (Rows & { today: LocalDate; gyms: GymEntry[]; reminders: Reminder[] }) | undefined {
   const today = useToday()
   const bundles = useLiveQuery(() => repo.listBundles(), [])
   const gyms = useLiveQuery(() => repo.listGyms(), [])
@@ -21,6 +23,6 @@ export function usePassRows(): (Rows & { today: LocalDate; gyms: GymEntry[] }) |
       today,
       settings,
     )
-    return { ...rows, today, gyms }
+    return { ...rows, today, gyms, reminders: getReminders(bundles, settings, today) }
   }, [bundles, gyms, settings, today])
 }

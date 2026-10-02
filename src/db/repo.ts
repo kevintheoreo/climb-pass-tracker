@@ -388,6 +388,16 @@ export function createRepo(db: ClimbDB, options: RepoOptions = {}) {
     return updateSettings({ dismissedReminders: { ...current.dismissedReminders, [key]: value } })
   }
 
+  /** Dismisses several reminders at once, in one write, so none is lost. */
+  async function dismissReminders(entries: { key: string; value: number }[]): Promise<Settings> {
+    return db.transaction('rw', db.settings, async () => {
+      const current = await getSettings()
+      const dismissedReminders = { ...current.dismissedReminders }
+      for (const { key, value } of entries) dismissedReminders[key] = value
+      return updateSettings({ dismissedReminders })
+    })
+  }
+
   // ---- Meta and wipe ----------------------------------------------------------------------
 
   async function getMeta<T = unknown>(key: string): Promise<T | undefined> {
@@ -426,6 +436,7 @@ export function createRepo(db: ClimbDB, options: RepoOptions = {}) {
     getSettings,
     updateSettings,
     dismissReminder,
+    dismissReminders,
     getMeta,
     setMeta,
     clearAllData,
