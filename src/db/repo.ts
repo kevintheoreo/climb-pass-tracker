@@ -365,11 +365,20 @@ export function createRepo(db: ClimbDB, options: RepoOptions = {}) {
 
   // ---- Settings ---------------------------------------------------------------------------
 
+  /**
+   * The saved settings, or the defaults. It never fails: a missing row, a missing field or a field
+   * holding something that is no longer valid falls back to its default, so a bad stored value can
+   * never stop the main screen from opening.
+   */
   async function getSettings(): Promise<Settings> {
-    const row = await db.settings.get('settings')
-    if (!row) return { ...DEFAULT_SETTINGS }
-    // Stored rows also hold `id` / `updatedAt`; parsing keeps only the settings fields.
-    return { ...DEFAULT_SETTINGS, ...settingsSchema.partial().parse(row) }
+    const row = (await db.settings.get('settings')) as Record<string, unknown> | undefined
+    const settings: Record<string, unknown> = { ...DEFAULT_SETTINGS }
+    if (!row) return settings as unknown as Settings
+    for (const key of Object.keys(DEFAULT_SETTINGS) as (keyof Settings)[]) {
+      const parsed = settingsSchema.shape[key].safeParse(row[key])
+      if (parsed.success) settings[key] = parsed.data
+    }
+    return settings as unknown as Settings
   }
 
   async function updateSettings(changes: Partial<Settings>): Promise<Settings> {

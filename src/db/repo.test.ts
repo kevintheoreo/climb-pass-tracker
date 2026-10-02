@@ -467,6 +467,48 @@ describe('settings', () => {
     expect(await repo.getSettings()).toEqual(next)
   })
 
+  it('never fails on a damaged saved row: each bad field falls back to its default', async () => {
+    const { repo, db } = makeTestRepo()
+    const damaged = [
+      { dismissedReminders: [] },
+      { dismissedReminders: { 'p:low': 'two' } },
+      { expiryReminderDays: 'soon', lowEntriesThreshold: null },
+      { expiryReminderDays: [1, 2, 3, 4, 5, 6] },
+      { lowRemindersEnabled: 'yes', resetRemindersEnabled: 0 },
+      { expiryRemindersEnabled: undefined },
+    ]
+    for (const bad of damaged) {
+      await db.settings.put({ id: 'settings', updatedAt: 'x', ...bad } as never)
+      expect(await repo.getSettings()).toEqual(DEFAULT_SETTINGS)
+    }
+  })
+
+  it('keeps the good fields of a row that has a bad one', async () => {
+    const { repo, db } = makeTestRepo()
+    await db.settings.put({
+      id: 'settings',
+      updatedAt: 'x',
+      lowEntriesThreshold: 5,
+      lowRemindersEnabled: false,
+      expiryReminderDays: 'soon',
+      dismissedReminders: { 'p:low': 2 },
+    } as never)
+    expect(await repo.getSettings()).toEqual({
+      ...DEFAULT_SETTINGS,
+      lowEntriesThreshold: 5,
+      lowRemindersEnabled: false,
+      dismissedReminders: { 'p:low': 2 },
+    })
+  })
+
+  it('a change can still be saved over a damaged row, and repairs it', async () => {
+    const { repo, db } = makeTestRepo()
+    await db.settings.put({ id: 'settings', updatedAt: 'x', dismissedReminders: [] } as never)
+    const next = await repo.updateSettings({ lowRemindersEnabled: false })
+    expect(next).toEqual({ ...DEFAULT_SETTINGS, lowRemindersEnabled: false })
+    expect(await repo.getSettings()).toEqual(next)
+  })
+
   it('fills in settings added later when reading an older saved row', async () => {
     const { repo, db } = makeTestRepo()
     await db.settings.put({ id: 'settings', updatedAt: 'x', lowEntriesThreshold: 5 } as never)
