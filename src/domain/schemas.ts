@@ -102,12 +102,14 @@ export const userGymInputSchema = z.object({
   website: z.string().trim().max(200).refine(isHttpUrl, 'Enter a valid web address').nullable(),
 })
 
-/** A pass template the user saved themselves. Unlike built-in ones, it may carry price and validity (Q3). */
+/**
+ * A pass option the user saved themselves. It has no name of its own: the type is its name. Unlike
+ * built-in ones it may carry price and validity (Q3), and comments for the user's reference.
+ */
 export const userTemplateInputSchema = z
   .object({
     gymRef: gymRefSchema,
     passType: z.enum(['multipass', 'class_pack', 'membership', 'single_entry']),
-    name: z.string().trim().min(1, 'Enter a name').max(100),
     totalEntries: z
       .number()
       .int()
@@ -122,6 +124,8 @@ export const userTemplateInputSchema = z
       .max(120, 'Enter 1 to 120 months')
       .nullable(),
     billingPeriod: z.enum(['monthly', 'yearly', 'custom']).nullable(),
+    /** Free text for the person's own reference. */
+    comments: z.string().trim().max(500, 'Keep comments under 500 characters').nullable(),
   })
   .refine(
     (t) =>

@@ -13,16 +13,18 @@ test('add your own gym and a pass option; both survive a reload', async ({ page 
   await expect(page.getByRole('heading', { level: 1, name: 'Zig Zag Wall' })).toBeVisible()
 
   await page.getByRole('link', { name: 'Add a pass option' }).click()
-  await page.getByLabel('Name').fill('10-Pass')
+  await expect(page.getByLabel('Name')).toHaveCount(0)
   await page.getByLabel('Number of entries').fill('10')
   await page.getByLabel(/Price in S\$/).fill('120')
   await page.getByLabel(/Valid for/).fill('6')
+  await page.getByLabel('Comments (optional)').fill('Shareable with friends')
   await page.getByRole('button', { name: 'Add pass option' }).click()
-  await expect(page.getByText('Multipass · 10 entries · 6 months · S$120.00')).toBeVisible()
+  await expect(page.getByText('10 entries · 6 months · S$120.00')).toBeVisible()
+  await expect(page.getByText('Shareable with friends')).toBeVisible()
 
   await page.reload()
   await expect(page.getByRole('heading', { level: 1, name: 'Zig Zag Wall' })).toBeVisible()
-  await expect(page.getByText('Multipass · 10 entries · 6 months · S$120.00')).toBeVisible()
+  await expect(page.getByText('10 entries · 6 months · S$120.00')).toBeVisible()
   await expect(page.getByRole('link', { name: 'zigzag.example.com' })).toHaveAttribute(
     'href',
     'https://zigzag.example.com',

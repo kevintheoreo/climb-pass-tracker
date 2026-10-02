@@ -243,11 +243,11 @@ describe('user gyms and templates', () => {
     const tpl = await repo.addUserTemplate({
       gymRef: ref,
       passType: 'multipass',
-      name: '5-Pass',
       totalEntries: 5,
       priceCents: 7500,
       validityMonths: 6,
       billingPeriod: null,
+      comments: null,
     })
     expect(await repo.listUserGyms()).toHaveLength(1)
     expect(await repo.listUserTemplates(ref)).toEqual([tpl])
@@ -257,11 +257,11 @@ describe('user gyms and templates', () => {
       repo.addUserTemplate({
         gymRef: ref,
         passType: 'multipass',
-        name: 'x',
         totalEntries: null,
         priceCents: null,
         validityMonths: null,
         billingPeriod: null,
+        comments: null,
       }),
     ).rejects.toBeInstanceOf(ZodError)
   })
@@ -273,11 +273,11 @@ describe('user gyms and templates', () => {
     const tpl = await repo.addUserTemplate({
       gymRef: ref,
       passType: 'single_entry',
-      name: 'Day',
       totalEntries: null,
       priceCents: null,
       validityMonths: null,
       billingPeriod: null,
+      comments: null,
     })
     expect(await repo.getUserGym(gym.id)).toEqual(gym)
     expect(await repo.getUserTemplate(tpl.id)).toEqual(tpl)
@@ -293,11 +293,11 @@ describe('user gyms and templates', () => {
     await repo.addUserTemplate({
       gymRef,
       passType: 'membership',
-      name: 'Student',
       totalEntries: null,
       priceCents: null,
       validityMonths: 12,
       billingPeriod: 'yearly',
+      comments: null,
     })
     expect(await repo.listUserTemplates(gymRef)).toHaveLength(1)
   })
@@ -309,11 +309,11 @@ describe('user gyms and templates', () => {
     const tpl = await repo.addUserTemplate({
       gymRef: ref,
       passType: 'single_entry',
-      name: 'Day',
       totalEntries: null,
       priceCents: 2200,
       validityMonths: null,
       billingPeriod: null,
+      comments: null,
     })
     const pass = await repo.createPass(multipass({ gymRef: ref }))
 

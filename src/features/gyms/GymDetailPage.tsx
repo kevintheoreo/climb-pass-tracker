@@ -4,9 +4,7 @@ import { ConfirmDelete } from '../../components/ConfirmDelete'
 import { Page } from '../../components/Page'
 import { buttonClass } from '../../components/formUtils'
 import { repo, GymInUseError } from '../../db'
-import { describeTemplate } from '../../domain/gyms'
-import { PASS_TYPE_LABELS } from '../../domain/labels'
-import { formatSgd } from '../../domain/money'
+import { templateDetails } from '../../domain/gyms'
 import { useGymData } from './useGymData'
 
 export default function GymDetailPage() {
@@ -70,26 +68,35 @@ export default function GymDetailPage() {
         <p className="mb-3 text-slate-600 dark:text-slate-400">No pass options yet.</p>
       ) : (
         <ul className="mb-3 divide-y divide-slate-200 overflow-hidden rounded-lg border border-slate-200 bg-white dark:divide-slate-800 dark:border-slate-800 dark:bg-slate-900">
-          {gym.templates.map((t) => (
-            <li key={t.id} className="flex items-center justify-between gap-3 px-4 py-2">
-              <div>
-                <p className="font-medium">{t.name}</p>
-                <p className="text-sm text-slate-600 dark:text-slate-400">
-                  {PASS_TYPE_LABELS[t.passType]} · {describeTemplate(t)}
-                  {t.priceCents !== null && ` · ${formatSgd(t.priceCents)}`}
-                </p>
-              </div>
-              {t.source === 'user' && (
-                <Link
-                  to={`${base}/templates/${t.id}/edit`}
-                  aria-label={`Edit ${t.name}`}
-                  className="inline-flex min-h-11 items-center px-2 text-sm font-medium text-teal-700 dark:text-teal-300"
-                >
-                  Edit
-                </Link>
-              )}
-            </li>
-          ))}
+          {gym.templates.map((t) => {
+            const details = templateDetails(t)
+            return (
+              <li key={t.id} className="flex items-center justify-between gap-3 px-4 py-2">
+                <div>
+                  <p className="font-medium">{t.name}</p>
+                  {details.length > 0 && (
+                    <p className="text-sm text-slate-600 dark:text-slate-400">
+                      {details.join(' · ')}
+                    </p>
+                  )}
+                  {t.comments && (
+                    <p className="mt-1 whitespace-pre-line text-sm text-slate-600 dark:text-slate-400">
+                      {t.comments}
+                    </p>
+                  )}
+                </div>
+                {t.source === 'user' && (
+                  <Link
+                    to={`${base}/templates/${t.id}/edit`}
+                    aria-label={`Edit ${[t.name, ...details].join(', ')}`}
+                    className="inline-flex min-h-11 items-center px-2 text-sm font-medium text-teal-700 dark:text-teal-300"
+                  >
+                    Edit
+                  </Link>
+                )}
+              </li>
+            )
+          })}
         </ul>
       )}
       <Link to={`${base}/templates/new`} className={buttonClass('secondary')}>

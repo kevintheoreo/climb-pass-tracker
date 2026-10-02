@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Draft v1.3 — for review |
+| **Status** | Draft v1.4 — for review |
 | **Date** | 2026-10-01 |
 | **Product** | Climb Pass Tracker |
 | **Platform** | Progressive Web App (PWA), phone-first |
@@ -170,7 +170,8 @@ UserGym (user-added, private)
   id, user_id, name, website?
 
 UserTemplate (user-added, private)
-  id, user_id, gym_ref, pass_type, name, entries?, price?, validity_months?
+  id, user_id, gym_ref, pass_type, entries?, price?, validity_months?, billing_period?, comments?
+  -- no name of its own: the pass type is its name; comments are the user's own notes
 
 HiddenGym
   user_id, gym_id

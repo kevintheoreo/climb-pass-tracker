@@ -6,6 +6,7 @@ import {
   findGym,
   normalizeWebsite,
   searchGyms,
+  templateDetails,
   type BuiltinGym,
   type GymSources,
   type GymTemplate,
@@ -54,11 +55,11 @@ const userTemplate = (
   id,
   gymRef,
   passType: 'multipass',
-  name: 'Mine',
   totalEntries: 5,
   priceCents: 7500,
   validityMonths: 6,
   billingPeriod: null,
+  comments: null,
   ...meta,
   ...overrides,
 })
@@ -95,6 +96,7 @@ describe('buildGymList', () => {
         billingPeriod: null,
         priceCents: null,
         validityMonths: null,
+        comments: null,
       },
     ])
   })
@@ -107,29 +109,62 @@ describe('buildGymList', () => {
           userTemplate(
             'ut2',
             { kind: 'builtin', id: 'b-planet' },
-            { name: 'Second', createdAt: '2026-03-01T00:00:00.000Z' },
+            { comments: 'Second', createdAt: '2026-03-01T00:00:00.000Z' },
           ),
-          userTemplate('ut1', { kind: 'builtin', id: 'b-planet' }, { name: 'First' }),
-          userTemplate('ut3', { kind: 'user', id: 'u1' }, { name: 'Wall pack' }),
-          userTemplate('ut4', { kind: 'builtin', id: 'u1' }, { name: 'Wrong kind' }),
+          userTemplate('ut1', { kind: 'builtin', id: 'b-planet' }, { comments: 'First' }),
+          userTemplate('ut3', { kind: 'user', id: 'u1' }, { comments: 'Wall pack' }),
+          userTemplate('ut4', { kind: 'builtin', id: 'u1' }, { comments: 'Wrong kind' }),
           userTemplate(
             'ut5',
             { kind: 'user', id: 'u1' },
-            { name: 'Deleted', deletedAt: '2026-02-01T00:00:00.000Z' },
+            { comments: 'Deleted', deletedAt: '2026-02-01T00:00:00.000Z' },
           ),
         ],
       }),
     )
     const planet = gyms.find((g) => g.name === 'Boulder Planet')!
-    expect(planet.templates.map((t) => `${t.source}:${t.name}`)).toEqual([
+    expect(planet.templates.map((t) => `${t.source}:${t.comments ?? t.name}`)).toEqual([
       'builtin:10-Pass',
       'user:First',
       'user:Second',
     ])
     expect(planet.templates[1]).toMatchObject({ priceCents: 7500, validityMonths: 6 })
-    expect(gyms.find((g) => g.name === 'My Wall')!.templates.map((t) => t.name)).toEqual([
+    expect(gyms.find((g) => g.name === 'My Wall')!.templates.map((t) => t.comments)).toEqual([
       'Wall pack',
     ])
+  })
+
+  it("names a user's own option after its type, and passes their comments through", () => {
+    const ref = { kind: 'user', id: 'u1' } as const
+    const types = ['multipass', 'class_pack', 'membership', 'single_entry'] as const
+    const gyms = buildGymList(
+      sources({
+        userGyms: [userGym('u1', 'My Wall')],
+        userTemplates: types.map((passType, i) =>
+          userTemplate(`ut${i}`, ref, { passType, comments: `note ${i}` }),
+        ),
+      }),
+    )
+    const mine = gyms.find((g) => g.name === 'My Wall')!.templates
+    expect(mine.map((t) => t.name)).toEqual([
+      'Multipass',
+      'Class / course pack',
+      'Membership',
+      'Single entry',
+    ])
+    expect(mine.map((t) => t.comments)).toEqual(['note 0', 'note 1', 'note 2', 'note 3'])
+  })
+
+  it('treats options saved before comments existed as having none', () => {
+    const legacy = { ...userTemplate('old', { kind: 'user', id: 'u1' }) } as Partial<UserTemplate>
+    delete legacy.comments
+    const gyms = buildGymList(
+      sources({
+        userGyms: [userGym('u1', 'My Wall')],
+        userTemplates: [legacy as UserTemplate],
+      }),
+    )
+    expect(gyms.find((g) => g.name === 'My Wall')!.templates[0]?.comments).toBeNull()
   })
 
   it('leaves out deleted user gyms', () => {
@@ -238,6 +273,7 @@ describe('describeTemplate', () => {
     billingPeriod: null,
     priceCents: null,
     validityMonths: null,
+    comments: null,
     ...overrides,
   })
 
@@ -259,6 +295,56 @@ describe('describeTemplate', () => {
     expect(describeTemplate(t({ source: 'user', totalEntries: 10, validityMonths: 1 }))).toBe(
       '10 entries · 1 month',
     )
+  })
+})
+
+describe('templateDetails', () => {
+  const t = (overrides: Partial<GymTemplate>): GymTemplate => ({
+    id: 'x',
+    source: 'user',
+    passType: 'multipass',
+    name: 'Multipass',
+    totalEntries: null,
+    billingPeriod: null,
+    priceCents: null,
+    validityMonths: null,
+    comments: null,
+    ...overrides,
+  })
+
+  it('built-in options lead with their type, since their name is the gym’s own', () => {
+    expect(templateDetails(t({ source: 'builtin', name: '10-Pass', totalEntries: 10 }))).toEqual([
+      'Multipass',
+      '10 entries',
+    ])
+  })
+
+  it('user options skip the type (it is the name) and add validity and price', () => {
+    expect(templateDetails(t({ totalEntries: 10, validityMonths: 6, priceCents: 12000 }))).toEqual([
+      '10 entries',
+      '6 months',
+      'S$120.00',
+    ])
+    expect(
+      templateDetails(
+        t({
+          passType: 'membership',
+          name: 'Membership',
+          billingPeriod: 'yearly',
+          validityMonths: 12,
+        }),
+      ),
+    ).toEqual(['Yearly', '12 months'])
+  })
+
+  it('does not repeat the name, so a single entry has nothing extra to say', () => {
+    expect(templateDetails(t({ passType: 'single_entry', name: 'Single entry' }))).toEqual([])
+    expect(
+      templateDetails(t({ passType: 'single_entry', name: 'Single entry', priceCents: 2200 })),
+    ).toEqual(['S$22.00'])
+    expect(
+      templateDetails(t({ source: 'builtin', passType: 'single_entry', name: 'Day pass' })),
+    ).toEqual(['Single entry'])
   })
 })
 

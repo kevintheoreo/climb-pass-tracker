@@ -1,4 +1,5 @@
-import { BILLING_PERIOD_LABELS, type BillingPeriod } from './labels'
+import { BILLING_PERIOD_LABELS, PASS_TYPE_LABELS, type BillingPeriod } from './labels'
+import { formatSgd } from './money'
 import { getPassStatus } from './passStatus'
 import type { LocalDate } from './dates'
 import type { Settings } from './settings'
@@ -37,6 +38,8 @@ export interface GymTemplate {
   /** Only ever set on templates the user saved themselves (Q3). */
   priceCents: number | null
   validityMonths: number | null
+  /** The user's own notes. Only on templates the user saved. */
+  comments: string | null
 }
 
 /** A gym as shown to the user: built-in and user-added gyms in one shape. */
@@ -61,11 +64,14 @@ const fromUserTemplate = (t: UserTemplate): GymTemplate => ({
   id: t.id,
   source: 'user',
   passType: t.passType,
-  name: t.name,
+  // User options have no name of their own: the type is the name.
+  name: PASS_TYPE_LABELS[t.passType],
   totalEntries: t.totalEntries,
   billingPeriod: t.billingPeriod,
   priceCents: t.priceCents,
   validityMonths: t.validityMonths,
+  // Rows saved before comments existed have none.
+  comments: t.comments ?? null,
 })
 
 /**
@@ -106,6 +112,7 @@ export function buildGymList(
             billingPeriod: t.billingPeriod,
             priceCents: null,
             validityMonths: null,
+            comments: null,
           })),
           ...userTemplatesFor(ref),
         ],
@@ -164,8 +171,7 @@ export function countActivePassesByGym(
   return counts
 }
 
-/** Short description of a pass option: "10 entries", "Monthly", plus price and validity if saved. */
-export function describeTemplate(t: GymTemplate): string {
+function describeParts(t: GymTemplate): string[] {
   const parts: string[] = []
   if (t.passType === 'multipass' && t.totalEntries !== null) {
     parts.push(t.totalEntries === 1 ? '1 entry' : `${t.totalEntries} entries`)
@@ -179,7 +185,26 @@ export function describeTemplate(t: GymTemplate): string {
   if (t.validityMonths !== null) {
     parts.push(t.validityMonths === 1 ? '1 month' : `${t.validityMonths} months`)
   }
-  return parts.join(' · ')
+  return parts
+}
+
+/** Short description of a pass option: "10 entries", "Monthly", plus validity if saved. */
+export function describeTemplate(t: GymTemplate): string {
+  return describeParts(t).join(' · ')
+}
+
+/**
+ * The detail line under a pass option's name, as separate parts: the type (for built-in options,
+ * whose names are the gym's own), what it is, validity and price. Parts that only repeat the name
+ * are dropped, so a user's "Single entry" option doesn't read "Single entry · Single entry".
+ */
+export function templateDetails(t: GymTemplate): string[] {
+  const parts = [
+    ...(t.source === 'builtin' ? [PASS_TYPE_LABELS[t.passType]] : []),
+    ...describeParts(t),
+    ...(t.priceCents !== null ? [formatSgd(t.priceCents)] : []),
+  ]
+  return parts.filter((part, i) => part !== t.name && parts.indexOf(part) === i)
 }
 
 /** Turns what someone types into a web address: empty → null, bare `example.com` → https. */

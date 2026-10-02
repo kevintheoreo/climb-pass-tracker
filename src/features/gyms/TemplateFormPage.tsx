@@ -4,7 +4,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ZodError } from 'zod'
 import { ConfirmDelete } from '../../components/ConfirmDelete'
 import { Page } from '../../components/Page'
-import { SelectField, TextField } from '../../components/forms'
+import { SelectField, TextAreaField, TextField } from '../../components/forms'
 import { buttonClass, fieldErrors } from '../../components/formUtils'
 import { repo } from '../../db'
 import { userTemplateInputSchema } from '../../domain/schemas'
@@ -27,11 +27,11 @@ function TemplateForm({ gymRef, existing }: { gymRef: GymRef; existing?: UserTem
   const navigate = useNavigate()
   const backTo = `/gyms/${gymRef.kind}/${gymRef.id}`
   const [passType, setPassType] = useState<PassType>(existing?.passType ?? 'multipass')
-  const [name, setName] = useState(existing?.name ?? '')
   const [entries, setEntries] = useState(existing?.totalEntries?.toString() ?? '')
   const [billing, setBilling] = useState<BillingPeriod>(existing?.billingPeriod ?? 'monthly')
   const [price, setPrice] = useState(centsToInput(existing?.priceCents ?? null))
   const [validity, setValidity] = useState(existing?.validityMonths?.toString() ?? '')
+  const [comments, setComments] = useState(existing?.comments ?? '')
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState(false)
 
@@ -54,12 +54,12 @@ function TemplateForm({ gymRef, existing }: { gymRef: GymRef; existing?: UserTem
     const input = {
       gymRef,
       passType,
-      name,
       // Unreadable numbers are already reported above; null here lets the schema report the rest.
       totalEntries: Number.isNaN(totalEntries) ? null : totalEntries,
       priceCents: parsedPrice.ok ? parsedPrice.cents : null,
       validityMonths: Number.isNaN(validityMonths) ? null : validityMonths,
       billingPeriod: passType === 'membership' ? billing : null,
+      comments: comments.trim() === '' ? null : comments,
     }
 
     // Report every problem at once: the ones found above plus whatever the schema finds.
@@ -95,15 +95,6 @@ function TemplateForm({ gymRef, existing }: { gymRef: GymRef; existing?: UserTem
           </option>
         ))}
       </SelectField>
-      <TextField
-        label="Name"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        error={errors.name}
-        placeholder="e.g. 10-Pass"
-        autoComplete="off"
-        required
-      />
       {counted && (
         <TextField
           label={passType === 'class_pack' ? 'Number of sessions' : 'Number of entries'}
@@ -146,6 +137,13 @@ function TemplateForm({ gymRef, existing }: { gymRef: GymRef; existing?: UserTem
           autoComplete="off"
         />
       )}
+      <TextAreaField
+        label="Comments (optional)"
+        value={comments}
+        onChange={(e) => setComments(e.target.value)}
+        error={errors.comments}
+        hint="Only for your own reference, e.g. “shareable with friends”."
+      />
       <div className="flex gap-3">
         <button type="submit" disabled={saving} className={buttonClass('primary')}>
           {existing ? 'Save changes' : 'Add pass option'}

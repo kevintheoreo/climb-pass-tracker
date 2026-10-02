@@ -144,7 +144,7 @@ describe('Gym page', () => {
     await heading(BOULDER.name)
     expect(screen.getByText('10-Pass')).toBeInTheDocument()
     expect(screen.getByText(/Multipass · 10 entries/)).toBeInTheDocument()
-    expect(screen.getByText(/Single entry · Single entry/)).toBeInTheDocument()
+    expect(screen.getByText('Single entry', { selector: 'p.text-sm' })).toBeInTheDocument()
     expect(screen.queryByText(/S\$/)).not.toBeInTheDocument()
     expect(screen.queryByText(/months?/)).not.toBeInTheDocument()
     expect(screen.queryByRole('link', { name: 'Edit gym' })).not.toBeInTheDocument()
@@ -204,50 +204,100 @@ describe('Gym page', () => {
 describe('Pass options', () => {
   async function fillOption(
     user: ReturnType<typeof userEvent.setup>,
-    fields: { name?: string; entries?: string; price?: string; validity?: string },
+    fields: { entries?: string; price?: string; validity?: string; comments?: string },
   ) {
-    if (fields.name !== undefined)
-      await user.type(await screen.findByLabelText('Name'), fields.name)
     if (fields.entries !== undefined)
-      await user.type(screen.getByLabelText('Number of entries'), fields.entries)
+      await user.type(await screen.findByLabelText('Number of entries'), fields.entries)
     if (fields.price !== undefined)
       await user.type(screen.getByLabelText(/Price in S\$/), fields.price)
     if (fields.validity !== undefined)
       await user.type(screen.getByLabelText(/Valid for/), fields.validity)
+    if (fields.comments !== undefined)
+      await user.type(screen.getByLabelText('Comments (optional)'), fields.comments)
   }
 
-  it('adds an option with price and validity to a gym of your own (Q3)', async () => {
+  const option = (
+    gymId: string,
+    overrides: Partial<Parameters<typeof repo.addUserTemplate>[0]> = {},
+  ) =>
+    repo.addUserTemplate({
+      gymRef: { kind: 'user', id: gymId },
+      passType: 'multipass',
+      totalEntries: 10,
+      priceCents: null,
+      validityMonths: null,
+      billingPeriod: null,
+      comments: null,
+      ...overrides,
+    })
+
+  it('has no name field: the type is the name', async () => {
+    const gym = await addUserGym('My Wall')
+    renderAt(`/gyms/user/${gym.id}/templates/new`)
+    await screen.findByLabelText('Type')
+    expect(screen.queryByLabelText('Name')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('Comments (optional)')).toBeInTheDocument()
+  })
+
+  it('adds an option with price, validity and comments to a gym of your own (Q3)', async () => {
     const user = userEvent.setup()
     const gym = await addUserGym('My Wall')
     renderAt(`/gyms/user/${gym.id}/templates/new`)
-    await fillOption(user, { name: '10-Pass', entries: '10', price: '$120', validity: '6' })
+    await fillOption(user, {
+      entries: '10',
+      price: '$120',
+      validity: '6',
+      comments: 'Shareable with friends',
+    })
     await user.click(screen.getByRole('button', { name: 'Add pass option' }))
 
     await heading('My Wall')
-    expect(await screen.findByText('10-Pass')).toBeInTheDocument()
-    expect(screen.getByText('Multipass · 10 entries · 6 months · S$120.00')).toBeInTheDocument()
-    expect(await repo.listUserTemplates()).toMatchObject([
-      {
-        name: '10-Pass',
-        totalEntries: 10,
-        priceCents: 12000,
-        validityMonths: 6,
-        passType: 'multipass',
-      },
-    ])
+    expect(await screen.findByText('Multipass')).toBeInTheDocument()
+    expect(screen.getByText('10 entries · 6 months · S$120.00')).toBeInTheDocument()
+    expect(screen.getByText('Shareable with friends')).toBeInTheDocument()
+    const [stored] = await repo.listUserTemplates()
+    expect(stored).toMatchObject({
+      passType: 'multipass',
+      totalEntries: 10,
+      priceCents: 12000,
+      validityMonths: 6,
+      comments: 'Shareable with friends',
+    })
+    expect(stored).not.toHaveProperty('name')
+  })
+
+  it('treats empty or blank comments as none', async () => {
+    const user = userEvent.setup()
+    const gym = await addUserGym('My Wall')
+    renderAt(`/gyms/user/${gym.id}/templates/new`)
+    await fillOption(user, { entries: '10', comments: '   ' })
+    await user.click(screen.getByRole('button', { name: 'Add pass option' }))
+    await heading('My Wall')
+    expect((await repo.listUserTemplates())[0]?.comments).toBeNull()
   })
 
   it('can add an option to a built-in gym, shown after the built-in ones', async () => {
     const user = userEvent.setup()
     renderAt(`/gyms/builtin/${BOULDER.id}/templates/new`)
-    await fillOption(user, { name: 'My 5-Pass', entries: '5' })
+    await fillOption(user, { entries: '5', comments: 'my own' })
     await user.click(screen.getByRole('button', { name: 'Add pass option' }))
     await heading(BOULDER.name)
     const items = (await screen.findAllByRole('listitem')).map((li) => li.textContent ?? '')
     expect(items.findIndex((t) => t.includes('Day pass'))).toBeLessThan(
-      items.findIndex((t) => t.includes('My 5-Pass')),
+      items.findIndex((t) => t.includes('my own')),
     )
-    expect(screen.getByRole('link', { name: 'Edit My 5-Pass' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Edit Multipass, 5 entries' })).toBeInTheDocument()
+  })
+
+  it('tells two options of the same type apart', async () => {
+    const gym = await addUserGym('My Wall')
+    await option(gym.id, { totalEntries: 10 })
+    await option(gym.id, { totalEntries: 20 })
+    renderAt(`/gyms/user/${gym.id}`)
+    expect(
+      await screen.findByRole('link', { name: 'Edit Multipass, 10 entries' }),
+    ).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Edit Multipass, 20 entries' })).toBeInTheDocument()
   })
 
   it('only asks for what the type needs', async () => {
@@ -264,48 +314,50 @@ describe('Pass options', () => {
     await user.selectOptions(type, 'Single entry')
     expect(screen.queryByLabelText(/Valid for/)).not.toBeInTheDocument()
     expect(screen.getByLabelText(/Price in S\$/)).toBeInTheDocument()
+    expect(screen.getByLabelText('Comments (optional)')).toBeInTheDocument()
   })
 
-  it('explains problems instead of saving', async () => {
+  it('explains every problem at once instead of saving', async () => {
     const user = userEvent.setup()
     const gym = await addUserGym('My Wall')
     renderAt(`/gyms/user/${gym.id}/templates/new`)
     await user.click(await screen.findByRole('button', { name: 'Add pass option' }))
     expect(await screen.findByText('Enter the number of entries')).toBeInTheDocument()
-    expect(screen.getByText('Enter a name')).toBeInTheDocument()
 
-    await fillOption(user, { name: 'X', entries: '2.5', price: 'abc', validity: '1.5' })
+    await fillOption(user, { entries: '2.5', price: 'abc', validity: '1.5' })
+    await user.click(screen.getByLabelText('Comments (optional)'))
+    await user.paste('x'.repeat(501))
     await user.click(screen.getByRole('button', { name: 'Add pass option' }))
     expect(await screen.findByText('Enter a whole number')).toBeInTheDocument()
     expect(screen.getByText('Enter an amount like 120 or 120.50')).toBeInTheDocument()
     expect(screen.getByText('Enter a whole number of months')).toBeInTheDocument()
+    expect(screen.getByText('Keep comments under 500 characters')).toBeInTheDocument()
     expect(await repo.listUserTemplates()).toEqual([])
   })
 
   it('edits and deletes an option', async () => {
     const user = userEvent.setup()
     const gym = await addUserGym('My Wall')
-    const ref = { kind: 'user', id: gym.id } as const
-    const tpl = await repo.addUserTemplate({
-      gymRef: ref,
-      passType: 'multipass',
-      name: '10-Pass',
-      totalEntries: 10,
-      priceCents: 12050,
-      validityMonths: null,
-      billingPeriod: null,
-    })
+    const tpl = await option(gym.id, { priceCents: 12050, comments: 'old note' })
 
     renderAt(`/gyms/user/${gym.id}/templates/${tpl.id}/edit`)
     const price = await screen.findByLabelText(/Price in S\$/)
     expect(price).toHaveValue('120.50')
+    const comments = screen.getByLabelText('Comments (optional)')
+    expect(comments).toHaveValue('old note')
     await user.clear(price)
     await user.type(price, '99')
+    await user.clear(comments)
+    await user.type(comments, 'new note')
     await user.click(screen.getByRole('button', { name: 'Save changes' }))
     await heading('My Wall')
-    expect((await repo.getUserTemplate(tpl.id))?.priceCents).toBe(9900)
+    expect(await repo.getUserTemplate(tpl.id)).toMatchObject({
+      priceCents: 9900,
+      comments: 'new note',
+    })
+    expect(await screen.findByText('new note')).toBeInTheDocument()
 
-    await user.click(await screen.findByRole('link', { name: 'Edit 10-Pass' }))
+    await user.click(await screen.findByRole('link', { name: /^Edit Multipass/ }))
     await user.click(await screen.findByRole('button', { name: 'Delete pass option' }))
     await user.click(screen.getByRole('button', { name: 'Yes, delete' }))
     await heading('My Wall')
@@ -316,15 +368,7 @@ describe('Pass options', () => {
   it('cannot edit a built-in option or one that belongs to another gym', async () => {
     const gym = await addUserGym('My Wall')
     const other = await addUserGym('Other Wall')
-    const tpl = await repo.addUserTemplate({
-      gymRef: { kind: 'user', id: other.id },
-      passType: 'single_entry',
-      name: 'Day',
-      totalEntries: null,
-      priceCents: null,
-      validityMonths: null,
-      billingPeriod: null,
-    })
+    const tpl = await option(other.id, { passType: 'single_entry', totalEntries: null })
     renderAt(`/gyms/user/${gym.id}/templates/${tpl.id}/edit`)
     expect(await heading('Not found')).toBeInTheDocument()
   })
