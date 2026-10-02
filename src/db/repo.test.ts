@@ -266,6 +266,28 @@ describe('user gyms and templates', () => {
     ).rejects.toBeInstanceOf(ZodError)
   })
 
+  it('gets a single gym or template, but not a deleted one', async () => {
+    const { repo } = makeTestRepo()
+    const gym = await repo.addUserGym({ name: 'My Wall', website: null })
+    const ref = { kind: 'user', id: gym.id } as const
+    const tpl = await repo.addUserTemplate({
+      gymRef: ref,
+      passType: 'single_entry',
+      name: 'Day',
+      totalEntries: null,
+      priceCents: null,
+      validityMonths: null,
+      billingPeriod: null,
+    })
+    expect(await repo.getUserGym(gym.id)).toEqual(gym)
+    expect(await repo.getUserTemplate(tpl.id)).toEqual(tpl)
+    expect(await repo.getUserGym('nope')).toBeUndefined()
+    await repo.deleteUserTemplate(tpl.id)
+    await repo.deleteUserGym(gym.id)
+    expect(await repo.getUserTemplate(tpl.id)).toBeUndefined()
+    expect(await repo.getUserGym(gym.id)).toBeUndefined()
+  })
+
   it('lets a user add a template to a built-in gym', async () => {
     const { repo } = makeTestRepo()
     await repo.addUserTemplate({

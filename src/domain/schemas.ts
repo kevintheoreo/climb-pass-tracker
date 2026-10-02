@@ -88,9 +88,18 @@ export const freezeInputSchema = freezeRange
   .extend({ passId: z.string().min(1) })
   .refine((f) => f.endDate >= f.startDate, endNotBeforeStart)
 
+function isHttpUrl(value: string): boolean {
+  try {
+    const { protocol } = new URL(value)
+    return protocol === 'http:' || protocol === 'https:'
+  } catch {
+    return false
+  }
+}
+
 export const userGymInputSchema = z.object({
   name: z.string().trim().min(1, 'Enter a name').max(100),
-  website: z.string().trim().max(200).nullable(),
+  website: z.string().trim().max(200).refine(isHttpUrl, 'Enter a valid web address').nullable(),
 })
 
 /** A pass template the user saved themselves. Unlike built-in ones, it may carry price and validity (Q3). */
@@ -99,9 +108,19 @@ export const userTemplateInputSchema = z
     gymRef: gymRefSchema,
     passType: z.enum(['multipass', 'class_pack', 'membership', 'single_entry']),
     name: z.string().trim().min(1, 'Enter a name').max(100),
-    totalEntries: z.number().int().min(1).max(1000).nullable(),
-    priceCents: z.number().int().min(0).nullable(),
-    validityMonths: z.number().int().min(1).max(120).nullable(),
+    totalEntries: z
+      .number()
+      .int()
+      .min(1, 'Entries must be at least 1')
+      .max(1000, 'Enter 1000 entries or fewer')
+      .nullable(),
+    priceCents: z.number().int().min(0, 'Price cannot be negative').nullable(),
+    validityMonths: z
+      .number()
+      .int()
+      .min(1, 'Enter 1 to 120 months')
+      .max(120, 'Enter 1 to 120 months')
+      .nullable(),
     billingPeriod: z.enum(['monthly', 'yearly', 'custom']).nullable(),
   })
   .refine(

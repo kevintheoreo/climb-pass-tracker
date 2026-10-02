@@ -1,4 +1,4 @@
-import { freezeInputSchema, passInputSchema, useInputSchema } from './schemas'
+import { freezeInputSchema, passInputSchema, useInputSchema, userGymInputSchema } from './schemas'
 
 const gymRef = { kind: 'builtin', id: 'g1' } as const
 const counted = {
@@ -114,5 +114,31 @@ describe('useInputSchema and freezeInputSchema', () => {
       freezeInputSchema.safeParse({ passId: 'p', startDate: '2026-10-05', endDate: '2026-10-05' })
         .success,
     ).toBe(true)
+  })
+})
+
+describe('userGymInputSchema', () => {
+  it('accepts a name with no website, or with an http(s) address', () => {
+    expect(userGymInputSchema.safeParse({ name: 'My Wall', website: null }).success).toBe(true)
+    expect(
+      userGymInputSchema.safeParse({ name: 'My Wall', website: 'https://example.com/path' })
+        .success,
+    ).toBe(true)
+    expect(
+      userGymInputSchema.safeParse({ name: 'My Wall', website: 'http://example.com' }).success,
+    ).toBe(true)
+  })
+
+  it('rejects a blank name and web addresses that are not http(s) URLs', () => {
+    expect(userGymInputSchema.safeParse({ name: ' ', website: null }).success).toBe(false)
+    for (const website of [
+      'example.com',
+      'not a url',
+      'javascript:alert(1)',
+      'ftp://example.com',
+      '',
+    ]) {
+      expect(userGymInputSchema.safeParse({ name: 'My Wall', website }).success).toBe(false)
+    }
   })
 })

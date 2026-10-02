@@ -237,6 +237,11 @@ export function createRepo(db: ClimbDB, options: RepoOptions = {}) {
     })
   }
 
+  async function getUserGym(id: string): Promise<UserGym | undefined> {
+    const row = await db.userGyms.get(id)
+    return row && isLive(row) ? row : undefined
+  }
+
   async function listUserGyms(): Promise<UserGym[]> {
     return (await db.userGyms.toArray()).filter(isLive)
   }
@@ -280,6 +285,11 @@ export function createRepo(db: ClimbDB, options: RepoOptions = {}) {
       const row = requireLive(await db.userTemplates.get(id), 'Template', id)
       await db.userTemplates.put(tombstone(row, now()))
     })
+  }
+
+  async function getUserTemplate(id: string): Promise<UserTemplate | undefined> {
+    const row = await db.userTemplates.get(id)
+    return row && isLive(row) ? row : undefined
   }
 
   /** User templates, optionally only those for one gym. */
@@ -374,11 +384,13 @@ export function createRepo(db: ClimbDB, options: RepoOptions = {}) {
     deleteFreeze,
     addUserGym,
     updateUserGym,
+    getUserGym,
     listUserGyms,
     deleteUserGym,
     addUserTemplate,
     updateUserTemplate,
     deleteUserTemplate,
+    getUserTemplate,
     listUserTemplates,
     hideGym,
     unhideGym,
