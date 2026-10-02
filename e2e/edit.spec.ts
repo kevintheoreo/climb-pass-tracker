@@ -144,3 +144,33 @@ test('on a wide screen the panel spans the row', async ({ page }) => {
   expect(panelBox.x + panelBox.width).toBeLessThanOrEqual(rowBox.x + rowBox.width)
   expect(panelBox.width).toBeGreaterThan(rowBox.width * 0.8)
 })
+
+test.describe('with a mouse', () => {
+  test.use({ isMobile: false, hasTouch: false })
+
+  test('the notice still goes away when the pointer is resting on it', async ({ page }) => {
+    // A short window puts the notice right where the pointer was when `−` was clicked.
+    await page.setViewportSize({ width: 1000, height: 255 })
+    await seeded(page)
+    const pack = mainRows(page).filter({ hasText: 'Class / course pack' })
+    await pack.getByRole('button', { name: /^Use one entry/ }).evaluate((el) => {
+      el.scrollIntoView({ block: 'end' })
+    })
+    await pack.getByRole('button', { name: /^Use one entry/ }).click()
+    const notice = page.getByRole('status').filter({ hasText: 'moved to Finished' })
+    await expect(notice).toBeVisible()
+    const box = (await notice.locator('div').first().boundingBox())!
+    await page.mouse.move(box.x + 40, box.y + box.height / 2)
+    await page.mouse.move(box.x + 44, box.y + box.height / 2)
+    // Make sure the pointer really is over it, so this test would catch a hover hold.
+    await expect
+      .poll(() =>
+        notice
+          .locator('div')
+          .first()
+          .evaluate((el) => el.matches(':hover')),
+      )
+      .toBe(true)
+    await expect(notice).toHaveCount(0, { timeout: 12_000 })
+  })
+})

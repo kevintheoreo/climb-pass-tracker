@@ -11,10 +11,50 @@ export interface Notice {
 
 const SHOW_MS = 8000
 
+/** One notice on screen. A new notice is a new box, so nothing carries over from the last one. */
+function NoticeBox({
+  notice,
+  onUndo,
+  onDismiss,
+}: {
+  notice: Notice
+  onUndo: (notice: Notice) => void
+  onDismiss: () => void
+}) {
+  const [focused, setFocused] = useState(false)
+
+  useEffect(() => {
+    if (focused) return
+    const timer = setTimeout(onDismiss, SHOW_MS)
+    return () => clearTimeout(timer)
+  }, [focused, onDismiss])
+
+  return (
+    <div
+      onFocus={() => setFocused(true)}
+      onBlur={() => setFocused(false)}
+      className="pointer-events-auto flex max-w-md items-center gap-3 rounded-lg bg-slate-900 py-1 pl-4 pr-1 text-white shadow-lg dark:bg-slate-100 dark:text-slate-900"
+    >
+      <p className="text-base">
+        <span className="font-medium">{notice.what}</span> moved to Finished
+      </p>
+      <button
+        type="button"
+        onClick={() => onUndo(notice)}
+        className={`${buttonClass('secondary')} shrink-0`}
+      >
+        Undo
+      </button>
+    </div>
+  )
+}
+
 /**
  * "Moved to Finished · Undo" at the bottom of the screen after `−` uses a pass's last entry. The
  * row has left the main list, and this says where it went; Undo gives the entry back, the same
- * as `+` in Finished. It goes away by itself, but waits while it is hovered or focused.
+ * as `+` in Finished. It goes away by itself after a few seconds. It waits only while a button in
+ * it has keyboard focus, and not while hovered: a resting mouse pointer, or a finger that tapped
+ * its text on a phone, would otherwise hold it on screen for good.
  */
 export function UndoNotice({
   notice,
@@ -25,38 +65,13 @@ export function UndoNotice({
   onUndo: (notice: Notice) => void
   onDismiss: () => void
 }) {
-  const [held, setHeld] = useState(false)
-
-  useEffect(() => {
-    if (!notice || held) return
-    const timer = setTimeout(onDismiss, SHOW_MS)
-    return () => clearTimeout(timer)
-  }, [notice, held, onDismiss])
-
   return (
     <div
       role="status"
       className="pointer-events-none fixed inset-x-0 bottom-4 z-30 flex justify-center px-4"
     >
       {notice && (
-        <div
-          onMouseEnter={() => setHeld(true)}
-          onMouseLeave={() => setHeld(false)}
-          onFocus={() => setHeld(true)}
-          onBlur={() => setHeld(false)}
-          className="pointer-events-auto flex max-w-md items-center gap-3 rounded-lg bg-slate-900 py-1 pl-4 pr-1 text-white shadow-lg dark:bg-slate-100 dark:text-slate-900"
-        >
-          <p className="text-base">
-            <span className="font-medium">{notice.what}</span> moved to Finished
-          </p>
-          <button
-            type="button"
-            onClick={() => onUndo(notice)}
-            className={`${buttonClass('secondary')} shrink-0`}
-          >
-            Undo
-          </button>
-        </div>
+        <NoticeBox key={notice.key} notice={notice} onUndo={onUndo} onDismiss={onDismiss} />
       )}
     </div>
   )

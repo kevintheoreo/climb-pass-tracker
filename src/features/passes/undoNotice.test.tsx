@@ -34,17 +34,13 @@ describe('UndoNotice', () => {
     expect(onDismiss).toHaveBeenCalledTimes(1)
   })
 
-  it('waits while it is hovered, then counts the full time again', async () => {
+  it('is not held by the pointer: it still goes after eight seconds', async () => {
     const onDismiss = vi.fn()
     render(<UndoNotice notice={notice} onUndo={() => {}} onDismiss={onDismiss} />)
     const box = screen.getByText(/Fitbloc/).closest('div')!
     fireEvent.mouseEnter(box)
-    await tick(60_000)
-    expect(onDismiss).not.toHaveBeenCalled()
-    fireEvent.mouseLeave(box)
-    await tick(7_900)
-    expect(onDismiss).not.toHaveBeenCalled()
-    await tick(200)
+    fireEvent.mouseOver(box)
+    await tick(8_100)
     expect(onDismiss).toHaveBeenCalledTimes(1)
   })
 
@@ -54,6 +50,21 @@ describe('UndoNotice', () => {
     act(() => screen.getByRole('button', { name: 'Undo' }).focus())
     await tick(60_000)
     expect(onDismiss).not.toHaveBeenCalled()
+    act(() => screen.getByRole('button', { name: 'Undo' }).blur())
+    await tick(8_100)
+    expect(onDismiss).toHaveBeenCalledTimes(1)
+  })
+
+  it('a focus that was lost when the notice went away does not hold the next one', async () => {
+    const onDismiss = vi.fn()
+    const { rerender } = render(
+      <UndoNotice notice={notice} onUndo={() => {}} onDismiss={onDismiss} />,
+    )
+    act(() => screen.getByRole('button', { name: 'Undo' }).focus())
+    rerender(<UndoNotice notice={null} onUndo={() => {}} onDismiss={onDismiss} />)
+    rerender(<UndoNotice notice={{ ...notice, key: 2 }} onUndo={() => {}} onDismiss={onDismiss} />)
+    await tick(8_100)
+    expect(onDismiss).toHaveBeenCalledTimes(1)
   })
 
   it('a newer notice restarts the clock', async () => {
