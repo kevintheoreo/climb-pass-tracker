@@ -114,7 +114,7 @@ Goal: a complete, installable, offline app with no account and no backend.
 | **1.8 Add a row** ✅ | The blank row at the bottom: gym autocomplete with "Add “text” as a new gym", type, entries (for a membership, the optional entries per month), expiry with +6 / +12 month buttons; saves itself when complete and the user leaves the row or presses Enter; missing or invalid cells say so. | FR-15, 22, 25, 53, 54, D24, D29 |
 | **1.9 Edit a row and its details** ✅ | Edit cells in place; tap a row to open details (purchase date, price, already used, comments, and for monthly memberships the reset day); delete with confirmation; editing the expiry of a Finished row brings it back. When `−` uses the last entry and the row moves to Finished, a short notice at the bottom says "Moved to Finished · Undo" for a few seconds; Undo gives the entry back (same as `+`). | FR-17–19, 22, 56, D30 |
 | **1.10 Reminders + Settings** ✅ | Reminder banners with dismiss and row highlights, including the monthly reset banner 3 days before a reset. Settings (gear icon): reminder thresholds and on/off (expiring soon, low entries, monthly reset), CSV export (passes + recorded uses), delete all local data, app version, "data only on this device" notice, install instructions for iOS and Android. | FR-7, 31–34, 42–45, 47, 49, 55 |
-| **1.11 End-to-end tests** | Playwright on a phone-sized viewport: first launch → add a row by typing a new gym → tap `−` three times and `+` once → a monthly membership counts down, stops at 0 and shows its reset date → two rows at one gym stay separate → row moves to Finished → reminder banner → CSV download → everything still works offline. | §13 |
+| **1.11 End-to-end tests** ✅ | Playwright on a phone-sized viewport: first launch → add a row by typing a new gym → tap `−` three times and `+` once → a monthly membership counts down, stops at 0 and shows its reset date → two rows at one gym stay separate → row moves to Finished → reminder banner → CSV download → everything still works offline. | §13 |
 
 **M1 done when:** everything above works offline in Chrome (Android) and Safari (iOS) when installed, unit and end-to-end tests pass, and it is deployed on a Netlify preview URL for you to try.
 
@@ -172,7 +172,7 @@ During M1 I'll put in a few placeholder gyms so the app can be tested; you repla
 - **Unit tests (Vitest):** all of `src/domain/` — this is where most bugs would hurt (wrong counts, wrong expiry, wrong gym matching). Dates are passed in as arguments rather than read from the clock, so tests can fix "today".
 - **Component tests:** the add row (autocomplete, new gym, saving itself), the counter buttons, the details section.
 - **End-to-end (Playwright):** the core flows from PRD §8, on a phone-sized screen, including offline mode.
-- **CI:** GitHub Actions runs lint, typecheck and unit tests on every PR; Netlify builds a preview for every PR.
+- **CI:** GitHub Actions runs lint, format check, typecheck, unit tests, the build and the Playwright suite on every PR; Netlify builds a preview for every PR.
 
 ---
 

@@ -8,7 +8,7 @@ Climb Pass Tracker is a phone-first PWA for climbers to track gym passes, starti
 
 `docs/PRD.md` (v2.3, the single-screen redesign) is the source of truth for scope and behaviour; `docs/IMPLEMENTATION_PLAN.md` is the step-by-step build plan (milestones M1–M3). Read both before implementing anything, and cite decision IDs (D1–D36) and requirement IDs (FR-1…FR-61) when relevant. IDs are stable across versions; superseded ones are marked in the PRD, so do not follow a D/FR that the PRD marks Superseded or Removed.
 
-Progress: steps 1.1 to 1.10 are merged: setup, domain logic, local database, app shell, the rework for the single-screen model, the list of rows, the `−` / `+` counter (`Counter.tsx`, rules in `counterView` in `src/domain/counter.ts`), the blank add-a-pass row (`NewRow.tsx`, `GymCombobox.tsx`), and editing and deleting (`EditPanel.tsx`; both forms share `PassForm.tsx` and the checks in `src/domain/passForm.ts`). reminder banners (`ReminderBanners.tsx`, one per pass) and Settings (reminder thresholds and switches, CSV export, delete all data, install steps, version). **Next is step 1.11, the end-to-end tests.** Work happens on a feature branch per step, merged into `main` through a PR (CI runs on PRs only). The old Gyms-screens branch `step-1-5-gyms` (PR #4, closed unmerged) is only a source of ideas now; do not merge it.
+Progress: steps 1.1 to 1.11 are merged (milestone 1, the on-device app, is built): setup, domain logic, local database, app shell, the rework for the single-screen model, the list of rows, the `−` / `+` counter (`Counter.tsx`, rules in `counterView` in `src/domain/counter.ts`), the blank add-a-pass row (`NewRow.tsx`, `GymCombobox.tsx`), and editing and deleting (`EditPanel.tsx`; both forms share `PassForm.tsx` and the checks in `src/domain/passForm.ts`). reminder banners (`ReminderBanners.tsx`, one per pass) and Settings (reminder thresholds and switches, CSV export, delete all data, install steps, version). the end-to-end tests (`e2e/journey.spec.ts` follows the flows of PRD section 8 from an empty app, with no data put in behind the app's back). **Next is milestone 2, accounts and sync (plan section 3), and before launch the owner's checked gym list (step 3.1).** Work happens on a feature branch per step, merged into `main` through a PR (CI runs on PRs only). The old Gyms-screens branch `step-1-5-gyms` (PR #4, closed unmerged) is only a source of ideas now; do not merge it.
 
 Where things live:
 
@@ -36,7 +36,7 @@ npm run e2e            # Playwright; builds and serves the app on :4173 first
 node scripts/generate-icons.mjs           # regenerate placeholder PWA icons from public/*.svg
 ```
 
-In the cloud environment, run Playwright with `PW_CHROMIUM_PATH=/opt/pw-browsers/chromium` (the browser is pre-installed; do not run `playwright install`). CI (`.github/workflows/ci.yml`) runs lint, format check, typecheck, tests and build on every PR.
+In the cloud environment, run Playwright with `PW_CHROMIUM_PATH=/opt/pw-browsers/chromium` (the browser is pre-installed; do not run `playwright install`). CI (`.github/workflows/ci.yml`) runs lint, format check, typecheck, tests, build and the Playwright suite on every PR (it installs Playwright's own Chromium; a failed run keeps the HTML report as an artifact).
 
 ## Planned stack (PRD §10)
 
