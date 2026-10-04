@@ -33,7 +33,7 @@ Steps 1.1 to 1.4 were built for the earlier, multi-screen design. The first vers
 | Styling | Tailwind CSS | Light and dark mode from the system setting. |
 | Local database | Dexie + `dexie-react-hooks` | `useLiveQuery` re-renders screens when data changes, so no separate state library is needed. |
 | Dates | `date-fns` | Pure helpers, easy to test. |
-| Validation | `zod` | Pass schema shared by the row editor, CSV export and the backup file. |
+| Validation | `zod` | Pass schema shared by the row editor and the backup file. |
 | PWA | `vite-plugin-pwa` | Precaches the app shell; manifest and icons. |
 | Tests | Vitest + Testing Library; Playwright | Playwright uses the pre-installed Chromium. |
 | Lint / format | ESLint + Prettier | |
@@ -51,7 +51,6 @@ src/
     gyms.ts        gym name matching, search and "find or create" decisions (FR-53)
     money.ts       parse / format SGD
     reminders.ts   which banners to show (FR-31 to FR-34)
-    csv.ts         CSV export (FR-45)
     backup.ts      backup file format, checking, and the rules for adding one to a device (FR-62 to FR-66, D38)
   db/            Dexie schema, migrations, and the repository
   data/          Bundled built-in gym names
@@ -111,8 +110,8 @@ Goal: a complete, installable, offline app with no account and no backend.
 | **1.7 The counter** ✅ | `−` and `+` on counted rows, wired to the transaction in 1.5; disabled at the limits; rows move to Finished at 0 (a monthly membership stays in the list and shows its reset date). | FR-4, 9, 11, 12, 14, 52, D25 |
 | **1.8 Add a row** ✅ | The blank row at the bottom: gym autocomplete with "Add “text” as a new gym", type, entries (for a membership, the optional entries per month), expiry with +6 / +12 month buttons; saves itself when complete and the user leaves the row or presses Enter; missing or invalid cells say so. | FR-15, 22, 25, 53, 54, D24, D29 |
 | **1.9 Edit a row and its details** ✅ | Edit cells in place; tap a row to open details (purchase date, price, already used, comments, and for monthly memberships the reset day); delete with confirmation; editing the expiry of a Finished row brings it back. When `−` uses the last entry and the row moves to Finished, a short notice at the bottom says "Moved to Finished · Undo" for a few seconds; Undo gives the entry back (same as `+`). | FR-17–19, 22, 56, D30 |
-| **1.10 Reminders + Settings** ✅ | Reminder banners with dismiss and row highlights, including the monthly reset banner 3 days before a reset. Settings (gear icon): reminder thresholds and on/off (expiring soon, low entries, monthly reset), CSV export (passes + recorded uses), delete all local data, app version, "data only on this device" notice, install instructions for iOS and Android. | FR-7, 31–34, 42–45, 47, 49, 55 |
-| **1.11 End-to-end tests** ✅ | Playwright on a phone-sized viewport: first launch → add a row by typing a new gym → tap `−` three times and `+` once → a monthly membership counts down, stops at 0 and shows its reset date → two rows at one gym stay separate → row moves to Finished → reminder banner → CSV download → everything still works offline. | §13 |
+| **1.10 Reminders + Settings** ✅ | Reminder banners with dismiss and row highlights, including the monthly reset banner 3 days before a reset. Settings (gear icon): reminder thresholds and on/off (expiring soon, low entries, monthly reset), delete all local data (a CSV export was built here and removed later), app version, "data only on this device" notice, install instructions for iOS and Android. | FR-7, 31–34, 42–45, 47, 49, 55 |
+| **1.11 End-to-end tests** ✅ | Playwright on a phone-sized viewport: first launch → add a row by typing a new gym → tap `−` three times and `+` once → a monthly membership counts down, stops at 0 and shows its reset date → two rows at one gym stay separate → row moves to Finished → reminder banner → backup download → everything still works offline. | §13 |
 
 **M1 done when:** everything above works offline in Chrome (Android) and Safari (iOS) when installed, unit and end-to-end tests pass, and it is deployed on a Netlify preview URL for you to try.
 
@@ -125,7 +124,7 @@ There are no accounts, no server and nothing to set up (D37). Data lives on the 
 | Step | Work | PRD |
 |---|---|---|
 | **2.1 Backup file and merge rules** ✅ | `src/domain/backup.ts`: the file format (version 1, JSON, every record exactly as the device holds it, deleted rows included), writing it, checking it completely before anything changes (clear message for each kind of problem; refused whole), and the rules for adding it to a device that already has data: match by id, newer `updatedAt` wins, nothing deleted except by a newer deletion, gyms with the same name are the same gym, opening it twice changes nothing. `repo.exportBackup`, `repo.previewImport`, `repo.importBackup` (one transaction: all or nothing). | FR-62, 64–66, D37, D38 |
-| **2.2 Backup in Settings** ✅ | Under "Your data": the note that data is only on this device, **Download backup file**, **Share backup file** (only where the browser can share files), **Open a backup file** with a preview of what it would add and an **Add to this device** button, and messages for every outcome. | FR-42, 62–64, 66 |
+| **2.2 Backup in Settings** ✅ | Under "Your data": the note that data is only on this device, **Download backup file**, **Open a backup file** with a preview of what it would add and an **Add to this device** button, and messages for every outcome. | FR-42, 62–64, 66 |
 | **2.3 Tests** ✅ | Unit tests for the format and every merge rule; repository tests (round trip between two devices, deletions, gym matching, all-or-nothing); component tests for the screen; end-to-end tests with two separate browser profiles standing for two phones, including opening a file with no network. | §13 |
 
 Two devices that both count while apart are merged row by row (each tap is its own row), so no count is lost. If the *same pass* was edited on both, the newer edit wins; that is accepted for v1.

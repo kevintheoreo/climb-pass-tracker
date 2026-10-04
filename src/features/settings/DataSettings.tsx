@@ -1,25 +1,9 @@
 import { useState } from 'react'
 import { ConfirmDelete } from '../../components/ConfirmDelete'
-import { buttonClass } from '../../components/formUtils'
 import { repo } from '../../db'
-import { passesCsv, usesCsv } from '../../domain/csv'
-import { todayLocal } from '../../domain/dates'
-import { findGym } from '../../domain/gyms'
 import { BackupControls } from './BackupControls'
-import { downloadTextFile } from './download'
 
-async function exportData(kind: 'passes' | 'uses') {
-  const [bundles, gyms] = await Promise.all([repo.listBundles(), repo.listGyms()])
-  const today = todayLocal()
-  const gymName = (ref: Parameters<typeof findGym>[1]) => findGym(gyms, ref)?.name ?? 'Unknown gym'
-  if (kind === 'passes') {
-    downloadTextFile(`climb-passes-${today}.csv`, passesCsv(bundles, gymName, today))
-  } else {
-    downloadTextFile(`climb-pass-uses-${today}.csv`, usesCsv(bundles, gymName))
-  }
-}
-
-/** Where the data lives, how to take a copy, and how to wipe it (FR-42, FR-45, FR-47). */
+/** Where the data lives, how to take a copy, and how to wipe it (FR-42, FR-47, FR-62). */
 export function DataSettings() {
   const [message, setMessage] = useState('')
 
@@ -35,26 +19,6 @@ export function DataSettings() {
       </p>
 
       <BackupControls />
-
-      <h3 className="mb-1 mt-6 text-base font-semibold">For a spreadsheet</h3>
-      <div className="flex flex-col items-start gap-3">
-        <button
-          type="button"
-          onClick={() =>
-            void exportData('passes').then(() => setMessage('Passes file downloaded.'))
-          }
-          className={buttonClass('secondary')}
-        >
-          Download passes (CSV)
-        </button>
-        <button
-          type="button"
-          onClick={() => void exportData('uses').then(() => setMessage('Uses file downloaded.'))}
-          className={buttonClass('secondary')}
-        >
-          Download recorded uses (CSV)
-        </button>
-      </div>
 
       <h3 className="mb-1 mt-6 text-base font-semibold">Start again</h3>
       <div className="flex flex-col items-start gap-3">

@@ -35,30 +35,8 @@ function renderSettings() {
 const days = () => screen.findByLabelText('Days before expiry')
 const low = () => screen.getByLabelText(/^Remind me at this many entries/)
 
-let downloads: { filename: string; text: string }[] = []
-
 beforeEach(async () => {
   await repo.clearAllData()
-  downloads = []
-  const blobs = new Map<string, Blob>()
-  URL.createObjectURL = vi.fn((blob: Blob) => {
-    const url = `blob:test/${blobs.size}`
-    blobs.set(url, blob)
-    return url
-  })
-  URL.revokeObjectURL = vi.fn()
-  vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (
-    this: HTMLAnchorElement,
-  ) {
-    // Read the bytes, and keep the byte-order mark that Blob.text() would drop.
-    void blobs
-      .get(this.href)
-      ?.arrayBuffer()
-      .then((bytes) => {
-        const text = new TextDecoder('utf-8', { ignoreBOM: true }).decode(bytes)
-        downloads.push({ filename: this.download, text })
-      })
-  })
 })
 
 afterEach(() => vi.restoreAllMocks())
@@ -166,43 +144,6 @@ describe('your data', () => {
     renderSettings()
     const section = await screen.findByRole('region', { name: 'Your data' })
     expect(section).toHaveTextContent('only on this device')
-  })
-
-  it('downloads the passes as a CSV file', async () => {
-    const user = userEvent.setup()
-    const pass = await repo.createPass(multipass())
-    renderSettings()
-    await user.click(await screen.findByRole('button', { name: 'Download passes (CSV)' }))
-    await waitFor(() => expect(downloads).toHaveLength(1))
-    const [file] = downloads
-    expect(file!.filename).toBe(`climb-passes-${today}.csv`)
-    expect(file!.text.startsWith('﻿Pass ID,Gym,Type')).toBe(true)
-    expect(file!.text).toContain(pass.id)
-    expect(file!.text).toContain(BUILTIN_GYMS[0]!.name)
-    expect(file!.text).toContain('120.50,"sale, 2 for 1"')
-    expect(await screen.findByText('Passes file downloaded.')).toBeVisible()
-  })
-
-  it('downloads the recorded uses as a CSV file', async () => {
-    const user = userEvent.setup()
-    const pass = await repo.createPass(multipass())
-    await repo.useEntry(pass.id, today)
-    await repo.useEntry(pass.id, today)
-    renderSettings()
-    await user.click(await screen.findByRole('button', { name: 'Download recorded uses (CSV)' }))
-    await waitFor(() => expect(downloads).toHaveLength(1))
-    expect(downloads[0]!.filename).toBe(`climb-pass-uses-${today}.csv`)
-    const lines = downloads[0]!.text.trimEnd().split('\r\n')
-    expect(lines).toHaveLength(3)
-    expect(lines[0]).toBe('﻿Pass ID,Gym,Type,Used at')
-  })
-
-  it('exporting with no passes still gives a file with the headings', async () => {
-    const user = userEvent.setup()
-    renderSettings()
-    await user.click(await screen.findByRole('button', { name: 'Download passes (CSV)' }))
-    await waitFor(() => expect(downloads).toHaveLength(1))
-    expect(downloads[0]!.text.trimEnd().split('\r\n')).toHaveLength(1)
   })
 
   it('deleting asks first; Cancel keeps everything', async () => {

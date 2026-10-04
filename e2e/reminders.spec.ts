@@ -1,4 +1,3 @@
-import { readFile } from 'node:fs/promises'
 import { test, expect, type Page } from '@playwright/test'
 import { seedSamples } from './seed'
 
@@ -64,34 +63,6 @@ test('switching a reminder off in Settings removes its banners', async ({ page }
   await page.getByRole('link', { name: /Passes/ }).click()
   await expect(banners(page).getByText(/Multipass: 2 entries left/)).toHaveCount(0)
   await expect(banners(page).getByText(/expires in 10 days/)).toBeVisible()
-})
-
-test('Settings downloads the passes and the recorded uses as CSV files', async ({ page }) => {
-  await seeded(page)
-  await mainRows(page)
-    .filter({ hasText: '7 / 10' })
-    .getByRole('button', { name: /^Use one entry/ })
-    .click()
-  await expect(mainRows(page).filter({ hasText: '6 / 10' })).toHaveCount(1)
-  await page.getByRole('link', { name: 'Settings' }).click()
-
-  const passesDownload = page.waitForEvent('download')
-  await page.getByRole('button', { name: 'Download passes (CSV)' }).click()
-  const passes = await passesDownload
-  expect(passes.suggestedFilename()).toMatch(/^climb-passes-\d{4}-\d{2}-\d{2}\.csv$/)
-  const passesText = await readFile((await passes.path())!, 'utf8')
-  expect(passesText.startsWith('﻿Pass ID,Gym,Type,')).toBe(true)
-  // 9 sample passes and a header.
-  expect(passesText.trimEnd().split('\r\n')).toHaveLength(10)
-  expect(passesText).toContain('Zig Zag Wall')
-  expect(passesText).toContain('Class / course pack')
-
-  const usesDownload = page.waitForEvent('download')
-  await page.getByRole('button', { name: 'Download recorded uses (CSV)' }).click()
-  const uses = await usesDownload
-  const usesText = await readFile((await uses.path())!, 'utf8')
-  // The 5 uses seeded for the monthly membership, the one just made, and a header.
-  expect(usesText.trimEnd().split('\r\n')).toHaveLength(7)
 })
 
 test('deleting all data asks first, then leaves an empty app', async ({ page }) => {

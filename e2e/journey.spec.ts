@@ -139,14 +139,19 @@ test('a week at the gym: counting, two packs, a membership, Finished, reminders,
   await page.getByRole('link', { name: 'Settings' }).click()
   await expect(page.getByText('only on this device')).toBeVisible()
   const download = page.waitForEvent('download')
-  await page.getByRole('button', { name: 'Download passes (CSV)' }).click()
-  const csv = await readFile((await (await download).path())!, 'utf8')
-  const lines = csv.trimEnd().split('\r\n')
-  expect(lines).toHaveLength(1 + 5) // header and five passes
-  expect(csv).toContain('Fitbloc')
-  expect(csv).toContain('Zig Zag Wall')
-  expect(csv).toContain('Climb Central')
-  expect(csv.match(/Fitbloc/g)).toHaveLength(3) // the gym was reused, however it was typed
+  await page.getByRole('button', { name: 'Download backup file' }).click()
+  const backup = JSON.parse(await readFile((await (await download).path())!, 'utf8')) as {
+    passes: { gymRef: unknown }[]
+    userGyms: { name: string }[]
+  }
+  expect(backup.passes).toHaveLength(5)
+  // Fitbloc was typed more than once, in different cases, but it is one gym with three passes.
+  expect(backup.userGyms.map((g) => g.name).sort()).toEqual([
+    'Climb Central',
+    'Fitbloc',
+    'Zig Zag Wall',
+  ])
+  expect(new Set(backup.passes.map((p) => JSON.stringify(p.gymRef))).size).toBe(3)
   await page.getByRole('link', { name: /Passes/ }).click()
 
   // The gym typed in a different case did not make a second gym.
@@ -166,7 +171,7 @@ test('a week at the gym: counting, two packs, a membership, Finished, reminders,
   await expect(row(page, '5 / 5')).toHaveCount(1)
   await page.getByRole('link', { name: 'Settings' }).click()
   const offlineDownload = page.waitForEvent('download')
-  await page.getByRole('button', { name: 'Download recorded uses (CSV)' }).click()
+  await page.getByRole('button', { name: 'Download backup file' }).click()
   expect((await readFile((await (await offlineDownload).path())!, 'utf8')).length).toBeGreaterThan(
     20,
   )
