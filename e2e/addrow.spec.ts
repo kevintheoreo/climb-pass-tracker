@@ -104,6 +104,7 @@ test('on a phone the row fits, its controls are big enough and the dropdown is n
     page.getByLabel('Expiry'),
     page.getByRole('button', { name: '+6 months' }),
     page.getByRole('button', { name: '+12 months' }),
+    page.getByLabel(/^Price paid/),
   ]) {
     expect((await control.boundingBox())!.height).toBeGreaterThanOrEqual(44)
   }
@@ -168,4 +169,24 @@ test('passes are listed newest first, whatever their expiry, and stay in that or
   await page.reload()
   await expect(mainRows(page).nth(0)).toContainText('Fitbloc')
   await expect(mainRows(page).nth(1)).toContainText('Zig Zag Wall')
+})
+
+test('the optional price is on the blank row and is saved with the pass', async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 740 })
+  await page.goto('/')
+  await gym(page).fill('Zig Zag Wall')
+  await page.getByLabel('Entries', { exact: true }).fill('10')
+  await page.getByRole('button', { name: '+6 months' }).click()
+  await page.getByLabel(/^Price paid/).fill('120')
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360)
+  await page.keyboard.press('Enter')
+  await expect(mainRows(page)).toHaveCount(1)
+
+  await mainRows(page)
+    .first()
+    .getByRole('button', { name: /details$/ })
+    .click()
+  await expect(
+    page.getByRole('region', { name: /^Details:/ }).getByLabel(/^Price paid/),
+  ).toHaveValue('120')
 })

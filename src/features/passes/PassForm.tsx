@@ -46,6 +46,29 @@ export function PassForm({
   const monthly = hasMonthlyAllowance(draft)
   const err = (field: keyof PassErrors) => (errors[field] ? `${id}-${field}-error` : undefined)
 
+  const priceCell = (
+    <Cell
+      label="Price paid (S$, optional)"
+      htmlFor={`${id}-price`}
+      error={errors.price}
+      errorId={err('price')}
+      className="col-span-2 sm:col-span-1"
+    >
+      <input
+        id={`${id}-price`}
+        type="text"
+        inputMode="decimal"
+        autoComplete="off"
+        placeholder="120"
+        value={draft.price}
+        aria-invalid={errors.price ? true : undefined}
+        aria-describedby={err('price')}
+        onChange={(e) => onChange({ price: e.target.value })}
+        className={controlClass}
+      />
+    </Cell>
+  )
+
   return (
     <>
       <div className={`grid grid-cols-2 gap-x-3 gap-y-3 sm:items-start ${WIDE_COLUMNS}`}>
@@ -129,6 +152,8 @@ export function PassForm({
         </Cell>
       </div>
 
+      {!details && <div className="mt-3 grid grid-cols-2 gap-x-3 sm:grid-cols-4">{priceCell}</div>}
+
       {details && (
         <div className="mt-3 grid grid-cols-2 gap-x-3 gap-y-3 sm:grid-cols-4 sm:items-start">
           <Cell
@@ -149,26 +174,7 @@ export function PassForm({
             />
           </Cell>
 
-          <Cell
-            label="Price paid (S$, optional)"
-            htmlFor={`${id}-price`}
-            error={errors.price}
-            errorId={err('price')}
-            className="col-span-2 sm:col-span-1"
-          >
-            <input
-              id={`${id}-price`}
-              type="text"
-              inputMode="decimal"
-              autoComplete="off"
-              placeholder="120"
-              value={draft.price}
-              aria-invalid={errors.price ? true : undefined}
-              aria-describedby={err('price')}
-              onChange={(e) => onChange({ price: e.target.value })}
-              className={controlClass}
-            />
-          </Cell>
+          {priceCell}
 
           {monthly ? (
             <>
