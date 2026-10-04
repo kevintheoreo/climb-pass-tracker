@@ -6,7 +6,7 @@ import { BUILTIN_GYMS } from '../../data/gyms'
 import { repo } from '../../db'
 import { addDays, todayLocal } from '../../domain/dates'
 import type { PassInput } from '../../domain/types'
-import { listenForInstallPrompt } from './env'
+import { listenForInstallPrompt, showInstallPromptAgain } from './env'
 
 const today = todayLocal()
 const pass = () =>
@@ -71,6 +71,7 @@ beforeEach(async () => {
 
 afterEach(() => {
   window.dispatchEvent(new Event('appinstalled')) // forgets any install prompt
+  showInstallPromptAgain() // forgets "Not now"
   for (const [name, descriptor] of saved) {
     if (descriptor) Object.defineProperty(navigator, name, descriptor)
     else Reflect.deleteProperty(navigator, name)
@@ -89,19 +90,25 @@ describe('the install prompt on the main screen', () => {
     expect(screen.queryByRole('button', { name: 'Install the app' })).not.toBeInTheDocument()
   })
 
-  it('Not now hides it for good, even after the app is opened again', async () => {
+  it('Not now hides it while moving between screens, and it comes back when the app is opened again', async () => {
     const user = userEvent.setup()
     phone('ios')
     await repo.createPass(pass())
     const first = renderAt('/')
     await user.click(await screen.findByRole('button', { name: 'Not now' }))
     await waitFor(() => expect(prompt()).not.toBeInTheDocument())
-    first.unmount()
 
-    renderAt('/')
+    // Settings and back to the passes: still out of the way.
+    await user.click(screen.getByRole('link', { name: 'Settings' }))
+    await user.click(await screen.findByRole('link', { name: /Passes/ }))
     expect(await screen.findByRole('list', { name: 'Passes' })).toBeInTheDocument()
     await settle()
     expect(prompt()).not.toBeInTheDocument()
+    first.unmount()
+
+    showInstallPromptAgain() // what loading the app again does
+    renderAt('/')
+    expect(await screen.findByRole('region', { name: /designed to be installed/i })).toBeVisible()
   })
 
   it('is not shown in the installed app', async () => {

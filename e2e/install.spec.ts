@@ -11,7 +11,7 @@ test.use({
 
 const prompt = (page: Page) => page.getByRole('region', { name: /designed to be installed/i })
 
-test('an iPhone is asked once, from the start, to add the app to the home screen', async ({
+test('an iPhone is asked from the start to add the app to the home screen; Not now only waits', async ({
   page,
 }) => {
   await page.goto('/')
@@ -33,9 +33,16 @@ test('an iPhone is asked once, from the start, to add the app to the home screen
 
   await dismiss.click()
   await expect(prompt(page)).toHaveCount(0)
-  await page.reload()
+
+  // Out of the way while moving between screens...
+  await page.getByRole('link', { name: 'Settings' }).click()
+  await page.getByRole('link', { name: /Passes/ }).click()
   await expect(page.getByRole('list', { name: 'Passes' })).toBeVisible()
-  await expect(prompt(page)).toHaveCount(0) // for good
+  await expect(prompt(page)).toHaveCount(0)
+
+  // ...and back the next time the app is opened.
+  await page.reload()
+  await expect(prompt(page)).toBeVisible()
 })
 
 test('Settings keeps saying so after the prompt was dismissed, with the steps', async ({

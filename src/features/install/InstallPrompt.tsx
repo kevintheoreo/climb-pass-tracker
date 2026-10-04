@@ -1,11 +1,14 @@
-import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
 import { buttonClass } from '../../components/formUtils'
-import { repo } from '../../db'
 import { shouldOfferInstall } from '../../domain/install'
-import { browserPlatform, isStandalone, promptInstall, useCanPromptInstall } from './env'
-
-const DISMISSED = 'installPromptDismissed'
+import {
+  browserPlatform,
+  hideInstallPromptForNow,
+  isStandalone,
+  promptInstall,
+  useCanPromptInstall,
+  useInstallPromptHidden,
+} from './env'
 
 /** The three steps for an iPhone, which has no install button (FR-49). */
 export function IosSteps() {
@@ -19,26 +22,20 @@ export function IosSteps() {
 }
 
 /**
- * Asks the person, once, to put the app on the home screen (D40). Passes are saved only on the
+ * Asks the person to put the app on the home screen (D40). Passes are saved only on the
  * phone, and Safari can erase a website's data after about a week without a visit; an installed
  * app is not cleaned up that way. It is there from the first visit, before any pass, because on an
- * iPhone the installed app does not see what was saved in a Safari tab. It stays away for good
- * once dismissed (Settings keeps the status and the steps).
+ * iPhone the installed app does not see what was saved in a Safari tab. "Not now" hides it until
+ * the app is opened again (Settings keeps the status and the steps).
  */
 export function InstallPrompt() {
-  const dismissed = useLiveQuery(async () => (await repo.getMeta(DISMISSED)) === true, [])
+  const dismissed = useInstallPromptHidden()
   const canPrompt = useCanPromptInstall()
   const [platform] = useState(browserPlatform)
   const [standalone] = useState(isStandalone)
 
-  if (
-    dismissed === undefined ||
-    !shouldOfferInstall({ standalone, dismissed, platform, canPrompt })
-  ) {
-    return null
-  }
+  if (!shouldOfferInstall({ standalone, dismissed, platform, canPrompt })) return null
 
-  const dismiss = () => void repo.setMeta(DISMISSED, true)
   return (
     <section
       aria-labelledby="install-prompt-heading"
@@ -61,7 +58,11 @@ export function InstallPrompt() {
             Install the app
           </button>
         )}
-        <button type="button" onClick={dismiss} className={buttonClass('secondary')}>
+        <button
+          type="button"
+          onClick={hideInstallPromptForNow}
+          className={buttonClass('secondary')}
+        >
           Not now
         </button>
       </div>

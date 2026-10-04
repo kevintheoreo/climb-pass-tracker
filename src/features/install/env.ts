@@ -70,3 +70,23 @@ export async function promptInstall(): Promise<void> {
   await event.prompt()
   await event.userChoice
 }
+
+// "Not now" hides the card until the app is opened again: it is kept here, in memory, so it
+// survives moving between screens but not a reload or reopening the app.
+let hiddenForNow = false
+
+/** True after "Not now", until the page is loaded again. */
+export function useInstallPromptHidden(): boolean {
+  return useSyncExternalStore(subscribe, () => hiddenForNow)
+}
+
+export function hideInstallPromptForNow() {
+  hiddenForNow = true
+  emit()
+}
+
+/** Forgets "Not now", as opening the app again does. For tests. */
+export function showInstallPromptAgain() {
+  hiddenForNow = false
+  emit()
+}
