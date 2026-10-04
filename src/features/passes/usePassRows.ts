@@ -5,6 +5,7 @@ import { findGym, type GymEntry } from '../../domain/gyms'
 import type { LocalDate } from '../../domain/dates'
 import { getReminders, type Reminder } from '../../domain/reminders'
 import { buildRows, type Rows } from '../../domain/rows'
+import { withoutBannersFromOwnTaps } from './ownTaps'
 import { useToday } from './useToday'
 
 /** The main screen's rows, kept live as the database changes. Undefined while loading. */
@@ -23,6 +24,11 @@ export function usePassRows():
       today,
       settings,
     )
-    return { ...rows, today, gyms, reminders: getReminders(bundles, settings, today) }
+    return {
+      ...rows,
+      today,
+      gyms,
+      reminders: withoutBannersFromOwnTaps(getReminders(bundles, settings, today)),
+    }
   }, [bundles, gyms, settings, today])
 }

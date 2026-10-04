@@ -6,6 +6,7 @@ import { BUILTIN_GYMS } from '../../data/gyms'
 import { repo } from '../../db'
 import { addDays, todayLocal } from '../../domain/dates'
 import type { PassInput } from '../../domain/types'
+import { forgetOwnTaps } from './ownTaps'
 
 const today = todayLocal()
 const day = (offset: number) => addDays(today, offset)
@@ -54,6 +55,72 @@ const mainRows = async () =>
 
 beforeEach(async () => {
   await repo.clearAllData()
+})
+
+describe('banners and your own taps (D42)', () => {
+  const useOne = (user: ReturnType<typeof userEvent.setup>) =>
+    user.click(screen.getByRole('button', { name: /^Use one entry/ }))
+
+  it('tapping − down to the low level does not push a banner in; the row still says Low', async () => {
+    const user = userEvent.setup()
+    await repo.createPass(multipass({ initialUsed: 7 })) // 3 left: not low yet
+    renderApp()
+    await mainRows()
+    expect(screen.queryByRole('region', { name: 'Reminders' })).not.toBeInTheDocument()
+
+    await useOne(user) // 2 left: low
+    expect(await screen.findByText('2 / 10')).toBeVisible()
+    await useOne(user) // 1 left
+    expect(await screen.findByText('1 / 10')).toBeVisible()
+    expect(screen.queryByRole('region', { name: 'Reminders' })).not.toBeInTheDocument()
+    const [row] = await mainRows()
+    expect(within(row!).getByText('Low')).toBeVisible()
+  })
+
+  it('the banner is there the next time the app is opened', async () => {
+    const user = userEvent.setup()
+    await repo.createPass(multipass({ initialUsed: 7 }))
+    const first = renderApp()
+    await mainRows()
+    await useOne(user)
+    expect(await screen.findByText('2 / 10')).toBeVisible()
+    first.unmount()
+
+    forgetOwnTaps() // opening the app again
+    renderApp()
+    expect(await screen.findByText(`${GYM}, Multipass: 2 entries left`)).toBeVisible()
+  })
+
+  it('a banner that was already showing when the app was opened stays, and follows the count', async () => {
+    const user = userEvent.setup()
+    await repo.createPass(multipass({ initialUsed: 8 })) // 2 left: low at open
+    renderApp()
+    expect(await screen.findByText(`${GYM}, Multipass: 2 entries left`)).toBeVisible()
+    await useOne(user)
+    expect(await screen.findByText(`${GYM}, Multipass: 1 entry left`)).toBeVisible()
+  })
+
+  it('only the pass that was tapped is held back: another pass going low on its own still shows', async () => {
+    const user = userEvent.setup()
+    await repo.createPass(multipass({ initialUsed: 7 }))
+    renderApp()
+    await mainRows()
+    await useOne(user)
+    expect(await screen.findByText('2 / 10')).toBeVisible()
+    await repo.createPass(multipass({ initialUsed: 9, comments: 'other' })) // added elsewhere, low
+    expect(await screen.findByText(`${GYM}, Multipass: 1 entry left`)).toBeVisible()
+  })
+
+  it('expiring banners are never held back', async () => {
+    const user = userEvent.setup()
+    await repo.createPass(multipass({ initialUsed: 7, expiryDate: day(60) }))
+    renderApp()
+    await mainRows()
+    await useOne(user)
+    expect(await screen.findByText('2 / 10')).toBeVisible()
+    await repo.updateSettings({ expiryReminderDays: [90, 30] }) // now within the 90-day window
+    expect(await screen.findByText(/expires in 60 days/)).toBeVisible()
+  })
 })
 
 describe('reminder banners', () => {
