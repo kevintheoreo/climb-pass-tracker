@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import App from '../../app/App'
@@ -591,5 +591,33 @@ describe('the Add pass button', () => {
     await user.type(screen.getByLabelText(/^Expiry/), addDays(todayLocal(), 90))
     await user.click(screen.getByRole('button', { name: 'Cancel' }))
     expect(await repo.listPasses()).toHaveLength(1)
+  })
+})
+
+describe('a second Enter before the blank row is on screen', () => {
+  it('does not add the pass again', async () => {
+    const user = userEvent.setup()
+    renderApp()
+    await user.type(await gymBox(), 'Race Wall')
+    await user.type(entriesBox(), '5')
+    await user.type(expiryBox(), inMonths(6))
+    const real = repo.createPassForGymText.bind(repo)
+    const spy = vi.spyOn(repo, 'createPassForGymText').mockImplementation(async (...args) => {
+      const created = await real(...args)
+      // The save is done and the row has not yet been re-drawn blank: press Enter again.
+      // (A microtask later, so this call has returned and the save has finished.)
+      void Promise.resolve()
+        .then(() => Promise.resolve())
+        .then(() => Promise.resolve())
+        .then(() => {
+          fireEvent.keyDown(entriesBox(), { key: 'Enter' })
+        })
+      return created
+    })
+    await user.keyboard('{Enter}')
+    await waitFor(async () => expect(await repo.listPasses()).toHaveLength(1))
+    await new Promise((r) => setTimeout(r, 100))
+    expect(await repo.listPasses()).toHaveLength(1)
+    spy.mockRestore()
   })
 })
