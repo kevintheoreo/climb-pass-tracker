@@ -42,9 +42,12 @@ const tokens = (text: string): string[] =>
     .split(/\s+/)
     .filter(Boolean)
 
-/** A gym name with case, punctuation and spacing ignored; "+" counts as "plus". */
+/**
+ * A gym name with case, punctuation and spacing all ignored; "+" counts as "plus". So "Fitbloc",
+ * "fit bloc" and "fit·bloc" are the same gym, and so are "Climb@T3" and "climb t3".
+ */
 export function normalizeGymName(name: string): string {
-  return tokens(name).join(' ')
+  return tokens(name).join('')
 }
 
 /** What gets saved for a new gym: trimmed, with runs of spaces collapsed. */
@@ -52,12 +55,15 @@ export function cleanGymName(typed: string): string {
   return typed.trim().replace(/\s+/g, ' ')
 }
 
-/** Gyms whose name contains every word typed, ignoring case and punctuation ("boulder+" works). */
+/**
+ * Gyms whose name contains every word typed, ignoring case, punctuation and spacing ("boulder+"
+ * works, and so does "fitbloc" for "fit·bloc").
+ */
 export function searchGyms(gyms: GymEntry[], query: string): GymEntry[] {
   const wanted = tokens(query)
   if (wanted.length === 0) return gyms
   return gyms.filter((g) => {
-    const name = tokens(g.name).join(' ')
+    const name = normalizeGymName(g.name)
     return wanted.every((w) => name.includes(w))
   })
 }

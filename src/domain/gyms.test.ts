@@ -53,10 +53,16 @@ describe('buildGymList', () => {
 
 describe('normalizeGymName / cleanGymName', () => {
   it('ignores case, punctuation and spacing, and reads "+" as "plus"', () => {
-    expect(normalizeGymName('  Boulder+ ')).toBe('boulder plus')
-    expect(normalizeGymName('BOULDER   Plus')).toBe('boulder plus')
-    expect(normalizeGymName('Fit-Bloc!')).toBe('fit bloc')
+    expect(normalizeGymName('  Boulder+ ')).toBe('boulderplus')
+    expect(normalizeGymName('BOULDER   Plus')).toBe('boulderplus')
+    expect(normalizeGymName('Fit-Bloc!')).toBe('fitbloc')
     expect(normalizeGymName('???')).toBe('')
+  })
+
+  it('treats a gym written as one word, as two words or with a dot between as the same', () => {
+    const same = ['Fitbloc', 'fit bloc', 'FIT·BLOC', 'fit-bloc', 'Fit.Bloc'].map(normalizeGymName)
+    expect(new Set(same).size).toBe(1)
+    expect(normalizeGymName('Climb@T3')).toBe(normalizeGymName('climb t3'))
   })
 
   it('trims and collapses spaces but keeps the letters as typed', () => {
@@ -83,6 +89,13 @@ describe('searchGyms', () => {
     expect(names(searchGyms(gyms, 'boulder+'))).toEqual(['Boulder+'])
     expect(names(searchGyms(gyms, 'boulder plus'))).toEqual(['Boulder+'])
     expect(names(searchGyms(gyms, 'boulder'))).toEqual(['Boulder Planet', 'Boulder+'])
+  })
+
+  it('finds a gym whether or not the spaces and dots are typed', () => {
+    const real = buildGymList([{ id: 'x', name: 'fit·bloc' }], [])
+    for (const typed of ['fitbloc', 'fit bloc', 'Fit·Bloc', 'fit', 'bloc']) {
+      expect(names(searchGyms(real, typed))).toEqual(['fit·bloc'])
+    }
   })
 
   it('returns nothing when no gym matches', () => {

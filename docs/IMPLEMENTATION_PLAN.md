@@ -139,7 +139,7 @@ Two devices that both count while apart are merged row by row (each tap is its o
 
 | Step | Work | PRD |
 |---|---|---|
-| **3.1 Verified gym names** | Replace the placeholder names in the bundled file with your checked list (see 4.1). | §11, D22 |
+| **3.1 Verified gym names** ✅ | The bundled file now holds the owner's checked list of 20 gyms (see 4.1). Typing a name finds the gym with or without capitals, spaces or punctuation, so "Fitbloc" finds "fit·bloc". | §11, D22 |
 | **3.2 Membership freezes** | Add / edit / remove freezes in a membership's details; end date and status update. | FR-20 |
 | **3.3 Buy again** | A button in a row's details that creates a new row with the same gym, type, entries and price. | FR-21 |
 | **3.4** | *Removed.* Hiding gyms is no longer needed (autocomplete replaces the gym list). | FR-26 removed |
@@ -157,7 +157,7 @@ You'll fill in and maintain one file (`src/data/gyms.ts`). Names only:
 { id: '…fixed uuid…', name: 'Example Gym' }
 ```
 
-During M1 I'll put in a few placeholder gyms so the app can be tested; you replace them with the checked list before launch.
+The file holds the checked list. To add a gym, add a row with a new id; to rename one, change only its name; never change or remove an id.
 
 ---
 

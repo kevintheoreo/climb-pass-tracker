@@ -15,10 +15,10 @@ test('a pass added in the blank row appears, and is still there after a reload',
 }) => {
   await page.goto('/')
   await expect(page.getByText('No passes yet')).toBeVisible()
-  await fillRow(page, 'Fitbloc', '10')
+  await fillRow(page, 'Practice Wall', '10')
   await page.keyboard.press('Enter')
   await expect(mainRows(page)).toHaveCount(1)
-  await expect(mainRows(page).first()).toContainText('Fitbloc')
+  await expect(mainRows(page).first()).toContainText('Practice Wall')
   await expect(mainRows(page).first()).toContainText('10 / 10')
   // With a pass on the list the blank row is hidden behind a button.
   await expect(gym(page)).toHaveCount(0)
@@ -28,11 +28,11 @@ test('a pass added in the blank row appears, and is still there after a reload',
   await expect(mainRows(page)).toHaveCount(1)
   await openAddRow(page)
   // The new gym is now in the autocomplete.
-  await gym(page).fill('fit')
-  await expect(page.getByRole('option', { name: 'Fitbloc' })).toBeVisible()
+  await gym(page).fill('prac')
+  await expect(page.getByRole('option', { name: 'Practice Wall' })).toBeVisible()
   // Typing the whole name, in any case, is the same gym: nothing offers to add a copy.
-  await gym(page).fill('FITBLOC')
-  await expect(page.getByRole('option', { name: 'Fitbloc' })).toBeVisible()
+  await gym(page).fill('PRACTICE WALL')
+  await expect(page.getByRole('option', { name: 'Practice Wall' })).toBeVisible()
   await expect(page.getByRole('option', { name: /as a new gym/ })).toHaveCount(0)
 })
 
@@ -160,14 +160,14 @@ test('passes are listed newest first, whatever their expiry, and stay in that or
   await expect(mainRows(page)).toHaveCount(1)
 
   await openAddRow(page)
-  await fillRow(page, 'Fitbloc', '5') // added second, expires sooner
+  await fillRow(page, 'Practice Wall', '5') // added second, expires sooner
   await page.keyboard.press('Enter')
   await expect(mainRows(page)).toHaveCount(2)
-  await expect(mainRows(page).nth(0)).toContainText('Fitbloc')
+  await expect(mainRows(page).nth(0)).toContainText('Practice Wall')
   await expect(mainRows(page).nth(1)).toContainText('Zig Zag Wall')
 
   await page.reload()
-  await expect(mainRows(page).nth(0)).toContainText('Fitbloc')
+  await expect(mainRows(page).nth(0)).toContainText('Practice Wall')
   await expect(mainRows(page).nth(1)).toContainText('Zig Zag Wall')
 })
 
@@ -218,4 +218,22 @@ test('adding a pass says so, and shows the new row even when the list is long', 
   // ...and both go away by themselves.
   await expect(notice).toHaveCount(0, { timeout: 8000 })
   await expect(row).not.toHaveClass(/ring-emerald-500/)
+})
+
+test('a real gym is found however its name is typed, and no copy of it is made (D22)', async ({
+  page,
+}) => {
+  await page.goto('/')
+  for (const typed of ['fitbloc', 'fit bloc', 'FIT·BLOC']) {
+    await gym(page).fill(typed)
+    await expect(page.getByRole('option', { name: 'fit·bloc', exact: true })).toBeVisible()
+    await expect(page.getByRole('option', { name: /as a new gym/ })).toHaveCount(0)
+  }
+  await gym(page).fill('Fitbloc')
+  await page.getByLabel('Entries', { exact: true }).fill('10')
+  await page.getByRole('button', { name: '+6 months' }).click()
+  await page.keyboard.press('Enter')
+  await expect(mainRows(page)).toHaveCount(1)
+  await expect(mainRows(page).first()).toContainText('fit·bloc') // the built-in gym's own spelling
+  await expect(mainRows(page).first()).not.toContainText('Fitbloc')
 })
