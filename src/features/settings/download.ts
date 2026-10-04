@@ -1,5 +1,5 @@
 /** Hands a text file to the browser as a download. Nothing is sent anywhere. */
-export function downloadTextFile(filename: string, text: string, type = 'text/csv;charset=utf-8') {
+export function downloadTextFile(filename: string, text: string, type: string) {
   const url = URL.createObjectURL(new Blob([text], { type }))
   const link = document.createElement('a')
   link.href = url

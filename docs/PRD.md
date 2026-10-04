@@ -87,7 +87,7 @@ Status column: **Active**, **Updated** (still applies, reworded for v2.0) or **S
 | D12 | User-added gyms | Created automatically when a new name is typed (D24). Visible only to the user who added them. Suggesting them for the built-in list is a future enhancement. | Updated |
 | D13 | First sign-in | ~~Data already on the device is merged into the account.~~ There is no sign-in (D37). | **Removed** |
 | D14 | Sign-out | ~~Data is cleared from the device.~~ There is no sign-out (D37). | **Removed** |
-| D15 | Privacy | Data export is included, as a backup file (FR-62) and as CSV (FR-45). The account deletion part is gone with the accounts (D37). | Updated |
+| D15 | Privacy | Data export is included, as a backup file (FR-62). A CSV export for spreadsheets was dropped (FR-45). The account deletion part is gone with the accounts (D37). | Updated |
 | D16 | Pass types | **Multipass**, **Class / course pack** (behaves like a multipass), **Membership** (unlimited, or with a monthly allowance of entries, D32), **Single entry** (a pass with exactly 1 entry, D28). | Updated |
 | D17 | Language | English only. | Active |
 | D18 | Currency | **SGD only** in v1. There is no currency setting. | Active |
@@ -206,7 +206,7 @@ Priority: **P0** = must have for launch, **P1** = should have for launch, **P2**
 ### 6.8 Settings and privacy
 - **FR-43 (P0)** All amounts are entered and shown in SGD (S$). There is no currency setting (D18).
 - **FR-44 (P0)** Reminder thresholds (see FR-33).
-- **FR-45 (P0)** **Export data** as CSV, in two files: the passes (one row each, with price, comments, entries left) and the recorded uses (a pass and a timestamp each). Text that starts like a spreadsheet formula is defused. Available with or without an account.
+- **FR-45** **Removed.** A CSV export for spreadsheets was dropped to keep the app simple; the backup file (FR-62) is the way to take a copy.
 - **FR-46** **Removed.** There are no accounts to delete (D37). Delete all local data is FR-47.
 - **FR-47 (P1)** **Delete all local data** (Settings), with confirmation. It cannot be undone, so the text suggests downloading a backup file first.
 - **FR-48 (P0)** Links to the privacy policy and terms, plus the app version.
@@ -279,7 +279,7 @@ Settings
 | **Browsers** | Latest 2 versions of Safari (iOS/macOS), Chrome, Edge, and Firefox. |
 | **Accessibility** | WCAG 2.1 AA: tap targets ≥ 44 px, sufficient contrast, screen-reader labels, works with large text. |
 | **Theme** | Light and dark modes that follow the system setting. |
-| **Security** | No accounts and no server: passes are only in the browser on the device, and in any backup or CSV file the person chooses to make. HTTPS only. Backup files are checked completely before they change anything. |
+| **Security** | No accounts and no server: passes are only in the browser on the device, and in any backup file the person chooses to make. HTTPS only. Backup files are checked completely before they change anything. |
 | **Privacy (PDPA)** | Nothing is collected: no accounts, no email, no analytics or tracking, no server that receives pass data. Data stays on the device unless the person exports it. Privacy policy published (it says this). Export and delete are in Settings. |
 | **Cost** | Runs on free static hosting. There is no database and no analytics or log storage. |
 
@@ -317,7 +317,7 @@ The built-in list holds **gym names only**. It covers the main Singapore climbin
 
 | Milestone | Scope |
 |---|---|
-| **M1 — Core, on-device only** | The main screen: rows, sorting, status and reminder highlights, counter with `−` / `+` (including memberships with a monthly allowance), the blank add row with gym autocomplete (built-in names bundled with the app), tap-to-open details, delete, the Finished section, reminder banners, Settings (reminder thresholds, CSV export, delete local data, install instructions), PWA install and offline support. |
+| **M1 — Core, on-device only** | The main screen: rows, sorting, status and reminder highlights, counter with `−` / `+` (including memberships with a monthly allowance), the blank add row with gym autocomplete (built-in names bundled with the app), tap-to-open details, delete, the Finished section, reminder banners, Settings (reminder thresholds, delete local data, install instructions), PWA install and offline support. |
 | **M2 — Move to another device** | Backup file: download, open with a preview and a merge that keeps what is already on the device (D37, D38). |
 | **M3 — Launch polish** | Verified gym names, membership freezes, buy again, privacy policy and terms, accessibility pass, production deploy. |
 
