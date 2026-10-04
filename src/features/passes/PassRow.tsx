@@ -10,6 +10,7 @@ import {
 import type { BadgeTone } from '../../domain/format'
 import type { Row } from '../../domain/rows'
 import type { GymEntry } from '../../domain/gyms'
+import type { PassDraft } from '../../domain/passForm'
 import { Counter } from './Counter'
 import { EditPanel } from './EditPanel'
 import { WIDE_COLUMNS } from './fields'
@@ -32,6 +33,7 @@ export function PassRow({
   onToggle,
   onClose,
   onUsedLast,
+  onBuyAgain,
 }: {
   row: Row
   today: LocalDate
@@ -44,6 +46,7 @@ export function PassRow({
   onToggle: () => void
   onClose: () => void
   onUsedLast?: ((row: Row) => void) | undefined
+  onBuyAgain: (draft: PassDraft) => void
 }) {
   const { status } = row
   const badges = badgesFor(row.pass, status)
@@ -143,7 +146,14 @@ export function PassRow({
 
       {open && (
         <div className="px-4 pb-4">
-          <EditPanel id={panelId} row={row} gyms={gyms} today={today} onClose={onClose} />
+          <EditPanel
+            id={panelId}
+            row={row}
+            gyms={gyms}
+            today={today}
+            onClose={onClose}
+            onBuyAgain={onBuyAgain}
+          />
         </div>
       )}
     </li>

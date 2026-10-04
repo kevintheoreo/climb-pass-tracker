@@ -278,3 +278,12 @@ export function draftFromPass(pass: Pass, gymName: string, usedThisMonth: number
     usedBefore: String(pass.initialUsed),
   }
 }
+
+/**
+ * The blank row filled in from a pass the person is buying again (FR-21): the same gym, type,
+ * entries and price. The expiry stays empty, and so does everything about the old pass's use.
+ */
+export function buyAgainDraft(pass: Pass, gymName: string): PassDraft {
+  const { gym, passType, entries, price } = draftFromPass(pass, gymName, 0)
+  return { ...BLANK_DRAFT, gym, passType, entries, price }
+}

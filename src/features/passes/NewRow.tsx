@@ -23,6 +23,7 @@ export function NewRow({
   gyms,
   today,
   autoFocus = false,
+  initial = BLANK_DRAFT,
   onAdded,
   onClose,
 }: {
@@ -30,17 +31,20 @@ export function NewRow({
   today: LocalDate
   /** Put the cursor in the gym cell when the row appears (it was opened by a button). */
   autoFocus?: boolean
+  /** What the row starts with ("Buy again" fills in the gym, type, entries and price). */
+  initial?: PassDraft
   /** Called after a pass was saved, with its id. */
   onAdded?: (passId: string) => void
   /** When given, the row has a Close button that hides it again. */
   onClose?: () => void
 }) {
-  const [draft, setDraft] = useState<PassDraft>(BLANK_DRAFT)
+  const [draft, setDraft] = useState<PassDraft>(initial)
   const [errors, setErrors] = useState<PassErrors>({})
   const [failed, setFailed] = useState(false)
   const [added, setAdded] = useState('')
   const saving = useRef(false)
   const gymInput = useRef<HTMLInputElement>(null)
+  const section = useRef<HTMLElement>(null)
 
   useEffect(() => {
     if (autoFocus) gymInput.current?.focus()
@@ -86,6 +90,18 @@ export function NewRow({
     }
   }
 
+  // Pressing anywhere outside the row also leaves it. Focus alone is not enough: a phone may not
+  // have put the cursor in the row (a row opened by Buy again), and tapping a button there does not
+  // move focus, so no blur would ever come.
+  useEffect(() => {
+    const away = (e: PointerEvent) => {
+      if (e.target instanceof Node && section.current?.contains(e.target)) return
+      void submit(false)
+    }
+    document.addEventListener('pointerdown', away)
+    return () => document.removeEventListener('pointerdown', away)
+  })
+
   const onBlur = (e: FocusEvent<HTMLFormElement>) => {
     // Moving between the row's own cells is not leaving the row.
     if (e.relatedTarget instanceof Node && e.currentTarget.contains(e.relatedTarget)) return
@@ -100,6 +116,7 @@ export function NewRow({
 
   return (
     <section
+      ref={section}
       aria-labelledby="new-row-heading"
       className="mt-4 rounded-lg border border-dashed border-slate-400 bg-white p-4 dark:border-slate-600 dark:bg-slate-900"
     >

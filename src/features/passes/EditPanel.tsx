@@ -6,6 +6,7 @@ import { currentPeriod, usesInPeriod } from '../../domain/cycle'
 import type { LocalDate } from '../../domain/dates'
 import type { GymEntry } from '../../domain/gyms'
 import {
+  buyAgainDraft,
   draftFromPass,
   isChanged,
   mergeDraft,
@@ -38,12 +39,15 @@ export function EditPanel({
   gyms,
   today,
   onClose,
+  onBuyAgain,
 }: {
   id: string
   row: Row
   gyms: GymEntry[]
   today: LocalDate
   onClose: () => void
+  /** Open the blank row filled in like this pass (FR-21). */
+  onBuyAgain: (draft: PassDraft) => void
 }) {
   const original = draftFromPass(row.pass, row.gymName, usedThisMonthOf(row, today))
   const [draft, setDraft] = useState<PassDraft>(original)
@@ -168,6 +172,18 @@ export function EditPanel({
           className={buttonClass('primary')}
         >
           Close
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            // Keep a valid edit, then start the new row from what this pass looks like now.
+            void save().then((saved) => {
+              if (saved) onBuyAgain(buyAgainDraft(row.pass, draft.gym.trim() || row.gymName))
+            })
+          }}
+          className={buttonClass('secondary')}
+        >
+          Buy again
         </button>
         <ConfirmDelete
           label="Delete this pass"
