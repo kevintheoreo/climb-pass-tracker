@@ -58,6 +58,10 @@ export type UseEntryResult = { ok: true; use: Use } | { ok: false; reason: UseBl
 export type GiveBackResult =
   Extract<GiveBackPlan, { ok: true }> | Extract<GiveBackPlan, { ok: false }>
 
+/** Where the backup reminder keeps its two facts (D47). */
+const LAST_BACKUP_KEY = 'lastBackupAt'
+const BACKUP_SNOOZE_KEY = 'backupNudgeSnoozedUntil'
+
 const isLive = <T extends { deletedAt: string | null }>(row: T): boolean => row.deletedAt === null
 
 /** Midnight at the start of `date`, in the device's time zone, as an ISO timestamp. */
@@ -452,7 +456,7 @@ export function createRepo(db: ClimbDB, options: RepoOptions = {}) {
    * `parseBackup`.
    */
   async function importBackup(backup: Backup): Promise<ImportSummary> {
-    return db.transaction(
+    const summary = await db.transaction(
       'rw',
       [db.userGyms, db.passes, db.uses, db.freezes, db.settings],
       async () => {
@@ -468,6 +472,34 @@ export function createRepo(db: ClimbDB, options: RepoOptions = {}) {
         return plan.summary
       },
     )
+    // What is on this device is now in the file the person opened, so it counts as backed up.
+    await markBackedUp()
+    return summary
+  }
+
+  // ---- The backup reminder (D47) ----------------------------------------------------------
+
+  async function getBackupState(): Promise<{
+    lastBackupAt: string | null
+    snoozedUntil: LocalDate | null
+  }> {
+    const last = await getMeta<unknown>(LAST_BACKUP_KEY)
+    const snoozed = await getMeta<unknown>(BACKUP_SNOOZE_KEY)
+    return {
+      lastBackupAt: typeof last === 'string' ? last : null,
+      snoozedUntil: typeof snoozed === 'string' ? snoozed : null,
+    }
+  }
+
+  /** A backup file was downloaded (or opened): starts the 30 days again. */
+  async function markBackedUp(): Promise<void> {
+    await setMeta(LAST_BACKUP_KEY, now())
+    await db.meta.delete(BACKUP_SNOOZE_KEY)
+  }
+
+  /** "Remind me later": the reminder stays away until `until`. */
+  async function snoozeBackupNudge(until: LocalDate): Promise<void> {
+    await setMeta(BACKUP_SNOOZE_KEY, until)
   }
 
   // ---- Meta and wipe ----------------------------------------------------------------------
@@ -515,6 +547,9 @@ export function createRepo(db: ClimbDB, options: RepoOptions = {}) {
     exportBackup,
     previewImport,
     importBackup,
+    getBackupState,
+    markBackedUp,
+    snoozeBackupNudge,
     clearAllData,
   }
 }

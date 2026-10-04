@@ -3,6 +3,7 @@ import { getPassStatus } from './passStatus'
 import {
   badgesFor,
   expiryLabel,
+  backupNudgeText,
   leftLabel,
   pricePerEntryLabel,
   relativeTime,
@@ -257,5 +258,20 @@ describe('reminderMessage', () => {
       'Fitbloc, Multipass: 1 entry resets tomorrow',
     )
     expect(reminderMessage({ ...r, daysToReset: 0 }, label)).toContain('reset today')
+  })
+})
+
+describe('backupNudgeText', () => {
+  const today = '2026-10-04'
+  it('says how long ago the last backup was', () => {
+    expect(backupNudgeText({ daysSince: 45, never: false }, today)).toBe(
+      'Your passes are saved only on this phone. Your last backup file was 1 month 14 days ago.',
+    )
+    expect(backupNudgeText({ daysSince: 200, never: false }, today)).toContain('6 months ago.')
+  })
+  it('says so when there never was one', () => {
+    expect(backupNudgeText({ daysSince: 40, never: true }, today)).toBe(
+      'Your passes are saved only on this phone. You have not downloaded a backup file yet.',
+    )
   })
 })
