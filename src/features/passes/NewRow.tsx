@@ -43,6 +43,9 @@ export function NewRow({
   const [failed, setFailed] = useState(false)
   const [added, setAdded] = useState('')
   const saving = useRef(false)
+  // The draft that was just saved. Until the blank draft is on screen, a second Enter (or tap on
+  // Add pass) still holds this very draft, and must not add the pass again.
+  const savedDraft = useRef<PassDraft | null>(null)
   const gymInput = useRef<HTMLInputElement>(null)
   const section = useRef<HTMLElement>(null)
   // Set when Cancel is pressed, so the focus leaving the row on the way to it does not save.
@@ -66,7 +69,7 @@ export function NewRow({
 
   /** Saves the row if it is complete; otherwise shows what is missing or wrong. Never saves twice. */
   async function submit(refocus: boolean, explicit = false) {
-    if (saving.current || cancelling.current) return
+    if (saving.current || cancelling.current || draft === savedDraft.current) return
     // The Add pass button on an untouched row still says what is missing.
     if (!explicit && !isTouched(draft)) {
       setErrors({})
@@ -80,6 +83,7 @@ export function NewRow({
     saving.current = true
     try {
       const created = await repo.createPassForGymText(result.value.gymText, result.value.pass)
+      savedDraft.current = draft
       setDraft(BLANK_DRAFT)
       setErrors({})
       setFailed(false)
