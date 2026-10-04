@@ -4,12 +4,15 @@ import { buttonClass } from '../../components/formUtils'
 export interface Notice {
   /** A new number each time, so a repeat notice restarts the timer. */
   key: number
+  /** `finished`: a pass moved to Finished (with Undo). `added`: a pass was just added. */
+  kind: 'finished' | 'added'
   passId: string
-  /** What moved, e.g. "Fitbloc, Multipass". */
+  /** The pass, e.g. "Fitbloc, Multipass". */
   what: string
 }
 
-const SHOW_MS = 8000
+/** How long each kind stays: the one with a button to press stays longer. */
+const SHOW_MS = { finished: 8000, added: 4000 } as const
 
 /** One notice on screen. A new notice is a new box, so nothing carries over from the last one. */
 function NoticeBox({
@@ -25,9 +28,9 @@ function NoticeBox({
 
   useEffect(() => {
     if (focused) return
-    const timer = setTimeout(onDismiss, SHOW_MS)
+    const timer = setTimeout(onDismiss, SHOW_MS[notice.kind])
     return () => clearTimeout(timer)
-  }, [focused, onDismiss])
+  }, [focused, onDismiss, notice.kind])
 
   return (
     <div
@@ -35,22 +38,31 @@ function NoticeBox({
       onBlur={() => setFocused(false)}
       className="pointer-events-auto flex max-w-md items-center gap-3 rounded-lg bg-slate-900 py-1 pl-4 pr-1 text-white shadow-lg dark:bg-slate-100 dark:text-slate-900"
     >
-      <p className="text-base">
-        <span className="font-medium">{notice.what}</span> moved to Finished
-      </p>
-      <button
-        type="button"
-        onClick={() => onUndo(notice)}
-        className={`${buttonClass('secondary')} shrink-0`}
-      >
-        Undo
-      </button>
+      {notice.kind === 'added' ? (
+        <p className="py-2.5 pr-3 text-base">
+          <span className="font-medium">{notice.what}</span> added
+        </p>
+      ) : (
+        <>
+          <p className="text-base">
+            <span className="font-medium">{notice.what}</span> moved to Finished
+          </p>
+          <button
+            type="button"
+            onClick={() => onUndo(notice)}
+            className={`${buttonClass('secondary')} shrink-0`}
+          >
+            Undo
+          </button>
+        </>
+      )}
     </div>
   )
 }
 
 /**
- * "Moved to Finished · Undo" at the bottom of the screen after `−` uses a pass's last entry. The
+ * A notice at the bottom of the screen: "Added Fitbloc, Multipass" after a pass is added (D46), or
+ * "moved to Finished · Undo" after `−` uses a pass's last entry. For the second, the
  * row has left the main list, and this says where it went; Undo gives the entry back, the same
  * as `+` in Finished. It goes away by itself after a few seconds. It waits only while a button in
  * it has keyboard focus, and not while hovered: a resting mouse pointer, or a finger that tapped

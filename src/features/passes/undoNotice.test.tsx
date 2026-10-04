@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen } from '@testing-library/react'
 import { UndoNotice, type Notice } from './UndoNotice'
 
-const notice: Notice = { key: 1, passId: 'p1', what: 'Fitbloc, Multipass' }
+const notice: Notice = { key: 1, kind: 'finished', passId: 'p1', what: 'Fitbloc, Multipass' }
 
 beforeEach(() => vi.useFakeTimers())
 afterEach(() => vi.useRealTimers())
@@ -10,6 +10,25 @@ const tick = (ms: number) =>
   act(async () => {
     await vi.advanceTimersByTimeAsync(ms)
   })
+
+describe('UndoNotice, for an added pass', () => {
+  const added: Notice = { key: 2, kind: 'added', passId: 'p2', what: 'Zig Zag Wall, Multipass' }
+
+  it('says what was added, with no Undo', () => {
+    render(<UndoNotice notice={added} onUndo={() => {}} onDismiss={() => {}} />)
+    expect(screen.getByRole('status')).toHaveTextContent('Zig Zag Wall, Multipass added')
+    expect(screen.queryByRole('button', { name: 'Undo' })).not.toBeInTheDocument()
+  })
+
+  it('goes after four seconds, sooner than the one with a button', async () => {
+    const onDismiss = vi.fn()
+    render(<UndoNotice notice={added} onUndo={() => {}} onDismiss={onDismiss} />)
+    await tick(3900)
+    expect(onDismiss).not.toHaveBeenCalled()
+    await tick(200)
+    expect(onDismiss).toHaveBeenCalledTimes(1)
+  })
+})
 
 describe('UndoNotice', () => {
   it('says where the row went and offers Undo', () => {

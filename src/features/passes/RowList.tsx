@@ -12,6 +12,7 @@ export function RowList({
   gyms,
   openId,
   reminded,
+  addedId,
   onToggle,
   onClose,
   onUsedLast,
@@ -24,6 +25,8 @@ export function RowList({
   openId: string | null
   /** Ids of the passes a reminder banner is about. */
   reminded: Set<string>
+  /** The pass that was just added, if it is in this list: it glows for a moment. */
+  addedId: string | null
   onToggle: (passId: string) => void
   onClose: () => void
   onUsedLast?: ((row: Row) => void) | undefined
@@ -48,6 +51,7 @@ export function RowList({
             gyms={gyms}
             open={openId === row.pass.id}
             highlighted={reminded.has(row.pass.id)}
+            justAdded={addedId === row.pass.id}
             onToggle={() => onToggle(row.pass.id)}
             onClose={onClose}
             onUsedLast={onUsedLast}

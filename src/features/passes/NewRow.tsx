@@ -30,8 +30,8 @@ export function NewRow({
   today: LocalDate
   /** Put the cursor in the gym cell when the row appears (it was opened by a button). */
   autoFocus?: boolean
-  /** Called after a pass was saved. */
-  onAdded?: () => void
+  /** Called after a pass was saved, with its id. */
+  onAdded?: (passId: string) => void
   /** When given, the row has a Close button that hides it again. */
   onClose?: () => void
 }) {
@@ -72,12 +72,12 @@ export function NewRow({
     }
     saving.current = true
     try {
-      await repo.createPassForGymText(result.value.gymText, result.value.pass)
+      const created = await repo.createPassForGymText(result.value.gymText, result.value.pass)
       setDraft(BLANK_DRAFT)
       setErrors({})
       setFailed(false)
       setAdded(`Added ${result.value.gymText}, ${PASS_TYPE_LABELS[draft.passType]}`)
-      if (onAdded) onAdded()
+      if (onAdded) onAdded(created.id)
       else if (refocus) gymInput.current?.focus()
     } catch {
       setFailed(true)
