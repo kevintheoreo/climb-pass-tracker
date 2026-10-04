@@ -86,13 +86,13 @@ describe('hiding the blank row', () => {
     expect(screen.queryByRole('button', { name: 'Add a pass' })).not.toBeInTheDocument()
   })
 
-  it('Close puts the button back, with the focus, and keeps nothing', async () => {
+  it('Cancel puts the button back, with the focus, and keeps nothing', async () => {
     const user = userEvent.setup()
     await repo.createPass(pass())
     renderApp()
     await user.click(await screen.findByRole('button', { name: 'Add a pass' }))
     await user.type(await gymBox(), 'Half typed')
-    await user.click(screen.getByRole('button', { name: 'Close' }))
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
     expect(screen.queryByRole('combobox', { name: 'Gym' })).not.toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Add a pass' })).toHaveFocus()
     await user.click(screen.getByRole('button', { name: 'Add a pass' }))
@@ -100,10 +100,11 @@ describe('hiding the blank row', () => {
     expect(await repo.listPasses()).toHaveLength(1)
   })
 
-  it('has no Close button while it is the only way to add a first pass', async () => {
+  it('has no Cancel button while it is the only way to add a first pass', async () => {
     renderApp()
     await gymBox()
-    expect(screen.queryByRole('button', { name: 'Close' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Cancel' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Add pass' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Add a pass' })).not.toBeInTheDocument()
   })
 
@@ -288,6 +289,7 @@ describe('saving', () => {
     await user.tab() // the +6 months button: still the same row
     await user.tab()
     await user.tab()
+    await user.tab() // the Add pass button: still the same row
     await user.tab() // out of the row
     await waitFor(async () => expect(await repo.listPasses()).toHaveLength(1))
   })
@@ -543,5 +545,51 @@ describe('the other types', () => {
     expect(entriesBox()).toHaveValue('10')
     await user.selectOptions(typeSelect(), 'membership')
     expect(entriesBox()).toHaveValue('')
+  })
+})
+
+describe('the Add pass button', () => {
+  const pass = () => ({
+    gymRef: { kind: 'builtin', id: BUILTIN_GYMS[0]!.id } as const,
+    passType: 'multipass' as const,
+    priceCents: null,
+    comments: null,
+    purchaseDate: addDays(todayLocal(), -30),
+    expiryDate: addDays(todayLocal(), 100),
+    totalEntries: 10,
+    initialUsed: 3,
+  })
+
+  it('saves a complete row', async () => {
+    const user = userEvent.setup()
+    renderApp()
+    await user.type(await gymBox(), 'Button Wall')
+    await user.type(screen.getByLabelText('Entries', { exact: true }), '5')
+    await user.type(screen.getByLabelText(/^Expiry/), addDays(todayLocal(), 90))
+    await user.click(screen.getByRole('button', { name: 'Add pass' }))
+    await waitFor(async () => expect(await repo.listPasses()).toHaveLength(1))
+  })
+
+  it('on a blank row says everything that is missing and saves nothing', async () => {
+    const user = userEvent.setup()
+    renderApp()
+    await gymBox()
+    await user.click(screen.getByRole('button', { name: 'Add pass' }))
+    expect(await screen.findByText('Enter a gym name')).toBeInTheDocument()
+    expect(screen.getByText('Enter the number of entries')).toBeInTheDocument()
+    expect(screen.getByText('Enter an expiry date')).toBeInTheDocument()
+    expect(await repo.listPasses()).toHaveLength(0)
+  })
+
+  it('Cancel after filling the row in saves nothing', async () => {
+    const user = userEvent.setup()
+    await repo.createPass(pass())
+    renderApp()
+    await user.click(await screen.findByRole('button', { name: 'Add a pass' }))
+    await user.type(await gymBox(), 'Dropped Wall')
+    await user.type(screen.getByLabelText('Entries', { exact: true }), '5')
+    await user.type(screen.getByLabelText(/^Expiry/), addDays(todayLocal(), 90))
+    await user.click(screen.getByRole('button', { name: 'Cancel' }))
+    expect(await repo.listPasses()).toHaveLength(1)
   })
 })

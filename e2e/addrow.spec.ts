@@ -144,7 +144,7 @@ test('with passes the blank row is a button; the button opens it and Close hides
   await button.tap()
   await expect(gym(page)).toBeFocused()
   await expect(button).toHaveCount(0)
-  await page.getByRole('button', { name: 'Close' }).tap()
+  await page.getByRole('button', { name: 'Cancel' }).tap()
   await expect(gym(page)).toHaveCount(0)
   await expect(button).toBeVisible()
 })
@@ -236,4 +236,14 @@ test('a real gym is found however its name is typed, and no copy of it is made (
   await expect(mainRows(page)).toHaveCount(1)
   await expect(mainRows(page).first()).toContainText('fit·bloc') // the built-in gym's own spelling
   await expect(mainRows(page).first()).not.toContainText('Fitbloc')
+})
+
+test('the Add pass button is visible, big enough to tap, and adds the pass', async ({ page }) => {
+  await page.goto('/')
+  const add = page.getByRole('button', { name: 'Add pass', exact: true })
+  await expect(add).toBeVisible()
+  expect((await add.boundingBox())!.height).toBeGreaterThanOrEqual(44)
+  await fillRow(page, 'Button Wall', '4')
+  await add.tap()
+  await expect(mainRows(page)).toHaveCount(1)
 })

@@ -1,4 +1,4 @@
-import { useId, useRef, useState, type FocusEvent } from 'react'
+import { useEffect, useId, useRef, useState, type FocusEvent } from 'react'
 import { ConfirmDelete } from '../../components/ConfirmDelete'
 import { buttonClass } from '../../components/formUtils'
 import { NotFoundError, repo } from '../../db'
@@ -40,6 +40,7 @@ export function EditPanel({
   today,
   onClose,
   onBuyAgain,
+  onSaved,
 }: {
   id: string
   row: Row
@@ -48,6 +49,8 @@ export function EditPanel({
   onClose: () => void
   /** Open the blank row filled in like this pass (FR-21). */
   onBuyAgain: (draft: PassDraft) => void
+  /** A change was saved: the page says so (the panel can be much taller than the screen). */
+  onSaved: () => void
 }) {
   const original = draftFromPass(row.pass, row.gymName, usedThisMonthOf(row, today))
   const [draft, setDraft] = useState<PassDraft>(original)
@@ -56,6 +59,7 @@ export function EditPanel({
   const [failed, setFailed] = useState(false)
   const saving = useRef(false)
   const headingId = useId()
+  const section = useRef<HTMLElement>(null)
 
   // The saved pass moved on (a `−` tap, or this panel's own save): boxes not being edited follow it.
   if (JSON.stringify(original) !== JSON.stringify(seen)) {
@@ -95,6 +99,7 @@ export function EditPanel({
       })
       setErrors({})
       setFailed(false)
+      onSaved()
       return true
     } catch (error) {
       if (error instanceof NotFoundError)
@@ -106,6 +111,17 @@ export function EditPanel({
     }
   }
 
+  // Pressing anywhere outside the panel also leaves it. Focus alone is not enough: a button that was
+  // tapped last (+6 / +12 months) may not hold the focus, so no blur would ever come.
+  useEffect(() => {
+    const away = (e: PointerEvent) => {
+      if (e.target instanceof Node && section.current?.contains(e.target)) return
+      void save()
+    }
+    document.addEventListener('pointerdown', away)
+    return () => document.removeEventListener('pointerdown', away)
+  })
+
   const onBlur = (e: FocusEvent<HTMLElement>) => {
     // Moving between the panel's own cells is not leaving it.
     if (e.relatedTarget instanceof Node && e.currentTarget.contains(e.relatedTarget)) return
@@ -114,6 +130,7 @@ export function EditPanel({
 
   return (
     <section
+      ref={section}
       id={id}
       aria-labelledby={headingId}
       onBlur={onBlur}
@@ -166,12 +183,14 @@ export function EditPanel({
         <button
           type="button"
           onClick={() => {
-            // Keep a valid edit; drop a half-finished one.
-            void save().then(() => onClose())
+            // Keep a valid edit. A half-finished one stays open, with what is wrong shown.
+            void save().then((ok) => {
+              if (ok) onClose()
+            })
           }}
           className={buttonClass('primary')}
         >
-          Close
+          Done
         </button>
         <button
           type="button"

@@ -18,6 +18,7 @@ export function RowList({
   onClose,
   onUsedLast,
   onBuyAgain,
+  onSaved,
 }: {
   rows: Row[]
   label: string
@@ -33,6 +34,7 @@ export function RowList({
   onClose: () => void
   onUsedLast?: ((row: Row) => void) | undefined
   onBuyAgain: (draft: PassDraft) => void
+  onSaved: (row: Row) => void
 }) {
   return (
     <div className="overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
@@ -59,6 +61,7 @@ export function RowList({
             onClose={onClose}
             onUsedLast={onUsedLast}
             onBuyAgain={onBuyAgain}
+            onSaved={onSaved}
           />
         ))}
       </ul>

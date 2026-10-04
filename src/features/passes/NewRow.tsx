@@ -16,7 +16,7 @@ import { PassForm } from './PassForm'
 
 /**
  * The blank row at the bottom of the list (FR-15, FR-54, D29). It saves itself once every cell is
- * valid and focus leaves the row, or when Enter is pressed. Until then nothing is saved; the cells
+ * valid and the Add pass button is pressed, focus leaves the row, or Enter is pressed. Until then nothing is saved; the cells
  * that are missing or invalid say so once the person has moved on from the row.
  */
 export function NewRow({
@@ -45,6 +45,8 @@ export function NewRow({
   const saving = useRef(false)
   const gymInput = useRef<HTMLInputElement>(null)
   const section = useRef<HTMLElement>(null)
+  // Set when Cancel is pressed, so the focus leaving the row on the way to it does not save.
+  const cancelling = useRef(false)
 
   useEffect(() => {
     if (autoFocus) gymInput.current?.focus()
@@ -63,9 +65,10 @@ export function NewRow({
   }
 
   /** Saves the row if it is complete; otherwise shows what is missing or wrong. Never saves twice. */
-  async function submit(refocus: boolean) {
-    if (saving.current) return
-    if (!isTouched(draft)) {
+  async function submit(refocus: boolean, explicit = false) {
+    if (saving.current || cancelling.current) return
+    // The Add pass button on an untouched row still says what is missing.
+    if (!explicit && !isTouched(draft)) {
       setErrors({})
       return
     }
@@ -124,15 +127,17 @@ export function NewRow({
         Add a pass
       </h2>
       <p className="mb-3 text-sm text-slate-600 dark:text-slate-400">
-        Fill in the row. It saves when every cell except the price is filled in and you move on, or
-        when you press Enter.
+        Fill in the row and tap Add pass. The price is optional.
       </p>
       <form
         noValidate
         aria-label="New pass"
         onBlur={onBlur}
         onKeyDown={onKeyDown}
-        onSubmit={(e) => e.preventDefault()}
+        onSubmit={(e) => {
+          e.preventDefault()
+          void submit(true, true)
+        }}
       >
         <PassForm
           draft={draft}
@@ -148,12 +153,33 @@ export function NewRow({
           details={false}
           gymInputRef={gymInput}
         />
+        <div className="mt-4 flex flex-wrap gap-3">
+          <button type="submit" className={buttonClass('primary')}>
+            Add pass
+          </button>
+          {onClose && (
+            <button
+              type="button"
+              onPointerDown={() => {
+                cancelling.current = true
+              }}
+              onPointerLeave={() => {
+                cancelling.current = false
+              }}
+              onPointerCancel={() => {
+                cancelling.current = false
+              }}
+              onClick={() => {
+                cancelling.current = false
+                onClose()
+              }}
+              className={buttonClass('secondary')}
+            >
+              Cancel
+            </button>
+          )}
+        </div>
       </form>
-      {onClose && (
-        <button type="button" onClick={onClose} className={`${buttonClass('secondary')} mt-3`}>
-          Close
-        </button>
-      )}
 
       {failed && (
         <p role="alert" className="mt-3 text-sm text-red-700 dark:text-red-400">
