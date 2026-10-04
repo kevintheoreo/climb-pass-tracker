@@ -6,6 +6,7 @@ import { BUILTIN_GYMS } from '../../data/gyms'
 import { repo } from '../../db'
 import { addDays, todayLocal } from '../../domain/dates'
 import type { PassInput } from '../../domain/types'
+import { relativeTime } from '../../domain/format'
 import { forgetOwnTaps } from './ownTaps'
 
 const today = todayLocal()
@@ -119,7 +120,11 @@ describe('banners and your own taps (D42)', () => {
     await useOne(user)
     expect(await screen.findByText('2 / 10')).toBeVisible()
     await repo.updateSettings({ expiryReminderDays: [90, 30] }) // now within the 90-day window
-    expect(await screen.findByText(/expires in 60 days/)).toBeVisible()
+    expect(
+      await screen.findByText(`${GYM}, Multipass: expires ${relativeTime(60, today)}`, {
+        exact: false,
+      }),
+    ).toBeVisible()
   })
 })
 

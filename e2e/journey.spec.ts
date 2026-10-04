@@ -61,7 +61,7 @@ test('first launch: pick a gym from the list, fill the row, and it appears (no s
   await expect(created).toContainText(builtin)
   await expect(created).toContainText('Multipass')
   await expect(created).toContainText('10 / 10')
-  await expect(created).toContainText(/in 18[1-4] days/) // six months from today
+  await expect(created).toContainText('in 6 months') // six months from today
   await expect(page.getByRole('button', { name: 'Add a pass' })).toBeVisible()
 })
 

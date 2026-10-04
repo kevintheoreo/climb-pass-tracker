@@ -10,6 +10,8 @@ export interface Reminder {
   key: string
   kind: ReminderKind
   passId: string
+  /** The day the reminder was worked out for, so its "in 2 months" is counted from then. */
+  today: LocalDate
   daysLeft: number | null
   entriesLeft: number | null
   /** The tightest reminder window reached, in days ("expiring" only). */
@@ -65,6 +67,7 @@ export function getReminders(
 
     const base = {
       passId: pass.id,
+      today,
       daysLeft: status.daysLeft,
       entriesLeft: status.entriesLeft,
       window: null,

@@ -1,15 +1,59 @@
-import { formatDate, formatDayMonth, type LocalDate } from './dates'
+import {
+  addDays,
+  addMonthsToDate,
+  daysBetween,
+  formatDate,
+  formatDayMonth,
+  type LocalDate,
+} from './dates'
 import type { PassStatus } from './passStatus'
 import type { ImportSummary } from './backup'
 import type { Reminder } from './reminders'
 import type { Pass } from './types'
 
-/** "today", "tomorrow", "in 12 days", "yesterday", "10 days ago". */
-export function relativeDays(days: number): string {
+const unit = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
+
+/** Whole calendar months from `from` to `to` (`from` is not after `to`). */
+function wholeMonths(from: LocalDate, to: LocalDate): number {
+  const [fy, fm] = from.split('-').map(Number) as [number, number]
+  const [ty, tm] = to.split('-').map(Number) as [number, number]
+  let months = (ty - fy) * 12 + (tm - fm)
+  while (months > 0 && addMonthsToDate(from, months) > to) months--
+  return months
+}
+
+/**
+ * A stretch of time in the units a person thinks in (D43): days up to a month, then months and
+ * days, months alone from 6 months, and years and months from a year. "45 days" is "1 month 14
+ * days"; 200 days is "6 months"; 400 days is "1 year 1 month". The date is shown next to it, so
+ * the small remainder is left out once it stops mattering.
+ */
+function spanText(from: LocalDate, to: LocalDate): string {
+  const months = wholeMonths(from, to)
+  const days = daysBetween(addMonthsToDate(from, months), to)
+  if (months === 0) return unit(days, 'day', 'days')
+  const years = Math.floor(months / 12)
+  if (years >= 1) {
+    const rest = months % 12
+    return rest === 0
+      ? unit(years, 'year', 'years')
+      : `${unit(years, 'year', 'years')} ${unit(rest, 'month', 'months')}`
+  }
+  if (months < 6 && days > 0)
+    return `${unit(months, 'month', 'months')} ${unit(days, 'day', 'days')}`
+  return unit(months, 'month', 'months')
+}
+
+/**
+ * How far away a date is, from `today`: "today", "tomorrow", "in 12 days", "in 2 months 5 days",
+ * "in 6 months", "in 1 year 3 months", "yesterday", "10 days ago". `days` is the distance in days.
+ */
+export function relativeTime(days: number, today: LocalDate): string {
   if (days === 0) return 'today'
   if (days === 1) return 'tomorrow'
   if (days === -1) return 'yesterday'
-  return days > 0 ? `in ${days} days` : `${-days} days ago`
+  const target = addDays(today, days)
+  return days > 0 ? `in ${spanText(today, target)}` : `${spanText(target, today)} ago`
 }
 
 /** The Expiry column: the date, or "No expiry" for a single entry without one. */
@@ -64,10 +108,10 @@ export function reminderText(reminder: Reminder): string {
   if (reminder.kind === 'low') return `${entries(reminder.entriesLeft as number)} left`
   if (reminder.kind === 'reset') {
     const left = entries(reminder.entriesLeft as number)
-    return `${left} ${left.startsWith('1 ') ? 'resets' : 'reset'} ${relativeDays(reminder.daysToReset as number)}`
+    return `${left} ${left.startsWith('1 ') ? 'resets' : 'reset'} ${relativeTime(reminder.daysToReset as number, reminder.today)}`
   }
   const left = reminder.entriesLeft === null ? '' : `, ${entries(reminder.entriesLeft)} left`
-  return `expires ${relativeDays(reminder.daysLeft as number)}${left}`
+  return `expires ${relativeTime(reminder.daysLeft as number, reminder.today)}${left}`
 }
 
 /**
