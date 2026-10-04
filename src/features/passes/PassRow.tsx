@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import type { LocalDate } from '../../domain/dates'
 import {
   badgesFor,
@@ -27,6 +28,7 @@ export function PassRow({
   gyms,
   open,
   highlighted,
+  justAdded,
   onToggle,
   onClose,
   onUsedLast,
@@ -37,6 +39,8 @@ export function PassRow({
   open: boolean
   /** A reminder banner is about this row (FR-55). */
   highlighted: boolean
+  /** The pass was just added: it glows green and is scrolled into view (D46). */
+  justAdded: boolean
   onToggle: () => void
   onClose: () => void
   onUsedLast?: ((row: Row) => void) | undefined
@@ -47,14 +51,25 @@ export function PassRow({
   const perEntry = pricePerEntryLabel(row.pass)
   const days = row.status.isActive ? row.status.daysLeft : null
   const panelId = `details-${row.pass.id}`
+  const item = useRef<HTMLLIElement>(null)
+
+  useEffect(() => {
+    if (!justAdded) return
+    // The new row is on top and the person was at the bottom, so bring it into view.
+    const still = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    item.current?.scrollIntoView?.({ block: 'nearest', behavior: still ? 'auto' : 'smooth' })
+  }, [justAdded])
 
   return (
     <li
+      ref={item}
       className={[
         open ? 'bg-slate-50 dark:bg-slate-950' : '',
-        highlighted
-          ? 'bg-amber-50 ring-2 ring-inset ring-amber-400 dark:bg-amber-950/40 dark:ring-amber-500'
-          : '',
+        justAdded
+          ? 'bg-emerald-50 ring-2 ring-inset ring-emerald-500 dark:bg-emerald-950/40 dark:ring-emerald-400'
+          : highlighted
+            ? 'bg-amber-50 ring-2 ring-inset ring-amber-400 dark:bg-amber-950/40 dark:ring-amber-500'
+            : '',
       ].join(' ')}
     >
       {/* A tap anywhere on the row that is not a button opens its details (FR-56). The gym name is
@@ -68,6 +83,7 @@ export function PassRow({
         className={`grid cursor-pointer grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-1 px-4 py-3 sm:items-center ${WIDE_COLUMNS}`}
       >
         <p className="col-start-1 row-start-1 min-w-0 break-words font-medium">
+          {justAdded && <span className="sr-only">Just added. </span>}
           {highlighted && <span className="sr-only">Has a reminder. </span>}
           <span className="sr-only">Gym: </span>
           <button

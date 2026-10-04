@@ -190,3 +190,32 @@ test('the optional price is on the blank row and is saved with the pass', async 
     page.getByRole('region', { name: /^Details:/ }).getByLabel(/^Price paid/),
   ).toHaveValue('120')
 })
+
+test('adding a pass says so, and shows the new row even when the list is long', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 360, height: 700 })
+  await seedSamples(page)
+  await openAddRow(page)
+  await gym(page).fill('Brand New Wall')
+  await page.getByLabel('Entries', { exact: true }).fill('5')
+  await page.getByRole('button', { name: '+6 months' }).click()
+  await page.keyboard.press('Enter')
+
+  // A notice at the bottom of the screen names the pass...
+  const notice = page.getByRole('status').filter({ hasText: 'Brand New Wall, Multipass added' })
+  await expect(notice).toBeVisible()
+  // ...the new row (first in the list) glows and has been scrolled into view...
+  const row = mainRows(page).first()
+  await expect(row).toContainText('Brand New Wall')
+  await expect(row).toHaveClass(/ring-emerald-500/)
+  await expect
+    .poll(async () => {
+      const box = await row.boundingBox()
+      return box !== null && box.y >= 0 && box.y + box.height <= 700
+    })
+    .toBe(true)
+  // ...and both go away by themselves.
+  await expect(notice).toHaveCount(0, { timeout: 8000 })
+  await expect(row).not.toHaveClass(/ring-emerald-500/)
+})

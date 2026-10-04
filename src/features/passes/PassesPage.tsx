@@ -34,9 +34,15 @@ export default function PassesPage() {
   const usedLast = (row: Row) =>
     setNotice({
       key: Date.now(),
+      kind: 'finished',
       passId: row.pass.id,
       what: `${row.gymName}, ${row.typeLabel}`,
     })
+  // A pass was just added: say so (the name is filled in below, once its row is on screen).
+  const added = (passId: string) => {
+    closeRow()
+    setNotice({ key: Date.now(), kind: 'added', passId, what: '' })
+  }
   const undo = async (shown: Notice) => {
     setNotice(null)
     try {
@@ -45,15 +51,22 @@ export default function PassesPage() {
       // The pass was deleted in the meantime: nothing to give back.
     }
   }
-  // Only while the pass is still in Finished: give the entry back some other way and it goes away.
-  const shownNotice =
-    notice && finished.some((row) => row.pass.id === notice.passId) ? notice : null
+  // "Moved to Finished" shows only while the pass is still in Finished: give the entry back some
+  // other way and it goes away. "Added" shows once the new row is on screen, with its name.
+  let shownNotice: Notice | null = null
+  if (notice?.kind === 'finished') {
+    shownNotice = finished.some((row) => row.pass.id === notice.passId) ? notice : null
+  } else if (notice?.kind === 'added') {
+    const row = [...active, ...finished].find((r) => r.pass.id === notice.passId)
+    if (row) shownNotice = { ...notice, what: `${row.gymName}, ${row.typeLabel}` }
+  }
   const reminded = new Set(reminders.map((r) => r.passId))
   const lists = {
     gyms,
     today,
     openId,
     reminded,
+    addedId: shownNotice?.kind === 'added' ? shownNotice.passId : null,
     onToggle: toggle,
     onClose: close,
     onUsedLast: usedLast,
@@ -76,9 +89,9 @@ export default function PassesPage() {
       {active.length > 0 && <RowList rows={active} label="Passes" {...lists} />}
 
       {active.length === 0 ? (
-        <NewRow gyms={gyms} today={today} onAdded={closeRow} />
+        <NewRow gyms={gyms} today={today} onAdded={added} />
       ) : adding ? (
-        <NewRow gyms={gyms} today={today} autoFocus onAdded={closeRow} onClose={closeRow} />
+        <NewRow gyms={gyms} today={today} autoFocus onAdded={added} onClose={closeRow} />
       ) : (
         <button
           ref={(button) => {

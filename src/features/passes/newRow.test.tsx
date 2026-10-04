@@ -182,6 +182,79 @@ describe('the optional price (D44)', () => {
   })
 })
 
+describe('feedback when a pass is added (D46)', () => {
+  const scrolled = vi.fn()
+  beforeEach(() => {
+    scrolled.mockClear()
+    Element.prototype.scrollIntoView = scrolled
+  })
+
+  const addOne = async (user: ReturnType<typeof userEvent.setup>, gym = 'Zig Zag Wall') => {
+    await user.type(await gymBox(), gym)
+    await user.type(entriesBox(), '10')
+    await user.type(expiryBox(), inMonths(6))
+    await user.keyboard('{Enter}')
+  }
+
+  it('a notice says what was added', async () => {
+    const user = userEvent.setup()
+    renderApp()
+    await addOne(user)
+    const notice = await screen.findByText('Zig Zag Wall, Multipass')
+    expect(notice.closest('[role="status"]')).toHaveTextContent('Zig Zag Wall, Multipass added')
+  })
+
+  it('the notice uses the name of the gym that was matched, not how it was typed', async () => {
+    const user = userEvent.setup()
+    await repo.findOrCreateGym('Zig Zag Wall')
+    renderApp()
+    await addOne(user, 'zig zag WALL')
+    expect(await screen.findByText('Zig Zag Wall, Multipass')).toBeVisible()
+  })
+
+  it('the new row is marked, glows and is scrolled into view', async () => {
+    const user = userEvent.setup()
+    renderApp()
+    await addOne(user)
+    const [row] = await waitFor(async () => {
+      const rows = await mainRows()
+      expect(rows).toHaveLength(1)
+      return rows
+    })
+    expect(row).toHaveTextContent('Just added.')
+    expect(row).toHaveClass('ring-emerald-500')
+    await waitFor(() => expect(scrolled).toHaveBeenCalledTimes(1))
+    expect(scrolled.mock.contexts[0]).toBe(row)
+  })
+
+  it('only the newest pass is marked when another one is added', async () => {
+    const user = userEvent.setup()
+    renderApp()
+    await addOne(user, 'First Wall')
+    await screen.findByText('First Wall, Multipass')
+    await user.click(await screen.findByRole('button', { name: 'Add a pass' }))
+    await addOne(user, 'Second Wall')
+    await screen.findByText('Second Wall, Multipass')
+    const rows = await waitFor(async () => {
+      const found = await mainRows()
+      expect(found).toHaveLength(2)
+      return found
+    })
+    expect(rows[0]).toHaveTextContent('Second Wall')
+    expect(rows[0]).toHaveTextContent('Just added.')
+    expect(rows[1]).not.toHaveTextContent('Just added.')
+  })
+
+  it('a pass that does not save gives no notice', async () => {
+    const user = userEvent.setup()
+    renderApp()
+    await user.type(await gymBox(), 'Zig Zag Wall')
+    await user.keyboard('{Enter}') // entries and expiry are missing
+    expect(await screen.findByText('Enter the number of entries')).toBeVisible()
+    expect(screen.queryByText(/ added$/)).not.toBeInTheDocument()
+  })
+})
+
 describe('saving', () => {
   it('Enter saves a complete row, makes a new gym, shows the row and empties the blank row', async () => {
     const user = userEvent.setup()
