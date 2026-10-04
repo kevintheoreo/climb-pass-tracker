@@ -10,14 +10,21 @@ export const TEST_BUILTIN_GYMS: BuiltinGym[] = [
   { id: 'b-plus', name: 'Boulder+' },
 ]
 
-export function makeTestRepo() {
-  let tick = 0
+/**
+ * A repository on a throwaway database. Ids are `id-1`, `id-2`, ... unless `idPrefix` says
+ * otherwise (give two repos different prefixes when they stand for two devices). The clock starts at
+ * `startSecond` seconds past 2026-10-01 and moves one second per call, or is `now` if given.
+ */
+export function makeTestRepo(
+  options: { idPrefix?: string; startSecond?: number; now?: () => string } = {},
+) {
+  let tick = options.startSecond ?? 0
   let idCounter = 0
   const db = new ClimbDB(`test-db-${++dbCounter}`)
   const repo = createRepo(db, {
     // Each call is one second later, so "updated after created" is always visible.
-    now: () => new Date(Date.UTC(2026, 9, 1, 0, 0, tick++)).toISOString(),
-    newId: () => `id-${++idCounter}`,
+    now: options.now ?? (() => new Date(Date.UTC(2026, 9, 1, 0, 0, tick++)).toISOString()),
+    newId: () => `${options.idPrefix ?? 'id'}-${++idCounter}`,
     builtinGyms: TEST_BUILTIN_GYMS,
   })
   return { db, repo }

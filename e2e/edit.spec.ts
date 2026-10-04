@@ -16,7 +16,7 @@ test('editing an expiry in the details panel saves by itself and survives a relo
 }) => {
   await seeded(page)
   const row = mainRows(page).filter({ hasText: '7 / 10' })
-  const before = await row.innerText()
+  await expect(row).toContainText('in 120 days') // the expiry as seeded
   await toggle(row).click()
   await expect(panel(page)).toBeVisible()
   await panel(page).getByRole('button', { name: '+12 months' }).click()
@@ -24,8 +24,9 @@ test('editing an expiry in the details panel saves by itself and survives a relo
     .getByLabel(/^Comments/)
     .fill('bought at the sale')
   await page.getByRole('heading', { name: 'Add a pass' }).tap() // tap away
-  // The save runs in the background: wait until the row shows the new expiry.
-  await expect.poll(() => mainRows(page).filter({ hasText: '7 / 10' }).innerText()).not.toBe(before)
+  // The save runs in the background: wait until the row shows the new expiry. (Not by comparing
+  // the whole row's text: opening the panel already changes that.)
+  await expect(mainRows(page).filter({ hasText: '7 / 10' })).not.toContainText('in 120 days')
 
   await page.reload()
   const again = mainRows(page).filter({ hasText: '7 / 10' })

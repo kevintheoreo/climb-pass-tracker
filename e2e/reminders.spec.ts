@@ -137,7 +137,9 @@ test('on a phone Settings and the banners fit, and every control is at least 44p
   await page.getByRole('link', { name: 'Settings' }).click()
   await expect(page.getByRole('heading', { name: 'Settings' })).toBeVisible()
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360)
-  const controls = page.locator('main').locator('input:not([type=checkbox]), button')
+  const controls = page
+    .locator('main')
+    .locator('input:not([type=checkbox]):not([type=file]), button')
   for (const control of await controls.all()) {
     expect((await control.boundingBox())!.height).toBeGreaterThanOrEqual(44)
   }

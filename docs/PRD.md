@@ -2,13 +2,17 @@
 
 | | |
 |---|---|
-| **Status** | Draft v2.3 — single-screen redesign, with monthly-allowance memberships, for review |
+| **Status** | Draft v2.4 — single-screen, local-only (no accounts), moves between devices with a backup file |
 | **Date** | 2026-10-02 |
 | **Product** | Climb Pass Tracker |
 | **Platform** | Progressive Web App (PWA), phone-first |
 | **Market** | Singapore climbing gyms at launch, usable anywhere |
 
 ---
+
+## What changed in v2.4
+
+**No accounts, no server, no sync (D37).** Earlier versions planned an optional Google sign-in that synced passes between devices. That is dropped to keep the app simple: everything stays in the browser on the device. To move to a new phone, or to keep a copy, a person downloads a **backup file** and opens it in the app on the other device (FR-62 to FR-66). Opening a backup adds to what is already on the device and never deletes anything of the device's own (D38). The built-in gym names are bundled with the app and update when the app updates (D11).
 
 ## What changed in v2.0
 
@@ -37,7 +41,7 @@ Climbers in Singapore usually buy **shareable multipasses** (for example, 10 ent
 1. Use a pass entry in **one tap** on the main screen while standing at the gym counter, even with no internet.
 2. See at a glance how many entries are left and when each pass expires, across all gyms, in one list.
 3. Warn users before passes expire with entries left, and when a pass is nearly used up.
-4. Work fully **without an account**, with optional Google sign-in to sync across devices.
+4. Keep everything on the device (no account, no server), and let a person **move to another device with a backup file**.
 5. Add a pass in seconds by typing: the gym name autocompletes from a built-in list of Singapore gyms.
 
 ### Non-goals (v1)
@@ -46,7 +50,8 @@ Climbers in Singapore usually buy **shareable multipasses** (for example, 10 ent
 - A separate screen for managing gyms, pass templates or built-in "pass options".
 - Currencies other than SGD.
 - Suggested prices or validity periods for gyms (users enter their own).
-- Shared or collaborative passes between multiple accounts.
+- Shared or collaborative passes between multiple people.
+- Accounts, sign-in, or syncing between devices (D37). A backup file moves data by hand.
 - Booking, payments, or any integration with gym systems.
 - Native iOS or Android store apps.
 - Usage analytics or crash-reporting services.
@@ -69,7 +74,7 @@ Status column: **Active**, **Updated** (still applies, reworded for v2.0) or **S
 | # | Topic | Decision | Status |
 |---|---|---|---|
 | D1 | Platform | PWA, phone-first. Works in desktop browsers too. | Active |
-| D2 | Accounts | No account needed. Optional **Google sign-in** for syncing. | Active |
+| D2 | Accounts | ~~No account needed. Optional Google sign-in for syncing.~~ **No accounts at all** (D37). | **Superseded** by D37 |
 | D3 | Using entries | **One tap = one entry.** For 3 climbers, tap `−` 3 times. | Active |
 | D4 | Who used it | **Not tracked.** No names. | Active |
 | D5 | Editing uses | Uses can be edited, deleted and backdated. | **Superseded** by D25 and D26 |
@@ -78,16 +83,16 @@ Status column: **Active**, **Updated** (still applies, reworded for v2.0) or **S
 | D8 | After expiry | Shown in the Finished section as "Expired – X unused" and kept. The expiry date stays editable, to record extensions. | Updated (D27) |
 | D9 | Reminders | Expiring soon **and** low entries. In-app banners in v1, push notifications later. | Active |
 | D10 | Gym granularity | Tracked **per brand**. If an outlet has different pricing, the user types it as a separate gym name. | Active |
-| D11 | Built-in gym data | **Gym names only** (no pass options, prices or validity periods). Stored in the backend database in milestone 2 so names can be updated without releasing a new app version. | Updated |
+| D11 | Built-in gym data | **Gym names only** (no pass options, prices or validity periods). Bundled with the app, so names change when the app is updated. | Updated |
 | D12 | User-added gyms | Created automatically when a new name is typed (D24). Visible only to the user who added them. Suggesting them for the built-in list is a future enhancement. | Updated |
-| D13 | First sign-in | Data already on the device is **merged** into the account. | Active |
-| D14 | Sign-out | Data is **cleared** from the device, since it is safe in the account. | Active |
-| D15 | Privacy | Data export (CSV) and account deletion are included. | Active |
+| D13 | First sign-in | ~~Data already on the device is merged into the account.~~ There is no sign-in (D37). | **Removed** |
+| D14 | Sign-out | ~~Data is cleared from the device.~~ There is no sign-out (D37). | **Removed** |
+| D15 | Privacy | Data export is included, as a backup file (FR-62) and as CSV (FR-45). The account deletion part is gone with the accounts (D37). | Updated |
 | D16 | Pass types | **Multipass**, **Class / course pack** (behaves like a multipass), **Membership** (unlimited, or with a monthly allowance of entries, D32), **Single entry** (a pass with exactly 1 entry, D28). | Updated |
 | D17 | Language | English only. | Active |
 | D18 | Currency | **SGD only** in v1. There is no currency setting. | Active |
 | D19 | Analytics | None in v1, to keep the free database tier small. | Active |
-| D20 | Monetization | Core tracking and sync stay free. Ways to make money are listed as future ideas only. | Active |
+| D20 | Monetization | Core tracking stays free. Ways to make money are listed as future ideas only. | Active |
 | D21 | Hosting | **Netlify** free plan, which allows commercial use. Launch on the free `.netlify.app` address. | Active |
 | D22 | Gym data upkeep | The product owner checks the built-in gym names. How often is still to be decided. | Updated |
 | D23 | Layout | **One main screen** of rows, `Gym \| Type \| Expiry \| Left`, not grouped by gym. Settings is reached from a **gear icon in the header**. No bottom tab bar (a two-item bar would waste space on a data-dense screen), no Gyms screen, no History screen. | New |
@@ -104,6 +109,8 @@ Status column: **Active**, **Updated** (still applies, reworded for v2.0) or **S
 | D34 | Reset reminder | A banner 3 days before a reset when entries are left (the shortest of the reminder windows, so it follows the Settings value). It has its own on/off switch. The "low entries" banner and badge don't apply to monthly memberships, because they would appear every month. | New |
 | D35 | Moved-to-Finished notice | When `−` uses the last entry of a pass and its row leaves the main list, a short notice at the bottom says where it went, with an Undo button that gives the entry back (the same as `+` in Finished). It narrows the removal of the Undo toast (FR-5): only this one case, because the row disappearing and the next row taking its place is confusing. | New |
 | D36 | Editing | Tapping a row opens a panel under it with every field, including the gym, type, entries and expiry. The row's own cells stay read-only. The panel saves itself under the same rule as a new row (D29). | New |
+| D37 | No accounts, no sync | The app has no accounts, no sign-in and no server. All data is saved in the browser on the device. Moving to another device is done by hand with a **backup file** (export and import). This replaces the Google sign-in and sync that earlier versions planned (D2, D13, D14). | New |
+| D38 | Opening a backup | Opening a backup file **adds** to what the device already has. Rows are matched by id and the newer edit wins; nothing on the device is deleted, except a pass the backup says was deleted *later* than the device last changed it. A gym with the same name (ignoring case and punctuation) as one already here is the same gym, so no copy is made. Opening the same file twice changes nothing the second time. A file that is not a valid backup, or that is from a newer version of the app, is refused whole with a message, and nothing is changed. | New |
 
 ## 5. Pass types
 
@@ -159,7 +166,7 @@ Priority: **P0** = must have for launch, **P1** = should have for launch, **P2**
 - **FR-54 (P0)** **A new row saves itself** once every required cell is valid and focus leaves the row (or Enter is pressed). Until then nothing is saved, and the cells that are missing or invalid say so. Afterwards the blank row is empty again, ready for the next pass (D29).
 
 ### 6.4 Gyms
-- **FR-23 (P0)** The built-in gym names are bundled with the app in milestone 1. In milestone 2 they load from the backend and are cached on the device so autocomplete works offline.
+- **FR-23 (P0)** The built-in gym names are bundled with the app, so autocomplete works offline. They change when the app is updated.
 - **FR-24 (P0)** A built-in gym has a name only (D11).
 - **FR-25 (P0)** Typing a name that matches no existing gym saves it as a new gym for that user (spaces trimmed and collapsed). It is private to the user and appears in autocomplete from then on (D12, D24).
 - **FR-26** **Removed.** There is no hiding of gyms.
@@ -182,37 +189,42 @@ Priority: **P0** = must have for launch, **P1** = should have for launch, **P2**
 - **FR-60 (P0)** **Moved to Finished notice (D35):** when `−` uses the last entry of a counted pass or a single entry, a notice at the bottom of the screen reads "<gym>, <type> moved to Finished" with an **Undo** button. Undo gives the entry back. The notice goes away after 8 seconds (it waits only while a button in it has keyboard focus, never for the mouse pointer or a tap, which would hold it on screen), when the entry is given back some other way, or when a newer notice replaces it. A monthly membership never shows it, because it stays in the main list at 0. The page leaves room to scroll the last rows above it.
 - **FR-61 (P2)** **Row motion (M3):** when a row moves to or from Finished, it slides out to the side while the rows below move up, and the reverse when it comes back. Skipped when the device's reduced-motion setting is on.
 
-### 6.7 Accounts and sync
-- **FR-36 (P0)** The app works fully without signing in. Data is stored on the device.
-- **FR-37 (P0)** Optional **Sign in with Google**.
-- **FR-38 (P0)** On first sign-in, data on the device is uploaded and merged with any existing account data (D13).
-- **FR-39 (P0)** While signed in, changes are saved on the device first and synced in the background. Changes made offline are queued and sent when the device reconnects.
-- **FR-40 (P0)** When the same record is edited on two devices, the most recent change wins. Deletions are synced too.
-- **FR-41 (P0)** Sign-out clears data from the device, with a warning first (D14).
-- **FR-42 (P0)** Users who are not signed in see a gentle note that their data lives only on this device, plus a reminder to export it or sign in.
+### 6.7 Data on the device, and moving it
+- **FR-36 (P0)** The app works fully on the device with no account and no network. All data is stored on the device.
+- **FR-37** **Removed.** There is no sign-in (D37).
+- **FR-38** **Removed.** Replaced by opening a backup file (FR-64, D38).
+- **FR-39** **Removed.** There is no sync (D37).
+- **FR-40** **Removed.** The newer-edit-wins rule now applies when a backup is opened (D38).
+- **FR-41** **Removed.** There is no sign-out (D37).
+- **FR-42 (P0)** Settings tells the person, plainly, that their data lives **only on this device** (so clearing the app's data, changing phones or deleting the app loses it) and points them to the backup file (FR-62).
+- **FR-62 (P0)** **Download a backup file** (Settings → Your data): one JSON file, named `climb-pass-tracker-backup-<date>.json`, holding everything the device has: the gyms the person added, every pass, freeze and recorded use (deleted ones too, so a deletion can travel), and the reminder settings. It is written on the device and goes nowhere by itself. Built-in gyms are not in it (every copy of the app has them).
+- **FR-63 (P1)** **Share backup file:** where the browser can hand a file to other apps (the phone's share sheet), a button shares the same file instead of saving it. Where it cannot, the button is not shown.
+- **FR-64 (P0)** **Open a backup file:** the person picks a file. The app checks it completely first, then shows a preview of what it would add (new passes, passes updated, passes removed, recorded uses, gyms, reminder settings), and only changes anything when the person confirms. Cancel changes nothing. The merge rules are D38. The whole import is all-or-nothing.
+- **FR-65 (P0)** A file that is not a backup, is damaged (the message names the first bad pass, use, freeze or gym), points at things it does not contain, is too big (over 20 MB), or comes from a newer version of the app is refused with a message that says why and that nothing was imported. A backup from the same or an older version is accepted. Fields a later version adds are ignored.
+- **FR-66 (P0)** If everything in a backup is already on the device, the preview says so and offers nothing to add.
 
 ### 6.8 Settings and privacy
 - **FR-43 (P0)** All amounts are entered and shown in SGD (S$). There is no currency setting (D18).
 - **FR-44 (P0)** Reminder thresholds (see FR-33).
 - **FR-45 (P0)** **Export data** as CSV, in two files: the passes (one row each, with price, comments, entries left) and the recorded uses (a pass and a timestamp each). Text that starts like a spreadsheet formula is defused. Available with or without an account.
-- **FR-46 (P0)** **Delete account:** permanently deletes all of the user's data from the server and signs them out, with confirmation.
-- **FR-47 (P1)** **Delete all local data** for users without an account.
+- **FR-46** **Removed.** There are no accounts to delete (D37). Delete all local data is FR-47.
+- **FR-47 (P1)** **Delete all local data** (Settings), with confirmation. It cannot be undone, so the text suggests downloading a backup file first.
 - **FR-48 (P0)** Links to the privacy policy and terms, plus the app version.
 - **FR-49 (P1)** "Install app" prompt with instructions for adding it to the home screen on iOS and Android. The app shows the steps; it does not add its own install button in v1.
 
 ## 7. Data model (logical)
 
-All user-owned records use client-generated UUIDs plus `created_at`, `updated_at`, and `deleted_at` (deletions are flagged rather than erased, so they can sync). Amounts are stored as whole cents in SGD.
+All user-owned records use client-generated UUIDs plus `created_at`, `updated_at`, and `deleted_at` (deletions are flagged rather than erased, so a backup file can carry them to another device). Amounts are stored as whole cents in SGD.
 
 ```
-Gym (built-in, read-only to users)
-  id, name, is_active, sort_order
+Gym (built-in, bundled with the app, read-only)
+  id, name
 
-UserGym (created by typing a new name; private)
-  id, user_id, name
+UserGym (created by typing a new name)
+  id, name
 
 Pass (one row on the main screen)
-  id, user_id?, gym_ref (built-in or user gym), pass_type
+  id, gym_ref (built-in or user gym), pass_type
   purchase_date            -- defaults to today; a membership's start date
   expiry_date              -- the Expiry column. A membership's base end date
                               before freezes. Optional for single_entry only
@@ -231,7 +243,7 @@ Use (recorded silently on every "−"; never shown in v1)
   id, pass_id, used_at
 
 Settings
-  user_id?, expiry_reminder_days [14, 3],
+  expiry_reminder_days [14, 3],
   low_entries_threshold 2, reminders_enabled flags, dismissed_banners
 ```
 
@@ -240,6 +252,8 @@ Settings
 - `effective_end_date = expiry_date + sum(freeze lengths)` for a membership
 - for a monthly membership, the current period runs from the latest reset date on or before today (or the purchase date, if there is none yet) to the next reset date, and `entries_left = monthly_entries − count(uses in the current period)`, never below 0
 - `status` and "Finished" are worked out from entries left, today's date, expiry, and any freezes.
+
+**Backup file** (FR-62): `{ format: "climb-pass-tracker-backup", version: 1, exportedAt, userGyms, passes, uses, freezes, settings }`, the records above exactly as the device holds them, deleted ones included.
 
 **Gone since v1.x:** GymTemplate, UserTemplate, HiddenGym, the pass name, the membership billing period, the separate single-entry visit date, and the note on a use.
 
@@ -253,21 +267,21 @@ Settings
 6. **Expiry warning:** a banner at the top says "Boulder Planet 10-pass expires in 14 days — 4 entries left", and that row is highlighted.
 7. **Pass runs out or expires:** the row moves to the collapsed Finished section.
 8. **Monthly membership:** type a gym, choose Membership, enter 8 entries per month and the end date. The row shows `8 / 8`, "resets 15 Nov" (the purchase date's day). Tap `−` at the gym; at `0 / 8` the button is disabled until 15 Nov, when it shows `8 / 8` again. Three days before, a banner warns if entries are left.
-9. **Second device:** Settings → Sign in with Google → local data merged → sign in on another device → same list.
+9. **New phone:** on the old phone, Settings → Download backup file (or Share) → send the file to the new phone (message, email, AirDrop, cloud drive) → on the new phone, open the app → Settings → Open a backup file → check the preview → Add to this device → the same list, counts, expiry dates and gyms. If the new phone already has some passes, they stay.
 
 ## 9. Non-functional requirements
 
 | Area | Requirement |
 |---|---|
-| **Offline** | Every core flow (view, use, add, edit) works with no network. The app shell and gym list are cached by a service worker. |
+| **Offline** | Every core flow (view, use, add, edit, download or open a backup file) works with no network. The app shell is cached by a service worker. |
 | **Performance** | The main screen is usable within 2 s on a mid-range phone over 4G on first load, and within 1 s on repeat visits. Logging a use responds instantly. |
 | **Installability** | Meets PWA install criteria (manifest, icons, service worker). Works in standalone mode on iOS Safari 16.4+ and Chrome on Android. |
 | **Browsers** | Latest 2 versions of Safari (iOS/macOS), Chrome, Edge, and Firefox. |
 | **Accessibility** | WCAG 2.1 AA: tap targets ≥ 44 px, sufficient contrast, screen-reader labels, works with large text. |
 | **Theme** | Light and dark modes that follow the system setting. |
-| **Security** | Google OAuth through the backend's auth provider. Row-level security so each user can only read and write their own records. HTTPS only. |
-| **Privacy (PDPA)** | Only the minimum is collected: Google account email and ID, plus the user's pass data. No analytics or tracking. Privacy policy published. Export and delete available. |
-| **Cost** | Runs on free tiers (hosting + database). There is no analytics or log storage, and records are small, so database growth stays low. |
+| **Security** | No accounts and no server: passes are only in the browser on the device, and in any backup or CSV file the person chooses to make. HTTPS only. Backup files are checked completely before they change anything. |
+| **Privacy (PDPA)** | Nothing is collected: no accounts, no email, no analytics or tracking, no server that receives pass data. Data stays on the device unless the person exports it. Privacy policy published (it says this). Export and delete are in Settings. |
+| **Cost** | Runs on free static hosting. There is no database and no analytics or log storage. |
 
 ## 10. Proposed technical approach
 
@@ -277,19 +291,18 @@ Settings
 | Styling | Tailwind CSS | Quick to build a consistent, mobile-first UI. |
 | PWA | `vite-plugin-pwa` (Workbox) | Service worker, offline caching, manifest. |
 | Local storage | IndexedDB via Dexie | Reliable on-device storage with offline queries. |
-| Backend | Supabase (Postgres, Auth, Row-Level Security) | Free tier, built-in Google sign-in, a database to hold the built-in gym list. |
-| Sync | Local-first: write to IndexedDB, then push and pull changed rows by `updated_at` | Offline-first, simple last-write-wins. |
+| Backup file | A JSON file, checked with the same `zod` schemas as the forms, merged by row id and `updatedAt` | No server needed to move between devices (D37, D38). |
+| Gym names | A bundled list (`src/data/gyms.ts`) | Works offline; updates with the app. |
 | Hosting | Netlify, free plan (see 10.1) | HTTPS, CDN, preview deploys, deploys automatically from GitHub. |
-| Testing | Vitest (unit), Playwright (end-to-end) | Covers the counting, expiry and sync logic and the core flows. |
+| Testing | Vitest (unit), Playwright (end-to-end) | Covers the counting, expiry and backup-merge logic and the core flows, including moving data between two separate browser profiles. |
 
 ### 10.1 Hosting on Netlify
 
-Netlify's free plan allows commercial use, so the app will not need to change host when it starts making money (D21). The app is a static Vite build (no server code), and Supabase runs separately, so Netlify only serves files.
+Netlify's free plan allows commercial use, so the app will not need to change host when it starts making money (D21). The app is a static Vite build (no server code), so Netlify only serves files.
 
-- **Setup:** connect the GitHub repo in Netlify. Build command `npm run build`, publish directory `dist`. Supabase keys are set as environment variables (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`). The anon key is safe to expose because row-level security protects the data.
+- **Setup:** connect the GitHub repo in Netlify. Build command `npm run build`, publish directory `dist`. There are no environment variables or secrets.
 - **Routing:** add a `netlify.toml` redirect that sends every path to `index.html` with status 200, so deep links work in a single-page app.
 - **Service worker:** serve `sw.js` with `Cache-Control: no-cache` (set in `netlify.toml`) so users get app updates promptly.
-- **Google sign-in:** add the Netlify URL (and any future custom domain) to the allowed redirect URLs in Supabase and Google Cloud.
 - **Preview deploys:** each pull request gets its own preview URL for testing before merging.
 - **Usage limits:** the free plan has monthly limits on bandwidth and builds. A small static app should stay well within them, but check the current limits before launch.
 - **Address:** launch on the free `<site-name>.netlify.app` address (e.g. `climb-pass-tracker.netlify.app`, if available). A custom domain can be added later.
@@ -305,15 +318,15 @@ The built-in list holds **gym names only**. It covers the main Singapore climbin
 | Milestone | Scope |
 |---|---|
 | **M1 — Core, on-device only** | The main screen: rows, sorting, status and reminder highlights, counter with `−` / `+` (including memberships with a monthly allowance), the blank add row with gym autocomplete (built-in names bundled with the app), tap-to-open details, delete, the Finished section, reminder banners, Settings (reminder thresholds, CSV export, delete local data, install instructions), PWA install and offline support. |
-| **M2 — Accounts and sync** | Supabase setup, Google sign-in, built-in gym names moved to the database, merge on first sign-in, background sync, sign-out clearing, account deletion. |
-| **M3 — Launch polish** | Verified gym names, membership freezes, buy again, privacy policy and terms, accessibility pass, end-to-end tests, production deploy. |
+| **M2 — Move to another device** | Backup file: download, share where supported, open with a preview and a merge that keeps what is already on the device (D37, D38). |
+| **M3 — Launch polish** | Verified gym names, membership freezes, buy again, privacy policy and terms, accessibility pass, production deploy. |
 
 ## 13. Success measures
 
 There are no analytics in v1, so success is judged by:
-- Number of signed-in accounts (from the auth provider's own user count).
 - Direct feedback from the climbing community (e.g. a feedback link in Settings).
 - Being able to complete the core flows offline without errors (the end-to-end tests pass).
+- Being able to move a full set of passes to another phone with a backup file (the end-to-end tests pass).
 
 ## 14. Future enhancements (out of scope for v1)
 
@@ -325,11 +338,12 @@ There are no analytics in v1, so success is judged by:
 - **Roll-over of unused monthly entries**, and a record of entries lost at each reset, if gyms offer it.
 - **Multiple currencies**, including conversion of existing amounts when the currency changes.
 - **Suggested prices and validity periods** for built-in gyms.
-- **Sharing with friends:** a read-only link, or sharing a pass across accounts.
+- **Sharing with friends:** a read-only link, or sharing a pass with a friend's app.
+- **Accounts and automatic sync between devices** (for example Google sign-in), if people ask for more than a backup file. v1 does not have them (D37).
 - **Languages** other than English.
 - **App store release** by wrapping the PWA with Capacitor.
 - **Home-screen widgets** and quick actions (e.g. "Use one entry at Boulder Planet").
-- **Ways to make money** (no decisions made): premium stats, gym partnerships or promotions, optional supporter tier. Core tracking and sync stay free.
+- **Ways to make money** (no decisions made): premium stats, gym partnerships or promotions, optional supporter tier. Core tracking stays free.
 - **Privacy-friendly usage analytics**, if hosting allows it later.
 
 ## 15. Open questions

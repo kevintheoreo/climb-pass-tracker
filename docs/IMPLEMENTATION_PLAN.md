@@ -33,9 +33,8 @@ Steps 1.1 to 1.4 were built for the earlier, multi-screen design. The first vers
 | Styling | Tailwind CSS | Light and dark mode from the system setting. |
 | Local database | Dexie + `dexie-react-hooks` | `useLiveQuery` re-renders screens when data changes, so no separate state library is needed. |
 | Dates | `date-fns` | Pure helpers, easy to test. |
-| Validation | `zod` | Pass schema shared by the row editor, CSV export and (later) sync. |
+| Validation | `zod` | Pass schema shared by the row editor, CSV export and the backup file. |
 | PWA | `vite-plugin-pwa` | Precaches the app shell; manifest and icons. |
-| Backend (M2) | `@supabase/supabase-js` | Auth, Postgres, row-level security, one Edge Function. |
 | Tests | Vitest + Testing Library; Playwright | Playwright uses the pre-installed Chromium. |
 | Lint / format | ESLint + Prettier | |
 
@@ -53,15 +52,14 @@ src/
     money.ts       parse / format SGD
     reminders.ts   which banners to show (FR-31 to FR-34)
     csv.ts         CSV export (FR-45)
+    backup.ts      backup file format, checking, and the rules for adding one to a device (FR-62 to FR-66, D38)
   db/            Dexie schema, migrations, and the repository
-  data/          Bundled built-in gym names (M1; becomes the offline fallback in M2)
+  data/          Bundled built-in gym names
   features/
     passes/      the main screen: rows, add row, details, Finished, banners
     settings/
   components/    Shared UI: Page, form fields, ConfirmDelete, ...
-  sync/          (M2) Supabase client, auth, sync engine
   app/           Router, header, providers
-supabase/        (M2) SQL migrations, RLS policies, Edge Functions
 e2e/             Playwright tests
 ```
 
@@ -70,11 +68,11 @@ Keeping all rules in `src/domain/` means the tricky logic (counts, expiry, statu
 ### 1.3 Data conventions
 
 - **IDs:** UUIDs made with `crypto.randomUUID()` on the device.
-- **Every user record has** `createdAt`, `updatedAt`, `deletedAt` (null unless deleted). Deleting sets `deletedAt` and leaves the row in place. All queries filter out deleted rows. This makes M2 sync straightforward.
+- **Every user record has** `createdAt`, `updatedAt`, `deletedAt` (null unless deleted). Deleting sets `deletedAt` and leaves the row in place. All queries filter out deleted rows. A backup file carries these rows too, so a deletion can travel to another device.
 - **Dates without a time** (purchase, expiry, freeze start and end) are stored as `YYYY-MM-DD` strings in the device's local time zone. **`usedAt`** is a full ISO timestamp.
 - **A pass is valid through the whole of its expiry date** (it expires at the end of that day).
 - **Money** is stored as a number of cents (integer) in SGD, to avoid rounding errors, and shown as `S$12.50`.
-- **Built-in gym IDs are fixed UUIDs** written in the seed file. M2 loads the same IDs into Supabase, so passes created in M1 still point to the right gym after sync.
+- **Built-in gym IDs are fixed UUIDs** written in the seed file and never changed, so a pass in a backup file still points at the right gym on another device.
 - A pass's `gymRef` is `{ kind: 'builtin' | 'user', id }`.
 
 ### 1.4 Status logic (single source of truth)
@@ -120,24 +118,19 @@ Goal: a complete, installable, offline app with no account and no backend.
 
 ---
 
-## 3. Milestone 2 — Accounts and sync
+## 3. Milestone 2 — Move to another device
 
-**What you need to set up first** (I'll give step-by-step instructions): a free Supabase project, a Google Cloud OAuth client, and the Supabase URL and anon key added to Netlify's environment variables.
+There are no accounts, no server and nothing to set up (D37). Data lives on the device; a **backup file** is how it moves.
 
 | Step | Work | PRD |
 |---|---|---|
-| **2.1 Database schema** | SQL migrations in `supabase/` for the tables in PRD §7 (gyms, user gyms, passes, freezes, uses, settings), each user table with `user_id`. Row-level security: users can only read and write their own rows; built-in gyms are read-only for everyone. A trigger sets a `server_updated_at` column on every write. Seed built-in gyms with the same fixed IDs as the bundled file. | §7, §9 Security, D11 |
-| **2.2 Google sign-in** | Sign in / out in Settings, session handling, redirect URLs for local, preview and production addresses. | FR-37 |
-| **2.3 Built-in gyms from the database** | Fetch built-in gym names when online, save them on the device, fall back to the bundled file on a first offline launch. | FR-23 |
-| **2.4 Sync engine** | Runs on sign-in, app start, when the device comes back online, and a short time after each local change. **Push:** send local rows changed since the last push. **Pull:** fetch server rows with `server_updated_at` after the last pull. **Conflicts:** keep the row with the later `updatedAt` (last write wins). Deletions travel as rows with `deletedAt` set. Sync status shown in Settings ("Synced just now" / "Offline — will sync later"). | FR-38–40 |
-| **2.5 First sign-in merge** | Attach `user_id` to every local row and push it. UUIDs never clash, so merging is just uploading. Settings: if the account already has settings, keep those. | FR-38, D13 |
-| **2.6 Sign-out** | Warn, then sync any pending changes, then clear the local database. If there are unsynced changes and the device is offline, warn that they will be lost. | FR-41, D14 |
-| **2.7 Delete account** | A Supabase Edge Function (it needs admin rights that the app itself must not have) deletes the user's rows and their login, then the app clears local data. | FR-46, D15 |
-| **2.8 Tests** | Unit tests for merge and conflict rules; an integration test against a local Supabase instance (Supabase CLI) covering two devices editing the same pass, and checking RLS blocks access to another user's data. | §13 |
+| **2.1 Backup file and merge rules** ✅ | `src/domain/backup.ts`: the file format (version 1, JSON, every record exactly as the device holds it, deleted rows included), writing it, checking it completely before anything changes (clear message for each kind of problem; refused whole), and the rules for adding it to a device that already has data: match by id, newer `updatedAt` wins, nothing deleted except by a newer deletion, gyms with the same name are the same gym, opening it twice changes nothing. `repo.exportBackup`, `repo.previewImport`, `repo.importBackup` (one transaction: all or nothing). | FR-62, 64–66, D37, D38 |
+| **2.2 Backup in Settings** ✅ | Under "Your data": the note that data is only on this device, **Download backup file**, **Share backup file** (only where the browser can share files), **Open a backup file** with a preview of what it would add and an **Add to this device** button, and messages for every outcome. | FR-42, 62–64, 66 |
+| **2.3 Tests** ✅ | Unit tests for the format and every merge rule; repository tests (round trip between two devices, deletions, gym matching, all-or-nothing); component tests for the screen; end-to-end tests with two separate browser profiles standing for two phones, including opening a file with no network. | §13 |
 
-Because `−` and `+` change recorded uses, two devices counting at the same time are merged by the same last-write-wins rule on each row; a double count is possible in that rare case and is accepted for v1.
+Two devices that both count while apart are merged row by row (each tap is its own row), so no count is lost. If the *same pass* was edited on both, the newer edit wins; that is accepted for v1.
 
-**M2 done when:** you can use the app signed out, sign in, see the same data on a second device, edit on both while offline, and end up with the same data on both after reconnecting.
+**M2 done when:** you can download a backup on one device, open it on another, see the same passes, counts, expiry dates and gyms, and open the same file again without anything changing. ✅
 
 ---
 
@@ -145,19 +138,19 @@ Because `−` and `+` change recorded uses, two devices counting at the same tim
 
 | Step | Work | PRD |
 |---|---|---|
-| **3.1 Verified gym names** | Load your checked gym name list into Supabase and the bundled file (see 4.1). | §11, D22 |
+| **3.1 Verified gym names** | Replace the placeholder names in the bundled file with your checked list (see 4.1). | §11, D22 |
 | **3.2 Membership freezes** | Add / edit / remove freezes in a membership's details; end date and status update. | FR-20 |
 | **3.3 Buy again** | A button in a row's details that creates a new row with the same gym, type, entries and price. | FR-21 |
 | **3.4** | *Removed.* Hiding gyms is no longer needed (autocomplete replaces the gym list). | FR-26 removed |
-| **3.5 Privacy policy and terms** | Static pages linked from Settings. You'll need to review or supply the wording. | FR-48, §9 PDPA |
+| **3.5 Privacy policy and terms** | Static pages linked from Settings. Short, because the app collects nothing: no accounts, no server, no analytics. You'll need to review or supply the wording. | FR-48, §9 PDPA |
 | **3.6 Accessibility and quality** | Automated accessibility checks (axe) in Playwright, large-text and screen-reader check of the row controls and the autocomplete, real icons and splash screens, Lighthouse PWA and performance check against the 2 s / 1 s targets. | §9 |
 | **3.6a Row motion** (FR-61) | When a row moves to or from Finished, it slides out to the side while the rows below move up (and the reverse when it comes back). Needs the row to stay on screen briefly after the data changes; skipped when the phone's reduced-motion setting is on; must not break the double-tap guard or the tests (turn motion off in tests). | polish |
 | **3.7 Nice-to-have** | App icon badge with reminder count, where supported. | FR-35 |
-| **3.8 Production deploy** | Production Netlify site on the free `.netlify.app` address, Google sign-in redirects updated, final run of the full test suite. | D21 |
+| **3.8 Production deploy** | Production Netlify site on the free `.netlify.app` address, final run of the full test suite. | D21 |
 
 ### 4.1 Gym seed data format
 
-You'll fill in and maintain one file (`src/data/gyms.ts`, later mirrored to Supabase). Names only:
+You'll fill in and maintain one file (`src/data/gyms.ts`). Names only:
 
 ```ts
 { id: '…fixed uuid…', name: 'Example Gym' }
@@ -170,8 +163,8 @@ During M1 I'll put in a few placeholder gyms so the app can be tested; you repla
 ## 5. Testing strategy
 
 - **Unit tests (Vitest):** all of `src/domain/` — this is where most bugs would hurt (wrong counts, wrong expiry, wrong gym matching). Dates are passed in as arguments rather than read from the clock, so tests can fix "today".
-- **Component tests:** the add row (autocomplete, new gym, saving itself), the counter buttons, the details section.
-- **End-to-end (Playwright):** the core flows from PRD §8, on a phone-sized screen, including offline mode.
+- **Component tests:** the add row (autocomplete, new gym, saving itself), the counter buttons, the details section, the backup controls.
+- **End-to-end (Playwright):** the core flows from PRD §8, on a phone-sized screen, including offline mode and moving data between two separate browser profiles with a backup file.
 - **CI:** GitHub Actions runs lint, format check, typecheck, unit tests, the build and the Playwright suite on every PR; Netlify builds a preview for every PR.
 
 ---
@@ -186,3 +179,4 @@ During M1 I'll put in a few placeholder gyms so the app can be tested; you repla
 | Q4 | Icon | A simple generated placeholder icon until there is a logo. |
 | Q5 | CI | A GitHub Actions workflow runs lint, typecheck and tests on every PR. |
 | Q6 | Redesign | One screen of rows (D23–D34, including monthly-allowance memberships), as set out in PRD v2.1. |
+| Q7 | Accounts and sync | Dropped (D37). No Google sign-in, no Supabase, no server. A backup file moves data between devices (D38). The database work started for it (a closed pull request) was not used. |

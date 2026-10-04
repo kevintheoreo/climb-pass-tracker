@@ -5,6 +5,7 @@ import { repo } from '../../db'
 import { passesCsv, usesCsv } from '../../domain/csv'
 import { todayLocal } from '../../domain/dates'
 import { findGym } from '../../domain/gyms'
+import { BackupControls } from './BackupControls'
 import { downloadTextFile } from './download'
 
 async function exportData(kind: 'passes' | 'uses') {
@@ -27,10 +28,15 @@ export function DataSettings() {
       <h2 id="data-heading" className="mb-1 text-lg font-semibold">
         Your data
       </h2>
-      <p className="mb-3 text-base">
-        Your passes are saved <strong>only on this device</strong>. If you clear this app’s data,
-        change phones or delete the app, they are gone. Download a copy now and then.
+      <p className="mb-4 text-base">
+        Your passes are saved <strong>only on this device</strong>. There are no accounts. If you
+        clear this app’s data, change phones or delete the app, they are gone, unless you have a
+        backup file.
       </p>
+
+      <BackupControls />
+
+      <h3 className="mb-1 mt-6 text-base font-semibold">For a spreadsheet</h3>
       <div className="flex flex-col items-start gap-3">
         <button
           type="button"
@@ -48,9 +54,13 @@ export function DataSettings() {
         >
           Download recorded uses (CSV)
         </button>
+      </div>
+
+      <h3 className="mb-1 mt-6 text-base font-semibold">Start again</h3>
+      <div className="flex flex-col items-start gap-3">
         <ConfirmDelete
           label="Delete all data on this device"
-          prompt="Delete every pass and every gym you added on this device? This can’t be undone. Download a copy first if you want to keep one."
+          prompt="Delete every pass and every gym you added on this device? This can’t be undone. Download a backup file first if you want to keep a copy."
           onConfirm={async () => {
             await repo.clearAllData()
             setMessage('All data on this device was deleted.')
