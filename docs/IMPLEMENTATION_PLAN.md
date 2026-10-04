@@ -140,7 +140,7 @@ Two devices that both count while apart are merged row by row (each tap is its o
 | Step | Work | PRD |
 |---|---|---|
 | **3.1 Verified gym names** ✅ | The bundled file now holds the owner's checked list of 20 gyms (see 4.1). Typing a name finds the gym with or without capitals, spaces or punctuation, so "Fitbloc" finds "fit·bloc". | §11, D22 |
-| **3.2 Membership freezes** | Add / edit / remove freezes in a membership's details; end date and status update. | FR-20 |
+| **3.2 Membership freezes** ✅ | A Freezes section in a membership's details: add, edit (saves on leaving the row) and remove freezes; the end date, the Frozen status and the "ends on" line update. | FR-20 |
 | **3.3 Buy again** | A button in a row's details that creates a new row with the same gym, type, entries and price. | FR-21 |
 | **3.4** | *Removed.* Hiding gyms is no longer needed (autocomplete replaces the gym list). | FR-26 removed |
 | **3.5 Privacy policy and terms** | Static pages linked from Settings. Short, because the app collects nothing: no accounts, no server, no analytics. You'll need to review or supply the wording. | FR-48, §9 PDPA |

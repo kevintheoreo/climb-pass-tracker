@@ -16,6 +16,7 @@ import {
 } from '../../domain/passForm'
 import type { Row } from '../../domain/rows'
 import { isMonthly } from '../../domain/types'
+import { FreezesSection } from './FreezesSection'
 import { PassForm } from './PassForm'
 
 /** Entries counted as used in the current month, for a monthly membership (else 0). */
@@ -141,6 +142,15 @@ export function EditPanel({
           details
         />
       </form>
+
+      {row.pass.passType === 'membership' && (
+        <FreezesSection
+          passId={row.pass.id}
+          freezes={row.bundle.freezes}
+          endsOn={row.expiry}
+          today={today}
+        />
+      )}
 
       {failed && (
         <p role="alert" className="mt-3 text-sm text-red-700 dark:text-red-400">
