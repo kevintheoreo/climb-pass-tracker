@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { ConfirmDelete } from '../../components/ConfirmDelete'
 import { repo } from '../../db'
+import { StorageStatus } from '../install/StorageStatus'
 import { BackupControls } from './BackupControls'
 
 /** Where the data lives, how to take a copy, and how to wipe it (FR-42, FR-47, FR-62). */
@@ -17,6 +18,8 @@ export function DataSettings() {
         clear this app’s data, change phones or delete the app, they are gone, unless you have a
         backup file.
       </p>
+
+      <StorageStatus />
 
       <BackupControls />
 
