@@ -19,7 +19,7 @@ test('an iPhone is asked from the start to add the app to the home screen; Not n
   await expect(prompt(page)).toBeVisible() // before any pass: nothing saved in the tab yet
   await expect(prompt(page)).toContainText('keep your entries safely')
 
-  await page.getByRole('combobox', { name: 'Gym' }).fill('Fitbloc')
+  await page.getByRole('combobox', { name: 'Gym' }).fill('Practice Wall')
   await page.getByLabel('Entries', { exact: true }).fill('10')
   await page.getByRole('button', { name: '+6 months' }).click()
   await page.keyboard.press('Enter')

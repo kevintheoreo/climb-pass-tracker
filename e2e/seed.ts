@@ -1,4 +1,5 @@
 import type { Page } from '@playwright/test'
+import { BUILTIN_GYMS } from '../src/data/gyms'
 
 /**
  * Fills the on-device database with a spread of passes (every type and state), straight into
@@ -12,7 +13,9 @@ import type { Page } from '@playwright/test'
 export async function seedSamples(page: Page) {
   await page.goto('/')
   await page.getByRole('combobox', { name: 'Gym' }).waitFor()
-  await page.evaluate(async () => {
+  // Two gyms from the built-in list, passed in because the page cannot import them.
+  const builtinIds = [BUILTIN_GYMS[0]!.id, BUILTIN_GYMS[1]!.id]
+  await page.evaluate(async ([idA, idB]) => {
     const day = (offset: number) => {
       const d = new Date()
       d.setDate(d.getDate() + offset)
@@ -22,8 +25,8 @@ export async function seedSamples(page: Page) {
     const stamp = new Date().toISOString()
     let n = 0
     const meta = () => ({ id: `seed-${++n}`, createdAt: stamp, updatedAt: stamp, deletedAt: null })
-    const gymA = { kind: 'builtin', id: '0859db82-c520-4f55-8b0a-0e7362d8f2fe' }
-    const gymB = { kind: 'builtin', id: 'aad09cb6-fb53-401f-879a-caa3db961169' }
+    const gymA = { kind: 'builtin', id: idA }
+    const gymB = { kind: 'builtin', id: idB }
     const zig = { ...meta(), name: 'Zig Zag Wall' }
     const gymZ = { kind: 'user', id: zig.id }
     const base = { priceCents: null, comments: null }
@@ -98,7 +101,7 @@ export async function seedSamples(page: Page) {
       tx.onerror = () => reject(tx.error)
     })
     db.close()
-  })
+  }, builtinIds)
   await page.reload()
 }
 

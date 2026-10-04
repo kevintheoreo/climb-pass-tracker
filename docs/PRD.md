@@ -324,7 +324,7 @@ Netlify's free plan allows commercial use, so the app will not need to change ho
 
 The built-in list holds **gym names only**. It covers the main Singapore climbing gym brands. Example brands include Boulder Planet, Boulder+, Fit Bloc, Climb Central, BFF Climb, Lighthouse Climbing, Ark Bloc, Z-Vertigo, and others.
 
-**Before launch, every gym name must be checked** against the gym's current website or front desk. This is tracked as a launch task. No pass options, prices or validity periods are included in v1 (D11).
+The list in the app is the product owner's checked list of 20 Singapore gyms, spelled as the owner gave them (including `boulder+` and `fit·bloc`); more are added the same way, with a new permanent id. Typing a name with or without capitals, spaces or punctuation finds the same gym (`Fitbloc`, `fit bloc` and `fit·bloc` are one gym; `Climb@T3` and `climb t3` are one gym; D24). No pass options, prices or validity periods are included in v1 (D11).
 
 ## 12. Release plan
 

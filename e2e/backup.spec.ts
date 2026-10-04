@@ -58,8 +58,8 @@ test('moving to a new phone: the passes, the counts and the gym all arrive', asy
 }) => {
   const oldPhone = await newPhone(browser, baseURL)
   const a = oldPhone.page
-  await addPass(a, 'Fitbloc', '10')
-  await addPass(a, 'fitbloc', '20', '+12')
+  await addPass(a, 'Practice Wall', '10')
+  await addPass(a, 'practice wall', '20', '+12')
   await expect(rows(a)).toHaveCount(2)
   for (const left of ['10 / 10', '9 / 10', '8 / 10']) {
     await row(a, left)
@@ -91,12 +91,12 @@ test('moving to a new phone: the passes, the counts and the gym all arrive', asy
 
   await b.getByRole('link', { name: /Passes/ }).click()
   await expect(rows(b)).toHaveCount(2)
-  await expect(row(b, '7 / 10')).toContainText('Fitbloc')
-  await expect(row(b, '20 / 20')).toContainText('Fitbloc')
+  await expect(row(b, '7 / 10')).toContainText('Practice Wall')
+  await expect(row(b, '20 / 20')).toContainText('Practice Wall')
   // The gym came across too: it is in the dropdown, and typing it again does not offer a copy.
   await openAddRow(b)
-  await gymBox(b).fill('FITBLOC')
-  await expect(b.getByRole('option', { name: 'Fitbloc' })).toBeVisible()
+  await gymBox(b).fill('PRACTICE WALL')
+  await expect(b.getByRole('option', { name: 'Practice Wall' })).toBeVisible()
   await expect(b.getByRole('option', { name: /as a new gym/ })).toHaveCount(0)
 
   // It is still there after a reload, and counting carries on from 7.
@@ -154,7 +154,7 @@ test('both devices have been used: each backup adds what the other did and no co
 }) => {
   const one = await newPhone(browser, baseURL)
   const two = await newPhone(browser, baseURL)
-  await addPass(one.page, 'Fitbloc', '10')
+  await addPass(one.page, 'Practice Wall', '10')
   const toTwo = await downloadBackup(one.page)
   await openBackup(two.page, toTwo)
   await two.page.getByRole('button', { name: 'Add to this device' }).click()
@@ -163,7 +163,7 @@ test('both devices have been used: each backup adds what the other did and no co
 
   // Then each is used on its own: one counts, the other adds a pass and counts too.
   await minusOne(one.page, '10 / 10')
-  await addPass(two.page, 'Boulder Planet', '4')
+  await addPass(two.page, 'Test Boulders', '4')
   await minusOne(two.page, '10 / 10')
   await minusOne(two.page, '9 / 10')
 
@@ -176,8 +176,8 @@ test('both devices have been used: each backup adds what the other did and no co
 
   await expect(rows(one.page)).toHaveCount(2)
   // The pass counted on both: the uses from both phones are there (1 here, 2 there, none lost).
-  await expect(row(one.page, 'Fitbloc')).toContainText('7 / 10')
-  await expect(row(one.page, 'Boulder Planet')).toContainText('4 / 4')
+  await expect(row(one.page, 'Practice Wall')).toContainText('7 / 10')
+  await expect(row(one.page, 'Test Boulders')).toContainText('4 / 4')
 
   await one.context.close()
   await two.context.close()
@@ -185,7 +185,7 @@ test('both devices have been used: each backup adds what the other did and no co
 
 test('a file that is not a backup is refused and nothing changes', async ({ browser, baseURL }) => {
   const phone = await newPhone(browser, baseURL)
-  await addPass(phone.page, 'Fitbloc', '10')
+  await addPass(phone.page, 'Practice Wall', '10')
   await expect(rows(phone.page)).toHaveCount(1)
   for (const file of [
     { name: 'notes.json', mimeType: 'application/json', buffer: Buffer.from('hello') },
@@ -207,7 +207,7 @@ test('a file that is not a backup is refused and nothing changes', async ({ brow
 
 test('opening a backup works with no network', async ({ browser, baseURL }) => {
   const oldPhone = await newPhone(browser, baseURL)
-  await addPass(oldPhone.page, 'Fitbloc', '10')
+  await addPass(oldPhone.page, 'Practice Wall', '10')
   const backupPath = await downloadBackup(oldPhone.page)
 
   const phone = await newPhone(browser, baseURL)
@@ -233,7 +233,7 @@ test('on a phone the backup controls and the preview fit and are big enough to t
   baseURL,
 }) => {
   const oldPhone = await newPhone(browser, baseURL)
-  await addPass(oldPhone.page, 'Fitbloc', '10')
+  await addPass(oldPhone.page, 'Practice Wall', '10')
   const backupPath = await downloadBackup(oldPhone.page)
   const phone = await newPhone(browser, baseURL)
   const page = phone.page

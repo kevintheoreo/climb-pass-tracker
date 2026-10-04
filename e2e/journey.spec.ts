@@ -67,14 +67,14 @@ test('first launch: pick a gym from the list, fill the row, and it appears (no s
 
 test('an expiry warning names the pass and its row is highlighted', async ({ page }) => {
   await page.goto('/')
-  await addPass(page, 'Boulder Planet', { entries: '10', expiry: inDays(14) })
+  await addPass(page, 'Test Boulders', { entries: '10', expiry: inDays(14) })
   await expect(mainRows(page)).toHaveCount(1)
   // Use six, leaving four.
   for (let i = 0; i < 6; i++) await minus(mainRows(page)).click()
   await expect(mainRows(page).first()).toContainText('4 / 10')
 
   await expect(banners(page)).toContainText(
-    'Boulder Planet, Multipass: expires in 14 days, 4 entries left',
+    'Test Boulders, Multipass: expires in 14 days, 4 entries left',
   )
   await expect(mainRows(page).first().getByText('Has a reminder.')).toBeAttached()
   await banners(page)
@@ -94,9 +94,9 @@ test('a week at the gym: counting, two packs, a membership, Finished, reminders,
   })
 
   // Two packs at one gym, typed as a new gym (flows 4 and 5): two separate rows.
-  await addPass(page, 'Fitbloc', { entries: '10', expiry: '+6' })
+  await addPass(page, 'Practice Wall', { entries: '10', expiry: '+6' })
   await expect(mainRows(page)).toHaveCount(1)
-  await addPass(page, 'fitbloc', { entries: '20', expiry: '+12' })
+  await addPass(page, 'practice wall', { entries: '20', expiry: '+12' })
   await expect(mainRows(page)).toHaveCount(2)
   await expect(row(page, '10 / 10')).toHaveCount(1)
   await expect(row(page, '20 / 20')).toHaveCount(1)
@@ -123,22 +123,22 @@ test('a week at the gym: counting, two packs, a membership, Finished, reminders,
   await expect(page.getByText(/Finished \(/)).toHaveCount(0) // a monthly membership stays in the list
 
   // A single entry runs out (flow 7): the row moves to Finished, with a way back.
-  await addPass(page, 'Climb Central', { type: 'Single entry', expiry: '' })
+  await addPass(page, 'Corner Crag', { type: 'Single entry', expiry: '' })
   const single = row(page, 'Single entry')
   await expect(single).toHaveCount(1)
   await minus(single).click()
   await expect(page.getByText('Finished (1)')).toBeVisible()
   await expect(row(page, 'Single entry')).toHaveCount(0)
-  await expect(page.getByText(/Climb Central, Single entry moved to Finished/)).toBeVisible()
+  await expect(page.getByText(/Corner Crag, Single entry moved to Finished/)).toBeVisible()
 
   // Few entries left: the row says Low at once, but no banner is pushed in while tapping (D42).
-  await addPass(page, 'Fitbloc', { entries: '3', expiry: '+6' })
+  await addPass(page, 'Practice Wall', { entries: '3', expiry: '+6' })
   await minus(row(page, '3 / 3')).click()
   await expect(row(page, '2 / 3').getByText('Low', { exact: true })).toBeVisible()
-  await expect(banners(page).getByText('Fitbloc, Multipass: 2 entries left')).toHaveCount(0)
+  await expect(banners(page).getByText('Practice Wall, Multipass: 2 entries left')).toHaveCount(0)
   // The next time the app is opened, the banner is there and its row is highlighted.
   await page.reload()
-  await expect(banners(page).getByText('Fitbloc, Multipass: 2 entries left')).toBeVisible()
+  await expect(banners(page).getByText('Practice Wall, Multipass: 2 entries left')).toBeVisible()
   await expect(row(page, '2 / 3').getByText('Has a reminder.')).toBeAttached()
 
   // Settings: the data is only on this device, and it can be downloaded.
@@ -151,10 +151,10 @@ test('a week at the gym: counting, two packs, a membership, Finished, reminders,
     userGyms: { name: string }[]
   }
   expect(backup.passes).toHaveLength(5)
-  // Fitbloc was typed more than once, in different cases, but it is one gym with three passes.
+  // Practice Wall was typed more than once, in different cases, but it is one gym with three passes.
   expect(backup.userGyms.map((g) => g.name).sort()).toEqual([
-    'Climb Central',
-    'Fitbloc',
+    'Corner Crag',
+    'Practice Wall',
     'Zig Zag Wall',
   ])
   expect(new Set(backup.passes.map((p) => JSON.stringify(p.gymRef))).size).toBe(3)
@@ -162,8 +162,8 @@ test('a week at the gym: counting, two packs, a membership, Finished, reminders,
 
   // The gym typed in a different case did not make a second gym.
   await openAddRow(page)
-  await gymBox(page).fill('fitb')
-  await expect(page.getByRole('option', { name: /^Fitbloc$/ })).toHaveCount(1)
+  await gymBox(page).fill('prac')
+  await expect(page.getByRole('option', { name: /^Practice Wall$/ })).toHaveCount(1)
   await gymBox(page).fill('')
 
   // Everything above still works with no network, and is there after a reload.
