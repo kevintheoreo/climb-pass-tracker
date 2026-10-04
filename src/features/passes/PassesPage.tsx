@@ -3,6 +3,7 @@ import { Page } from '../../components/Page'
 import { buttonClass } from '../../components/formUtils'
 import { repo } from '../../db'
 import type { Row } from '../../domain/rows'
+import { InstallPrompt } from '../install/InstallPrompt'
 import { NewRow } from './NewRow'
 import { ReminderBanners } from './ReminderBanners'
 import { RowList } from './RowList'
@@ -70,6 +71,7 @@ export default function PassesPage() {
       )}
 
       <ReminderBanners reminders={reminders} rows={active} />
+      <InstallPrompt />
 
       {active.length > 0 && <RowList rows={active} label="Passes" {...lists} />}
 
