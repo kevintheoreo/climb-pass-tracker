@@ -1,5 +1,6 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import { Page } from '../../components/Page'
+import { buttonClass } from '../../components/formUtils'
 import { repo } from '../../db'
 import type { Row } from '../../domain/rows'
 import { NewRow } from './NewRow'
@@ -13,6 +14,16 @@ export default function PassesPage() {
   const [openId, setOpenId] = useState<string | null>(null)
   const [notice, setNotice] = useState<Notice | null>(null)
   const dismiss = useCallback(() => setNotice(null), [])
+  // The blank row is hidden behind a button once there is a pass (it is always shown while there
+  // are none). `adding` is whether the person opened it.
+  const [adding, setAdding] = useState(false)
+  // Set when the blank row closes, so the button that replaces it takes the focus and the keyboard
+  // does not lose its place.
+  const focusButton = useRef(false)
+  const closeRow = () => {
+    focusButton.current = true
+    setAdding(false)
+  }
 
   if (!rows) return <Page title="Passes" />
 
@@ -62,7 +73,28 @@ export default function PassesPage() {
 
       {active.length > 0 && <RowList rows={active} label="Passes" {...lists} />}
 
-      <NewRow gyms={gyms} today={today} />
+      {active.length === 0 ? (
+        <NewRow gyms={gyms} today={today} onAdded={closeRow} />
+      ) : adding ? (
+        <NewRow gyms={gyms} today={today} autoFocus onAdded={closeRow} onClose={closeRow} />
+      ) : (
+        <button
+          ref={(button) => {
+            if (button && focusButton.current) {
+              focusButton.current = false
+              button.focus()
+            }
+          }}
+          type="button"
+          onClick={() => setAdding(true)}
+          className={`${buttonClass('secondary')} mt-4 w-full sm:w-auto`}
+        >
+          <span aria-hidden="true" className="mr-2">
+            +
+          </span>
+          Add a pass
+        </button>
+      )}
 
       {finished.length > 0 && (
         <details className="group mt-6">

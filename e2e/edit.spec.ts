@@ -23,7 +23,7 @@ test('editing an expiry in the details panel saves by itself and survives a relo
   await panel(page)
     .getByLabel(/^Comments/)
     .fill('bought at the sale')
-  await page.getByRole('heading', { name: 'Add a pass' }).tap() // tap away
+  await page.getByRole('heading', { name: 'Passes', exact: true }).tap() // tap away
   // The save runs in the background: wait until the row shows the new expiry. (Not by comparing
   // the whole row's text: opening the panel already changes that.)
   await expect(mainRows(page).filter({ hasText: '7 / 10' })).not.toContainText('in 120 days')
@@ -50,7 +50,7 @@ test('an unfinished edit says what is wrong and is not saved', async ({ page }) 
   await toggle(row).click()
   await panel(page).getByLabel('Entries', { exact: true }).fill('0')
   await panel(page).getByLabel('Already used').fill('x')
-  await page.getByRole('heading', { name: 'Add a pass' }).tap()
+  await page.getByRole('heading', { name: 'Passes', exact: true }).tap()
   await expect(panel(page).getByText('Entries must be at least 1')).toBeVisible()
   await expect(panel(page).getByText('Enter a whole number')).toBeVisible()
   await panel(page).getByRole('button', { name: 'Close' }).click()
@@ -112,7 +112,7 @@ test('editing works with no network', async ({ page, context }) => {
   await panel(page)
     .getByLabel(/^Comments/)
     .fill('offline note')
-  await page.getByRole('heading', { name: 'Add a pass' }).tap()
+  await page.getByRole('heading', { name: 'Passes', exact: true }).tap()
   await toggle(mainRows(page).filter({ hasText: '7 / 10' })).click() // close, then reopen to check
   await toggle(mainRows(page).filter({ hasText: '7 / 10' })).click()
   await expect(panel(page).getByLabel(/^Comments/)).toHaveValue('offline note')

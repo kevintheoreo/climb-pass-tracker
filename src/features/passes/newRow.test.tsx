@@ -2,6 +2,7 @@ import { render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import App from '../../app/App'
+import { BUILTIN_GYMS } from '../../data/gyms'
 import { repo } from '../../db'
 import { addDays, todayLocal } from '../../domain/dates'
 
@@ -55,6 +56,76 @@ describe('the blank row', () => {
   })
 })
 
+describe('hiding the blank row', () => {
+  const pass = () => ({
+    gymRef: { kind: 'builtin', id: BUILTIN_GYMS[0]!.id } as const,
+    passType: 'multipass' as const,
+    priceCents: null,
+    comments: null,
+    purchaseDate: addDays(today, -30),
+    expiryDate: addDays(today, 100),
+    totalEntries: 10,
+    initialUsed: 3,
+  })
+
+  it('shows a button instead of the row once there is an active pass', async () => {
+    await repo.createPass(pass())
+    renderApp()
+    expect(await screen.findByRole('button', { name: 'Add a pass' })).toBeVisible()
+    expect(screen.queryByRole('combobox', { name: 'Gym' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('form', { name: 'New pass' })).not.toBeInTheDocument()
+  })
+
+  it('the button opens the row and puts the cursor in the gym cell', async () => {
+    const user = userEvent.setup()
+    await repo.createPass(pass())
+    renderApp()
+    await user.click(await screen.findByRole('button', { name: 'Add a pass' }))
+    expect(await gymBox()).toHaveFocus()
+    expect(screen.queryByRole('button', { name: 'Add a pass' })).not.toBeInTheDocument()
+  })
+
+  it('Close puts the button back, with the focus, and keeps nothing', async () => {
+    const user = userEvent.setup()
+    await repo.createPass(pass())
+    renderApp()
+    await user.click(await screen.findByRole('button', { name: 'Add a pass' }))
+    await user.type(await gymBox(), 'Half typed')
+    await user.click(screen.getByRole('button', { name: 'Close' }))
+    expect(screen.queryByRole('combobox', { name: 'Gym' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Add a pass' })).toHaveFocus()
+    await user.click(screen.getByRole('button', { name: 'Add a pass' }))
+    expect(await gymBox()).toHaveValue('')
+    expect(await repo.listPasses()).toHaveLength(1)
+  })
+
+  it('has no Close button while it is the only way to add a first pass', async () => {
+    renderApp()
+    await gymBox()
+    expect(screen.queryByRole('button', { name: 'Close' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Add a pass' })).not.toBeInTheDocument()
+  })
+
+  it('is shown when every pass is finished', async () => {
+    await repo.createPass({ ...pass(), totalEntries: 1, initialUsed: 1 })
+    renderApp()
+    expect(await screen.findByText('Finished (1)')).toBeInTheDocument()
+    expect(await gymBox()).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Add a pass' })).not.toBeInTheDocument()
+  })
+
+  it('goes away by itself when the first pass is saved', async () => {
+    const user = userEvent.setup()
+    renderApp()
+    await user.type(await gymBox(), 'Zig Zag Wall')
+    await user.type(entriesBox(), '5')
+    await user.type(expiryBox(), inMonths(6))
+    await user.keyboard('{Enter}')
+    expect(await screen.findByRole('button', { name: 'Add a pass' })).toBeVisible()
+    expect(screen.queryByRole('combobox', { name: 'Gym' })).not.toBeInTheDocument()
+  })
+})
+
 describe('saving', () => {
   it('Enter saves a complete row, makes a new gym, shows the row and empties the blank row', async () => {
     const user = userEvent.setup()
@@ -73,10 +144,9 @@ describe('saving', () => {
     expect(row).toHaveTextContent('Multipass')
     expect(row).toHaveTextContent('10 / 10')
     expect((await repo.listUserGyms()).map((g) => g.name)).toEqual(['Fitbloc Dempsey'])
-    expect(screen.getByRole('combobox', { name: 'Gym' })).toHaveValue('')
-    expect(entriesBox()).toHaveValue('')
-    expect(expiryBox()).toHaveValue('')
-    expect(screen.getByRole('combobox', { name: 'Gym' })).toHaveFocus()
+    // With a pass on the list the blank row goes back behind its button, which has the focus.
+    expect(screen.queryByRole('combobox', { name: 'Gym' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Add a pass' })).toHaveFocus()
   })
 
   it('saves when focus leaves a complete row', async () => {
@@ -161,6 +231,8 @@ describe('saving', () => {
     const user = userEvent.setup()
     renderApp()
     for (const entries of ['10', '20']) {
+      if (entries === '20')
+        await user.click(await screen.findByRole('button', { name: 'Add a pass' }))
       await user.type(await gymBox(), 'Zig Zag Wall')
       await user.type(entriesBox(), entries)
       await user.type(expiryBox(), inMonths(6))
@@ -259,11 +331,12 @@ describe('the gym cell', () => {
     await waitFor(async () => expect(await repo.listPasses()).toHaveLength(1))
     expect(await repo.listUserGyms()).toHaveLength(2) // no stray "zig" gym
 
-    await user.type(box, 'zig')
-
-    expect(box).toHaveAttribute('aria-expanded', 'true')
+    await user.click(await screen.findByRole('button', { name: 'Add a pass' }))
+    const again = await gymBox()
+    await user.type(again, 'zig')
+    expect(again).toHaveAttribute('aria-expanded', 'true')
     await user.keyboard('{Escape}')
-    expect(box).toHaveAttribute('aria-expanded', 'false')
+    expect(again).toHaveAttribute('aria-expanded', 'false')
   })
 
   it('has options at least 44px tall', async () => {

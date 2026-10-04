@@ -101,3 +101,15 @@ export async function seedSamples(page: Page) {
   })
   await page.reload()
 }
+
+/**
+ * Opens the blank row when it is hidden behind the "Add a pass" button (it is, once there is an
+ * active pass), and does nothing when it is already on screen.
+ */
+export async function openAddRow(page: Page) {
+  const button = page.getByRole('button', { name: 'Add a pass' })
+  const gym = page.getByRole('combobox', { name: 'Gym' })
+  await button.or(gym).waitFor() // the screen may still be loading
+  if (await button.isVisible()) await button.click()
+  await gym.waitFor()
+}
