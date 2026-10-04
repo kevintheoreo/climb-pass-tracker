@@ -1,5 +1,7 @@
 import { test, expect, type Page } from '@playwright/test'
 import { seedSamples } from './seed'
+import { todayLocal } from '../src/domain/dates'
+import { relativeTime } from '../src/domain/format'
 
 const mainRows = (page: Page) => page.getByRole('list', { name: 'Passes' }).locator(':scope > li')
 const banners = (page: Page) => page.getByRole('region', { name: 'Reminders' })
@@ -47,13 +49,14 @@ test('dismissing a banner hides it, and it stays hidden after a reload', async (
 
 test('changing the days in Settings changes the banners', async ({ page }) => {
   await seeded(page)
-  await expect(banners(page).getByText(/expires in 45 days/)).toHaveCount(0)
+  const in45Days = relativeTime(45, todayLocal()) // "in 1 month 14 days" or so
+  await expect(banners(page).getByText(`expires ${in45Days}`)).toHaveCount(0)
   await page.getByRole('link', { name: 'Settings' }).click()
   const days = page.getByLabel('Days before expiry')
   await days.fill('60, 14, 3')
   await days.press('Enter')
   await page.getByRole('link', { name: /Passes/ }).click()
-  await expect(banners(page).getByText(/Multipass: expires in 45 days/)).toBeVisible()
+  await expect(banners(page).getByText(`Multipass: expires ${in45Days}`)).toBeVisible()
 })
 
 test('switching a reminder off in Settings removes its banners', async ({ page }) => {

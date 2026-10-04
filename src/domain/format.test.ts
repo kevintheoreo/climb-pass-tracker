@@ -4,7 +4,7 @@ import {
   badgesFor,
   expiryLabel,
   leftLabel,
-  relativeDays,
+  relativeTime,
   resetLabel,
   reminderMessage,
 } from './format'
@@ -33,13 +33,57 @@ describe('dates', () => {
   })
 })
 
-describe('relativeDays', () => {
+describe('relativeTime', () => {
+  const today = '2026-10-04'
+  const inDays = (days: number) => relativeTime(days, today)
+
   it('reads naturally on either side of today', () => {
-    expect(relativeDays(0)).toBe('today')
-    expect(relativeDays(1)).toBe('tomorrow')
-    expect(relativeDays(12)).toBe('in 12 days')
-    expect(relativeDays(-1)).toBe('yesterday')
-    expect(relativeDays(-10)).toBe('10 days ago')
+    expect(inDays(0)).toBe('today')
+    expect(inDays(1)).toBe('tomorrow')
+    expect(inDays(12)).toBe('in 12 days')
+    expect(inDays(-1)).toBe('yesterday')
+    expect(inDays(-10)).toBe('10 days ago')
+  })
+
+  it('counts days up to a month', () => {
+    expect(inDays(2)).toBe('in 2 days')
+    expect(inDays(26)).toBe('in 26 days') // 30 Oct
+    expect(inDays(30)).toBe('in 30 days') // 3 Nov: a day short of a month (4 Nov)
+  })
+
+  it('says months and days from a month up to six months', () => {
+    expect(inDays(31)).toBe('in 1 month') // 4 Nov
+    expect(inDays(32)).toBe('in 1 month 1 day')
+    expect(inDays(45)).toBe('in 1 month 14 days') // 18 Nov
+    expect(inDays(60)).toBe('in 1 month 29 days') // 3 Dec
+    expect(inDays(62)).toBe('in 2 months 1 day') // 5 Dec
+  })
+
+  it('says whole months from six months, dropping the days', () => {
+    expect(inDays(200)).toBe('in 6 months') // 22 Apr 2027
+    expect(inDays(300)).toBe('in 9 months') // 31 Jul 2027
+  })
+
+  it('says years and months from a year', () => {
+    expect(inDays(365)).toBe('in 1 year')
+    expect(inDays(400)).toBe('in 1 year 1 month')
+    expect(inDays(730)).toBe('in 1 year 11 months') // 3 Oct 2028: a day short of 2 years
+    expect(inDays(731)).toBe('in 2 years')
+    expect(inDays(1000)).toBe('in 2 years 8 months')
+  })
+
+  it('counts a month from the same day of the next month, and clamps short months', () => {
+    expect(relativeTime(28, '2027-01-31')).toBe('in 1 month') // 28 Feb is a month from 31 Jan
+    expect(relativeTime(27, '2027-01-31')).toBe('in 27 days') // 27 Feb
+    expect(relativeTime(31, '2026-12-31')).toBe('in 1 month') // 31 Jan
+    expect(relativeTime(59, '2026-12-31')).toBe('in 2 months') // 28 Feb
+    expect(relativeTime(61, '2026-12-31')).toBe('in 2 months 2 days') // 2 Mar
+  })
+
+  it('works the same way into the past', () => {
+    expect(inDays(-45)).toBe('1 month 14 days ago')
+    expect(inDays(-200)).toBe('6 months ago')
+    expect(inDays(-400)).toBe('1 year 1 month ago')
   })
 })
 
@@ -126,6 +170,7 @@ describe('reminderMessage', () => {
   const base = {
     key: 'p:x',
     passId: 'p',
+    today: '2026-10-04',
     daysLeft: null,
     entriesLeft: null,
     window: null,

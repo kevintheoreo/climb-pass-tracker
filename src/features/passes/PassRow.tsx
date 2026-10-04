@@ -1,5 +1,5 @@
 import type { LocalDate } from '../../domain/dates'
-import { badgesFor, expiryLabel, relativeDays, resetLabel } from '../../domain/format'
+import { badgesFor, expiryLabel, relativeTime, resetLabel } from '../../domain/format'
 import type { BadgeTone } from '../../domain/format'
 import type { Row } from '../../domain/rows'
 import type { GymEntry } from '../../domain/gyms'
@@ -92,7 +92,7 @@ export function PassRow({
         >
           <span className="sr-only">Expiry: </span>
           {expiryLabel(row.expiry)}
-          {days !== null && <span className="block text-sm">{relativeDays(days)}</span>}
+          {days !== null && <span className="block text-sm">{relativeTime(days, today)}</span>}
         </p>
 
         {badges.length > 0 && (

@@ -73,7 +73,7 @@ describe('main screen — the list of rows', () => {
     expect(row).toHaveTextContent(BOULDER.name)
     expect(row).toHaveTextContent('Multipass')
     expect(row).toHaveTextContent(/\d{1,2} [A-Z][a-z]{2} \d{4}/)
-    expect(row).toHaveTextContent('in 100 days')
+    expect(row).toHaveTextContent(/in 3 months/) // 100 days, in months (D43)
     expect(row).toHaveTextContent('7 / 10')
   })
 

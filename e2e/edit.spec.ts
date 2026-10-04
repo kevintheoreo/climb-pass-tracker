@@ -1,5 +1,7 @@
 import { test, expect, type Page } from '@playwright/test'
 import { seedSamples } from './seed'
+import { todayLocal } from '../src/domain/dates'
+import { relativeTime } from '../src/domain/format'
 
 const mainRows = (page: Page) => page.getByRole('list', { name: 'Passes' }).locator(':scope > li')
 const panel = (page: Page) => page.getByRole('region', { name: /^Details:/ })
@@ -16,7 +18,8 @@ test('editing an expiry in the details panel saves by itself and survives a relo
 }) => {
   await seeded(page)
   const row = mainRows(page).filter({ hasText: '7 / 10' })
-  await expect(row).toContainText('in 120 days') // the expiry as seeded
+  const seededExpiry = relativeTime(120, todayLocal()) // the expiry as seeded, in months
+  await expect(row).toContainText(seededExpiry)
   await toggle(row).click()
   await expect(panel(page)).toBeVisible()
   await panel(page).getByRole('button', { name: '+12 months' }).click()
@@ -26,7 +29,7 @@ test('editing an expiry in the details panel saves by itself and survives a relo
   await page.getByRole('heading', { name: 'Passes', exact: true }).tap() // tap away
   // The save runs in the background: wait until the row shows the new expiry. (Not by comparing
   // the whole row's text: opening the panel already changes that.)
-  await expect(mainRows(page).filter({ hasText: '7 / 10' })).not.toContainText('in 120 days')
+  await expect(mainRows(page).filter({ hasText: '7 / 10' })).not.toContainText(seededExpiry)
 
   await page.reload()
   const again = mainRows(page).filter({ hasText: '7 / 10' })
