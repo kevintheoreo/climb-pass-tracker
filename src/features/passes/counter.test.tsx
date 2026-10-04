@@ -9,6 +9,8 @@ import type { PassInput } from '../../domain/types'
 
 const today = todayLocal()
 const day = (offset: number) => addDays(today, offset)
+const later = () => new Promise<void>((resolve) => setTimeout(resolve, 5)) // creation times differ
+
 const gymRef = { kind: 'builtin', id: BUILTIN_GYMS[0]!.id } as const
 
 function renderApp() {
@@ -98,8 +100,9 @@ describe('− and + on a row', () => {
 
   it('two passes at one gym count separately', async () => {
     const user = userEvent.setup()
-    await repo.createPass(multipass({ expiryDate: day(50), totalEntries: 10 }))
     await repo.createPass(multipass({ expiryDate: day(150), totalEntries: 20 }))
+    await later()
+    await repo.createPass(multipass({ expiryDate: day(50), totalEntries: 10 })) // added last: on top
     renderApp()
     const [first] = await screen.findAllByRole('button', { name: /^Use one entry/ })
     await user.click(first!)
