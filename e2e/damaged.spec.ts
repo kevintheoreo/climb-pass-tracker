@@ -29,7 +29,7 @@ for (const [name, row] of [
     await storeSettingsRow(page, row)
     await page.reload()
     await expect(page.getByRole('list', { name: 'Passes' })).toBeVisible()
-    await expect(page.getByRole('heading', { name: 'Add a pass' })).toBeVisible()
+    await expect(page.getByRole('button', { name: 'Add a pass' })).toBeVisible()
 
     await page.getByRole('link', { name: 'Settings' }).click()
     await expect(page.getByRole('heading', { name: 'Reminders' })).toBeVisible()

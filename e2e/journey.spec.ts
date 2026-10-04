@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import { test, expect, type Page } from '@playwright/test'
 import { BUILTIN_GYMS } from '../src/data/gyms'
+import { openAddRow } from './seed'
 
 // The core flows of PRD section 8, done the way a person would: on a phone-sized screen, starting
 // from an empty app, with nothing put into the database behind the app's back.
@@ -27,6 +28,7 @@ async function addPass(
   gym: string,
   { type, entries, expiry = '+6' }: { type?: string; entries?: string; expiry?: string } = {},
 ) {
+  await openAddRow(page)
   await gymBox(page).fill(gym)
   if (type) await page.getByLabel('Type').selectOption({ label: type })
   if (entries !== undefined) await page.getByLabel(/^Entries/).fill(entries)
@@ -60,7 +62,7 @@ test('first launch: pick a gym from the list, fill the row, and it appears (no s
   await expect(created).toContainText('Multipass')
   await expect(created).toContainText('10 / 10')
   await expect(created).toContainText(/in 18[1-4] days/) // six months from today
-  await expect(page.getByRole('combobox', { name: 'Gym' })).toHaveValue('')
+  await expect(page.getByRole('button', { name: 'Add a pass' })).toBeVisible()
 })
 
 test('an expiry warning names the pass and its row is highlighted', async ({ page }) => {
@@ -155,6 +157,7 @@ test('a week at the gym: counting, two packs, a membership, Finished, reminders,
   await page.getByRole('link', { name: /Passes/ }).click()
 
   // The gym typed in a different case did not make a second gym.
+  await openAddRow(page)
   await gymBox(page).fill('fitb')
   await expect(page.getByRole('option', { name: /^Fitbloc$/ })).toHaveCount(1)
   await gymBox(page).fill('')

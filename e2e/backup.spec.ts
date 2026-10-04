@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises'
 import { test, expect, type Browser, type Page } from '@playwright/test'
+import { openAddRow } from './seed'
 
 // Moving to another device (D37): two separate browser profiles stand for two phones. They share
 // nothing, so the only way data gets from one to the other is the backup file.
@@ -24,6 +25,7 @@ async function newPhone(browser: Browser, baseURL: string | undefined) {
 
 async function addPass(page: Page, gym: string, entries: string, expiry = '+6') {
   const before = await rows(page).count()
+  await openAddRow(page)
   await gymBox(page).fill(gym)
   await page.getByLabel('Entries', { exact: true }).fill(entries)
   await page.getByRole('button', { name: expiry === '+6' ? '+6 months' : '+12 months' }).click()
@@ -92,6 +94,7 @@ test('moving to a new phone: the passes, the counts and the gym all arrive', asy
   await expect(row(b, '7 / 10')).toContainText('Fitbloc')
   await expect(row(b, '20 / 20')).toContainText('Fitbloc')
   // The gym came across too: it is in the dropdown, and typing it again does not offer a copy.
+  await openAddRow(b)
   await gymBox(b).fill('FITBLOC')
   await expect(b.getByRole('option', { name: 'Fitbloc' })).toBeVisible()
   await expect(b.getByRole('option', { name: /as a new gym/ })).toHaveCount(0)

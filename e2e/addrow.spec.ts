@@ -1,4 +1,5 @@
 import { test, expect, type Page } from '@playwright/test'
+import { openAddRow, seedSamples } from './seed'
 
 const mainRows = (page: Page) => page.getByRole('list', { name: 'Passes' }).locator(':scope > li')
 const gym = (page: Page) => page.getByRole('combobox', { name: 'Gym' })
@@ -19,10 +20,13 @@ test('a pass added in the blank row appears, and is still there after a reload',
   await expect(mainRows(page)).toHaveCount(1)
   await expect(mainRows(page).first()).toContainText('Fitbloc')
   await expect(mainRows(page).first()).toContainText('10 / 10')
-  await expect(gym(page)).toHaveValue('')
+  // With a pass on the list the blank row is hidden behind a button.
+  await expect(gym(page)).toHaveCount(0)
+  await expect(page.getByRole('button', { name: 'Add a pass' })).toBeFocused()
 
   await page.reload()
   await expect(mainRows(page)).toHaveCount(1)
+  await openAddRow(page)
   // The new gym is now in the autocomplete.
   await gym(page).fill('fit')
   await expect(page.getByRole('option', { name: 'Fitbloc' })).toBeVisible()
@@ -38,13 +42,14 @@ test('tapping a suggestion and then tapping away saves the row', async ({ page }
   await page.keyboard.press('Enter')
   await expect(mainRows(page)).toHaveCount(1)
 
+  await openAddRow(page)
   await gym(page).fill('zig')
   await page.getByRole('option', { name: 'Zig Zag Wall' }).tap()
   await expect(gym(page)).toHaveValue('Zig Zag Wall')
   await page.getByLabel('Entries', { exact: true }).fill('20')
   await page.getByRole('button', { name: '+12 months' }).tap()
   await expect(mainRows(page)).toHaveCount(1) // still inside the row: not saved yet
-  await page.getByRole('heading', { name: 'Add a pass' }).tap() // tap outside the form
+  await page.getByRole('heading', { name: 'Passes', exact: true }).tap() // tap outside the form
   await expect(mainRows(page)).toHaveCount(2)
 })
 
@@ -79,6 +84,7 @@ test('on a phone the row fits, its controls are big enough and the dropdown is n
   await page.keyboard.press('Enter')
   await expect(mainRows(page)).toHaveCount(1)
 
+  await openAddRow(page)
   await gym(page).fill('z')
   const option = page.getByRole('option').first()
   await expect(option).toBeVisible()
@@ -110,6 +116,7 @@ test('on a wide screen the blank row lines up under the column headings', async 
   await page.keyboard.press('Enter')
   await expect(mainRows(page)).toHaveCount(1)
 
+  await openAddRow(page)
   const xs = await Promise.all(
     [
       gym(page),
@@ -121,4 +128,22 @@ test('on a wide screen the blank row lines up under the column headings', async 
   const tops = xs.map((b) => Math.round(b.y))
   expect(Math.max(...tops) - Math.min(...tops)).toBeLessThanOrEqual(12)
   for (let i = 1; i < xs.length; i++) expect(xs[i]!.x).toBeGreaterThan(xs[i - 1]!.x)
+})
+
+test('with passes the blank row is a button; the button opens it and Close hides it again', async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 360, height: 740 })
+  await seedSamples(page)
+  await expect(page.getByRole('heading', { name: 'Add a pass' })).toHaveCount(0)
+  await expect(gym(page)).toHaveCount(0)
+  const button = page.getByRole('button', { name: 'Add a pass' })
+  expect((await button.boundingBox())!.height).toBeGreaterThanOrEqual(44)
+
+  await button.tap()
+  await expect(gym(page)).toBeFocused()
+  await expect(button).toHaveCount(0)
+  await page.getByRole('button', { name: 'Close' }).tap()
+  await expect(gym(page)).toHaveCount(0)
+  await expect(button).toBeVisible()
 })

@@ -1,4 +1,5 @@
-import { useRef, useState, type FocusEvent, type KeyboardEvent } from 'react'
+import { useEffect, useRef, useState, type FocusEvent, type KeyboardEvent } from 'react'
+import { buttonClass } from '../../components/formUtils'
 import { repo } from '../../db'
 import type { LocalDate } from '../../domain/dates'
 import type { GymEntry } from '../../domain/gyms'
@@ -18,13 +19,32 @@ import { PassForm } from './PassForm'
  * valid and focus leaves the row, or when Enter is pressed. Until then nothing is saved; the cells
  * that are missing or invalid say so once the person has moved on from the row.
  */
-export function NewRow({ gyms, today }: { gyms: GymEntry[]; today: LocalDate }) {
+export function NewRow({
+  gyms,
+  today,
+  autoFocus = false,
+  onAdded,
+  onClose,
+}: {
+  gyms: GymEntry[]
+  today: LocalDate
+  /** Put the cursor in the gym cell when the row appears (it was opened by a button). */
+  autoFocus?: boolean
+  /** Called after a pass was saved. */
+  onAdded?: () => void
+  /** When given, the row has a Close button that hides it again. */
+  onClose?: () => void
+}) {
   const [draft, setDraft] = useState<PassDraft>(BLANK_DRAFT)
   const [errors, setErrors] = useState<PassErrors>({})
   const [failed, setFailed] = useState(false)
   const [added, setAdded] = useState('')
   const saving = useRef(false)
   const gymInput = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    if (autoFocus) gymInput.current?.focus()
+  }, [autoFocus])
 
   const update = (changes: Partial<PassDraft>) => {
     setDraft((d) => ({ ...d, ...changes }))
@@ -57,7 +77,8 @@ export function NewRow({ gyms, today }: { gyms: GymEntry[]; today: LocalDate }) 
       setErrors({})
       setFailed(false)
       setAdded(`Added ${result.value.gymText}, ${PASS_TYPE_LABELS[draft.passType]}`)
-      if (refocus) gymInput.current?.focus()
+      if (onAdded) onAdded()
+      else if (refocus) gymInput.current?.focus()
     } catch {
       setFailed(true)
     } finally {
@@ -111,6 +132,11 @@ export function NewRow({ gyms, today }: { gyms: GymEntry[]; today: LocalDate }) 
           gymInputRef={gymInput}
         />
       </form>
+      {onClose && (
+        <button type="button" onClick={onClose} className={`${buttonClass('secondary')} mt-3`}>
+          Close
+        </button>
+      )}
 
       {failed && (
         <p role="alert" className="mt-3 text-sm text-red-700 dark:text-red-400">

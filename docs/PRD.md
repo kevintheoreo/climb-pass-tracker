@@ -101,7 +101,7 @@ Status column: **Active**, **Updated** (still applies, reworded for v2.0) or **S
 | D26 | Use records | Each `−` is recorded silently with its timestamp, which keeps `+` (undo) working and leaves room for stats later. No screen shows these records in v1. | New |
 | D27 | Finished passes | Used-up and expired passes move to a collapsed **Finished** section at the bottom, where they can be deleted. | New |
 | D28 | Membership and single entry | A membership shows "Unlimited" unless it has a monthly allowance (D32). A single entry is a 1-entry pass. | New |
-| D29 | Adding a row | An always-visible blank row at the bottom. It saves itself once every required cell is valid and the user leaves the row (or presses Enter). | New |
+| D29 | Adding a row | A blank row at the bottom (hidden behind a button once there is a pass, D39). It saves itself once every required cell is valid and the user leaves the row (or presses Enter). | New |
 | D30 | Extra fields | Price paid, purchase date, "already used" and comments live in a section that opens when a row is tapped. | New |
 | D31 | Order | Rows are sorted by soonest expiry first. Passes with no expiry come last. | New |
 | D32 | Monthly memberships | A membership has an optional **entries per month**. Left blank it is unlimited. With a number it has a counter for the current month that returns to the full allowance at each reset. Unused entries do **not** roll over. A freeze moves only the end date, not the reset day. | New |
@@ -111,6 +111,7 @@ Status column: **Active**, **Updated** (still applies, reworded for v2.0) or **S
 | D36 | Editing | Tapping a row opens a panel under it with every field, including the gym, type, entries and expiry. The row's own cells stay read-only. The panel saves itself under the same rule as a new row (D29). | New |
 | D37 | No accounts, no sync | The app has no accounts, no sign-in and no server. All data is saved in the browser on the device. Moving to another device is done by hand with a **backup file** (export and import). This replaces the Google sign-in and sync that earlier versions planned (D2, D13, D14). | New |
 | D38 | Opening a backup | Opening a backup file **adds** to what the device already has. Rows are matched by id and the newer edit wins; nothing on the device is deleted, except a pass the backup says was deleted *later* than the device last changed it. A gym with the same name (ignoring case and punctuation) as one already here is the same gym, so no copy is made. Opening the same file twice changes nothing the second time. A file that is not a valid backup, or that is from a newer version of the app, is refused whole with a message, and nothing is changed. | New |
+| D39 | Add a pass button | The blank row is shown only while there are **no active passes** (a list with only Finished passes counts as none). Once there is at least one, it is replaced by an **Add a pass** button; the button opens the row with the cursor in the Gym cell, and a **Close** button hides it again. After a pass is saved the row hides again. This keeps the main screen clean. | New |
 
 ## 5. Pass types
 
@@ -155,7 +156,7 @@ Priority: **P0** = must have for launch, **P1** = should have for launch, **P2**
 - **FR-58 (P0)** **Reset day (D33):** the day of the month the count resets. It defaults to the day of the purchase date and can be changed in the details section (1 to 31). In a month without that day the reset happens on the month's last day. Changing the reset day or the allowance recalculates the current count straight away from the recorded uses.
 
 ### 6.3 Adding and editing rows
-- **FR-15 (P0)** **Add a row:** the blank row at the bottom of the list is always visible. Its cells are Gym (autocomplete text box, FR-53), Type (default Multipass), Entries (counted types; a single entry is fixed at 1; for a membership it is the optional *entries per month*, left blank for unlimited) and Expiry.
+- **FR-15 (P0)** **Add a row:** the blank row at the bottom of the list is shown while there are no active passes; once there is one it is replaced by an **Add a pass** button that opens the row (D39). Its cells are Gym (autocomplete text box, FR-53), Type (default Multipass), Entries (counted types; a single entry is fixed at 1; for a membership it is the optional *entries per month*, left blank for unlimited) and Expiry.
 - **FR-16** **Removed.** There are no pass templates (D11, D30).
 - **FR-17 (P0)** Fields. In the row: gym, type, entries (the total), expiry (with +6 / +12 month quick buttons that count from the purchase date, D7). In the details section: purchase date (defaults to today; a membership's start date), price paid in S$ (optional), "already used" (entries used before the pass was added to the app), and comments (optional free text, up to 500 characters, for the user's own reference). For a membership with a monthly allowance: the reset day (FR-58), and "already used this month" in place of "already used".
 - **FR-18 (P0)** Every field can be edited later in the details panel (D36): gym, type, entries, expiry, purchase date, price, already used, comments, and for a monthly membership the reset day and the entries already used this month. The panel saves itself when every field is valid and focus leaves it, or on Enter. Nothing half-finished is saved; every problem is listed at once; Close drops an invalid edit. Changing the type clears entries whose meaning changes (entries versus entries per month).
@@ -163,7 +164,7 @@ Priority: **P0** = must have for launch, **P1** = should have for launch, **P2**
 - **FR-20 (P1)** **Freeze** a membership: in the details section enter a start and end date. The end date is pushed back by the freeze length. Several freezes are allowed, and each can be edited or removed. A freeze moves only the end date; the monthly reset day is not affected (D32).
 - **FR-21 (P1)** **Buy again** (details section): create a new row with the same gym, type, entries and price, leaving the expiry empty.
 - **FR-22 (P0)** Validation, reporting every problem at once: entries (or entries per month) between 1 and 1000, reset day between 1 and 31, expiry not before the purchase date, "already used" not more than the total.
-- **FR-54 (P0)** **A new row saves itself** once every required cell is valid and focus leaves the row (or Enter is pressed). Until then nothing is saved, and the cells that are missing or invalid say so. Afterwards the blank row is empty again, ready for the next pass (D29).
+- **FR-54 (P0)** **A new row saves itself** once every required cell is valid and focus leaves the row (or Enter is pressed). Until then nothing is saved, and the cells that are missing or invalid say so. Afterwards the blank row hides behind the **Add a pass** button again (D29, D39).
 
 ### 6.4 Gyms
 - **FR-23 (P0)** The built-in gym names are bundled with the app, so autocomplete works offline. They change when the app is updated.
