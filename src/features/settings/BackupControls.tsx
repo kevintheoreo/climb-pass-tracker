@@ -1,20 +1,14 @@
+import { useLiveQuery } from 'dexie-react-hooks'
 import { useRef, useState } from 'react'
 import { buttonClass } from '../../components/formUtils'
 import { repo } from '../../db'
-import {
-  backupFilename,
-  backupToText,
-  parseBackup,
-  type Backup,
-  type ImportSummary,
-} from '../../domain/backup'
-import { todayLocal } from '../../domain/dates'
+import { parseBackup, type Backup, type ImportSummary } from '../../domain/backup'
+import { formatDate, localDateOfTimestamp } from '../../domain/dates'
 import { importLines } from '../../domain/format'
-import { downloadTextFile } from './download'
+import { downloadBackupFile } from './backupDownload'
 
 /** A backup is a few kilobytes. Anything this big is not one, and reading it could hang a phone. */
 const MAX_BYTES = 20_000_000
-const JSON_TYPE = 'application/json'
 
 type Stage =
   | { kind: 'idle' }
@@ -42,18 +36,13 @@ export function BackupControls() {
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState(false)
   const picker = useRef<HTMLInputElement>(null)
-
-  async function makeBackup() {
-    const backup = await repo.exportBackup()
-    return { backup, text: backupToText(backup), name: backupFilename(todayLocal()) }
-  }
+  const lastBackupAt = useLiveQuery(async () => (await repo.getBackupState()).lastBackupAt, [])
 
   async function download() {
-    const { backup, text, name } = await makeBackup()
-    downloadTextFile(name, text, JSON_TYPE)
+    const passes = await downloadBackupFile()
     setStage({ kind: 'idle' })
     setMessage(
-      `Backup file downloaded (${backup.passes.filter((p) => p.deletedAt === null).length} passes). ` +
+      `Backup file downloaded (${passes} passes). ` +
         'Send it to your other device, then open it there under Settings.',
     )
   }
@@ -134,6 +123,13 @@ export function BackupControls() {
           />
         </label>
       </div>
+      {lastBackupAt !== undefined && (
+        <p className="mt-3 text-sm text-slate-600 dark:text-slate-400">
+          {lastBackupAt === null
+            ? 'No backup file downloaded yet.'
+            : `Last backup file: ${formatDate(localDateOfTimestamp(lastBackupAt))}.`}
+        </p>
+      )}
 
       <div className="mt-3" aria-live="polite">
         {message && <p className="text-sm text-slate-600 dark:text-slate-400">{message}</p>}

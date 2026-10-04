@@ -127,7 +127,7 @@ There are no accounts, no server and nothing to set up (D37). Data lives on the 
 | **2.2 Backup in Settings** ✅ | Under "Your data": the note that data is only on this device, **Download backup file**, **Open a backup file** with a preview of what it would add and an **Add to this device** button, and messages for every outcome. | FR-42, 62–64, 66 |
 | **2.3 Tests** ✅ | Unit tests for the format and every merge rule; repository tests (round trip between two devices, deletions, gym matching, all-or-nothing); component tests for the screen; end-to-end tests with two separate browser profiles standing for two phones, including opening a file with no network. | §13 |
 | **2.4 Install prompt and data status** ✅ | The one-time "add to home screen" card, shown from the first visit (iPhone steps; Chrome Install button), and the data-safety line in Settings. | FR-49, FR-67, D40 |
-| **2.5 Backup nudge** | A banner when there are passes and no backup was downloaded for 30 days. | to be written (D47) |
+| **2.5 Backup reminder** ✅ | A card on the main screen when the last backup file is 30 days old (or the first pass is, if there was none), with Download and Remind me in a week; Settings shows the date of the last backup file. | FR-70, D47 |
 
 Two devices that both count while apart are merged row by row (each tap is its own row), so no count is lost. If the *same pass* was edited on both, the newer edit wins; that is accepted for v1.
 

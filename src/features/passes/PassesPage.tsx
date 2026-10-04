@@ -4,6 +4,7 @@ import { buttonClass } from '../../components/formUtils'
 import { repo } from '../../db'
 import type { Row } from '../../domain/rows'
 import { InstallPrompt } from '../install/InstallPrompt'
+import { BackupNudge } from '../settings/BackupNudge'
 import { NewRow } from './NewRow'
 import { ReminderBanners } from './ReminderBanners'
 import { RowList } from './RowList'
@@ -61,6 +62,8 @@ export default function PassesPage() {
     if (row) shownNotice = { ...notice, what: `${row.gymName}, ${row.typeLabel}` }
   }
   const reminded = new Set(reminders.map((r) => r.passId))
+  // When the oldest pass was added: the backup reminder counts from here if there was no backup.
+  const firstPassAt = [...active, ...finished].map((r) => r.pass.createdAt).sort()[0] ?? null
   const lists = {
     gyms,
     today,
@@ -84,6 +87,11 @@ export default function PassesPage() {
       )}
 
       <ReminderBanners reminders={reminders} rows={active} />
+      <BackupNudge
+        today={today}
+        hasPasses={active.length + finished.length > 0}
+        firstPassAt={firstPassAt}
+      />
       <InstallPrompt />
 
       {active.length > 0 && <RowList rows={active} label="Passes" {...lists} />}

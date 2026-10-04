@@ -908,3 +908,57 @@ describe('backup and import', () => {
     expect((await b.repo.getSettings()).lowEntriesThreshold).toBe(3)
   })
 })
+
+describe('the backup reminder state (D47)', () => {
+  it('starts with no backup and no snooze', async () => {
+    const { repo } = makeTestRepo()
+    expect(await repo.getBackupState()).toEqual({ lastBackupAt: null, snoozedUntil: null })
+  })
+
+  it('remembers when a backup was made, and a snooze', async () => {
+    const { repo } = makeTestRepo({ now: () => '2026-10-05T08:00:00.000Z' })
+    await repo.markBackedUp()
+    await repo.snoozeBackupNudge('2026-10-12')
+    expect(await repo.getBackupState()).toEqual({
+      lastBackupAt: '2026-10-05T08:00:00.000Z',
+      snoozedUntil: '2026-10-12',
+    })
+  })
+
+  it('a new backup clears the snooze', async () => {
+    const { repo } = makeTestRepo()
+    await repo.snoozeBackupNudge('2026-10-12')
+    await repo.markBackedUp()
+    expect((await repo.getBackupState()).snoozedUntil).toBeNull()
+  })
+
+  it('ignores stored values that are not text', async () => {
+    const { repo } = makeTestRepo()
+    await repo.setMeta('lastBackupAt', 12345)
+    await repo.setMeta('backupNudgeSnoozedUntil', { not: 'a date' })
+    expect(await repo.getBackupState()).toEqual({ lastBackupAt: null, snoozedUntil: null })
+  })
+
+  it('opening a backup file counts as backed up: the passes are in that file', async () => {
+    const a = makeTestRepo({ idPrefix: 'a' })
+    await a.repo.createPass(multipass())
+    const file = await a.repo.exportBackup()
+    const b = makeTestRepo({ idPrefix: 'b', now: () => '2026-10-06T08:00:00.000Z' })
+    await b.repo.importBackup(file)
+    expect((await b.repo.getBackupState()).lastBackupAt).toBe('2026-10-06T08:00:00.000Z')
+  })
+
+  it('a refused import does not count', async () => {
+    const { repo } = makeTestRepo()
+    const bad = { passes: [{ id: 'x', gymRef: () => 1 }] } as unknown as Backup
+    await expect(repo.importBackup(bad)).rejects.toBeDefined()
+    expect((await repo.getBackupState()).lastBackupAt).toBeNull()
+  })
+
+  it('deleting all data forgets it', async () => {
+    const { repo } = makeTestRepo()
+    await repo.markBackedUp()
+    await repo.clearAllData()
+    expect((await repo.getBackupState()).lastBackupAt).toBeNull()
+  })
+})

@@ -84,6 +84,17 @@ export function pricePerEntryLabel(pass: Pass): string | null {
   return `${formatSgd(Math.round(pass.priceCents / pass.totalEntries))} each`
 }
 
+/** What the backup reminder says, from how long ago the last backup was (D47). */
+export function backupNudgeText(
+  nudge: { daysSince: number; never: boolean },
+  today: LocalDate,
+): string {
+  const saved = 'Your passes are saved only on this phone.'
+  return nudge.never
+    ? `${saved} You have not downloaded a backup file yet.`
+    : `${saved} Your last backup file was ${relativeTime(-nudge.daysSince, today)}.`
+}
+
 export type BadgeTone = 'warn' | 'info' | 'muted'
 
 export interface Badge {

@@ -119,6 +119,7 @@ Status column: **Active**, **Updated** (still applies, reworded for v2.0) or **S
 | D44 | Cost per entry | When a price paid was entered, the row shows what one entry cost under the type (`S$12.00 each` = price ÷ total entries, to the nearest cent), so the cost is easy to split with a friend who uses the pass. Not shown for a single entry (it is just the price), a membership (no fixed number of entries), a free pass or a pass with no price. | New |
 | D45 | Price on the new row | The optional **Price paid** box is on the blank row as well as in the details panel, so the cost per entry (D44) shows from the start. It is never required, and a price that is not an amount stops the save and says so. | New |
 | D46 | Feedback when a pass is added | After a pass is added, a notice at the bottom of the screen says `Fitbloc, Multipass added` for a few seconds (using the gym's name as it is saved), and the new row glows green and is scrolled into view if it is off screen (the newest pass is on top, and the person was at the bottom). The notice has no Undo; a screen reader hears it too. | New |
+| D47 | Backup reminder | Passes live only on the phone, so a card on the main screen asks for a backup file once the last one is **30 days old** (or, if there never was one, once the first pass is 30 days old): "Your passes are saved only on this phone. Your last backup file was 1 month 14 days ago." with **Download backup file** and **Remind me in a week**. Downloading a backup (here or in Settings) or opening one starts the 30 days again. It is worked out when the app opens, so it never pops in while the person is tapping, and it is never shown without passes. Settings shows the date of the last backup file. | New |
 
 ## 5. Pass types
 
@@ -222,6 +223,7 @@ Priority: **P0** = must have for launch, **P1** = should have for launch, **P2**
 - **FR-67 (P1)** **Data status:** under Settings → Your data, one line says whether the browser can delete the passes: *installed*, *the browser has promised to keep the data*, or a warning (*could be erased by your browser*) with the steps and the Install button where available, and a pointer to the backup file (D40).
 - **FR-68 (P2)** **Cost per entry:** a pass with a price and more than one entry shows `S$12.00 each` in small text under its type, level with the time left under the expiry date (D44).
 - **FR-69 (P1)** **Added feedback:** adding a pass shows a short notice naming it and makes its row glow and scroll into view (D46).
+- **FR-70 (P1)** **Backup reminder:** a card on the main screen asks for a backup file when the last one is 30 days old, with **Download backup file** and **Remind me in a week**; Settings shows when the last backup file was downloaded (D47).
 
 ## 7. Data model (logical)
 
