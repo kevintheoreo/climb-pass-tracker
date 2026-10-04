@@ -9,6 +9,8 @@ import type { PassInput } from '../../domain/types'
 
 const today = todayLocal()
 const day = (offset: number) => addDays(today, offset)
+const later = () => new Promise<void>((resolve) => setTimeout(resolve, 5)) // creation times differ
+
 const BOULDER = BUILTIN_GYMS[0]!
 const gymRef = { kind: 'builtin', id: BOULDER.id } as const
 
@@ -105,8 +107,9 @@ describe('opening the details', () => {
 
   it('only one panel is open at a time', async () => {
     const user = userEvent.setup()
-    await repo.createPass(multipass({ expiryDate: day(50) }))
     await repo.createPass(multipass({ expiryDate: day(60), totalEntries: 20 }))
+    await later()
+    await repo.createPass(multipass({ expiryDate: day(50) })) // added last, so listed first
     renderApp()
     await waitFor(async () => expect(await mainRows()).toHaveLength(2))
     const [first, second] = screen.getAllByRole('button', { name: /show details/ })
@@ -284,8 +287,9 @@ describe('editing', () => {
 
   it('tapping another row saves a valid edit on the first one', async () => {
     const user = userEvent.setup()
-    await repo.createPass(multipass({ expiryDate: day(50), comments: 'first' }))
     const second = await repo.createPass(multipass({ expiryDate: day(60), totalEntries: 20 }))
+    await later()
+    await repo.createPass(multipass({ expiryDate: day(50), comments: 'first' })) // listed first
     renderApp()
     await waitFor(async () => expect(await mainRows()).toHaveLength(2))
     const [firstToggle, secondToggle] = screen.getAllByRole('button', { name: /show details/ })

@@ -17,9 +17,9 @@ export interface Row {
 }
 
 export interface Rows {
-  /** The main list, soonest expiry first (D31). Includes frozen memberships. */
+  /** The main list, newest first by when the pass was added (D41). Includes frozen memberships. */
   active: Row[]
-  /** Used-up and expired passes, for the collapsed Finished section (D27). */
+  /** Used-up and expired passes, for the collapsed Finished section (D27), in the same order. */
   finished: Row[]
 }
 
@@ -27,29 +27,9 @@ type Thresholds = Pick<Settings, 'expiryReminderDays' | 'lowEntriesThreshold'>
 
 const compare = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0)
 
-/** Soonest first; rows with no expiry go last. */
-function byExpiry(a: Row, b: Row): number {
-  if (a.expiry !== b.expiry) {
-    if (a.expiry === null) return 1
-    if (b.expiry === null) return -1
-    return compare(a.expiry, b.expiry)
-  }
-  return (
-    (a.status.entriesLeft ?? Infinity) - (b.status.entriesLeft ?? Infinity) ||
-    compare(a.pass.purchaseDate, b.pass.purchaseDate) ||
-    compare(a.pass.createdAt, b.pass.createdAt) ||
-    compare(a.pass.id, b.pass.id)
-  )
-}
-
-/** Latest expiry first (what just finished is on top); rows with no expiry last. */
-function byExpiryDescending(a: Row, b: Row): number {
-  if (a.expiry !== b.expiry) {
-    if (a.expiry === null) return 1
-    if (b.expiry === null) return -1
-    return compare(b.expiry, a.expiry)
-  }
-  return compare(b.pass.updatedAt, a.pass.updatedAt) || compare(a.pass.id, b.pass.id)
+/** Newest first: the pass added to the app most recently is on top (D41). */
+function byCreatedDescending(a: Row, b: Row): number {
+  return compare(b.pass.createdAt, a.pass.createdAt) || compare(b.pass.id, a.pass.id)
 }
 
 /**
@@ -78,7 +58,7 @@ export function buildRows(
     })
 
   return {
-    active: rows.filter((r) => r.status.isActive).sort(byExpiry),
-    finished: rows.filter((r) => !r.status.isActive).sort(byExpiryDescending),
+    active: rows.filter((r) => r.status.isActive).sort(byCreatedDescending),
+    finished: rows.filter((r) => !r.status.isActive).sort(byCreatedDescending),
   }
 }

@@ -147,3 +147,25 @@ test('with passes the blank row is a button; the button opens it and Close hides
   await expect(gym(page)).toHaveCount(0)
   await expect(button).toBeVisible()
 })
+
+test('passes are listed newest first, whatever their expiry, and stay in that order after a reload', async ({
+  page,
+}) => {
+  await page.goto('/')
+  await gym(page).fill('Zig Zag Wall') // added first, expires last
+  await page.getByLabel('Entries', { exact: true }).fill('10')
+  await page.getByRole('button', { name: '+12 months' }).click()
+  await page.keyboard.press('Enter')
+  await expect(mainRows(page)).toHaveCount(1)
+
+  await openAddRow(page)
+  await fillRow(page, 'Fitbloc', '5') // added second, expires sooner
+  await page.keyboard.press('Enter')
+  await expect(mainRows(page)).toHaveCount(2)
+  await expect(mainRows(page).nth(0)).toContainText('Fitbloc')
+  await expect(mainRows(page).nth(1)).toContainText('Zig Zag Wall')
+
+  await page.reload()
+  await expect(mainRows(page).nth(0)).toContainText('Fitbloc')
+  await expect(mainRows(page).nth(1)).toContainText('Zig Zag Wall')
+})

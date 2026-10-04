@@ -9,6 +9,8 @@ import type { PassInput } from '../../domain/types'
 
 const today = todayLocal()
 const day = (offset: number) => addDays(today, offset)
+const afterAMoment = () => new Promise<void>((resolve) => setTimeout(resolve, 5)) // creation times differ
+
 const gymRef = { kind: 'builtin', id: BUILTIN_GYMS[0]!.id } as const
 const GYM = BUILTIN_GYMS[0]!.name
 
@@ -63,8 +65,9 @@ describe('reminder banners', () => {
   })
 
   it('an expiring pass gets a banner and its row is highlighted', async () => {
-    await repo.createPass(multipass({ expiryDate: day(10), totalEntries: 10, initialUsed: 4 }))
     await repo.createPass(multipass({ expiryDate: day(150) }))
+    await afterAMoment()
+    await repo.createPass(multipass({ expiryDate: day(10), totalEntries: 10, initialUsed: 4 })) // on top
     renderApp()
     const region = await screen.findByRole('region', { name: 'Reminders' })
     expect(

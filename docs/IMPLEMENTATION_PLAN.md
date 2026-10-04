@@ -83,7 +83,7 @@ Keeping all rules in `src/domain/` means the tricky logic (counts, expiry, statu
 | Multipass / class pack / single entry | Used up (0 left) → Expired – X unused (today > expiry, if there is one) → Active, with *Expiring soon* and *Low* flags |
 | Membership | Expired (today > effective end) → Frozen (today inside a freeze) → Active, with an *Expiring soon* flag. A membership with a monthly allowance is never *Used up* or *Low*: at 0 this month it stays Active until the next reset |
 
-**Active** rows (including frozen memberships) are listed in the main list, sorted by soonest expiry. **Used up** and **Expired** rows are listed in the collapsed Finished section.
+**Active** rows (including frozen memberships) are listed in the main list, sorted newest first by when they were added (D41). **Used up** and **Expired** rows are listed in the collapsed Finished section.
 
 ### 1.5 The counter
 
@@ -106,7 +106,7 @@ Goal: a complete, installable, offline app with no account and no backend.
 | **1.3 Local database** ✅ | Dexie schema and repository with timestamps and soft deletes. *Reworked in 1.5.* | §7, FR-19, 36 |
 | **1.4 App shell + PWA** ✅ | Router, theme, offline precaching, manifest, iOS meta tags, persistent-storage request. *The tab bar is replaced in 1.5.* | §9 |
 | **1.5 Rework for the single-screen model** ✅ | Everything in section 0 marked Keep / Rework / Replace: unified pass schema (memberships gain `monthlyEntries` and `resetDay`), Dexie version 2, new repo functions (`findOrCreateGym`, counter adjustment), `counter.ts`, `cycle.ts` (monthly periods and reset dates, including short months), `rows.ts`, `gyms.ts` (matching), a third reminder kind (monthly reset) in `reminders.ts`, take over the files listed from `step-1-5-gyms`, built-in gym seed reduced to names, header with gear icon and two routes (no tab bar), delete the Gyms and History pages. Unit tests for all of it; the app still shows a placeholder main screen. | D23–D31, FR-51 |
-| **1.6 Main screen: the list** ✅ | Rows (`Gym | Type | Expiry | Left`) from the database, sorted by soonest expiry; status badges and "days left"; the collapsed Finished section with "Used up" / "Expired – X unused"; empty state. The Left column shows `5 / 8` and "resets 15 Nov" for monthly memberships and "Unlimited" for the others. Read-only. Phone layout confirmed from a screenshot (PRD §15). | FR-1–3, 6, 8, 30, 50, D31 |
+| **1.6 Main screen: the list** ✅ | Rows (`Gym | Type | Expiry | Left`) from the database, sorted newest first (D41); status badges and "days left"; the collapsed Finished section with "Used up" / "Expired – X unused"; empty state. The Left column shows `5 / 8` and "resets 15 Nov" for monthly memberships and "Unlimited" for the others. Read-only. Phone layout confirmed from a screenshot (PRD §15). | FR-1–3, 6, 8, 30, 50, D31 |
 | **1.7 The counter** ✅ | `−` and `+` on counted rows, wired to the transaction in 1.5; disabled at the limits; rows move to Finished at 0 (a monthly membership stays in the list and shows its reset date). | FR-4, 9, 11, 12, 14, 52, D25 |
 | **1.8 Add a row** ✅ | The blank row at the bottom: gym autocomplete with "Add “text” as a new gym", type, entries (for a membership, the optional entries per month), expiry with +6 / +12 month buttons; saves itself when complete and the user leaves the row or presses Enter; missing or invalid cells say so. | FR-15, 22, 25, 53, 54, D24, D29 |
 | **1.9 Edit a row and its details** ✅ | Edit cells in place; tap a row to open details (purchase date, price, already used, comments, and for monthly memberships the reset day); delete with confirmation; editing the expiry of a Finished row brings it back. When `−` uses the last entry and the row moves to Finished, a short notice at the bottom says "Moved to Finished · Undo" for a few seconds; Undo gives the entry back (same as `+`). | FR-17–19, 22, 56, D30 |
@@ -127,7 +127,7 @@ There are no accounts, no server and nothing to set up (D37). Data lives on the 
 | **2.2 Backup in Settings** ✅ | Under "Your data": the note that data is only on this device, **Download backup file**, **Open a backup file** with a preview of what it would add and an **Add to this device** button, and messages for every outcome. | FR-42, 62–64, 66 |
 | **2.3 Tests** ✅ | Unit tests for the format and every merge rule; repository tests (round trip between two devices, deletions, gym matching, all-or-nothing); component tests for the screen; end-to-end tests with two separate browser profiles standing for two phones, including opening a file with no network. | §13 |
 | **2.4 Install prompt and data status** ✅ | The one-time "add to home screen" card, shown from the first visit (iPhone steps; Chrome Install button), and the data-safety line in Settings. | FR-49, FR-67, D40 |
-| **2.5 Backup nudge** | A banner when there are passes and no backup was downloaded for 30 days. | to be written (D41) |
+| **2.5 Backup nudge** | A banner when there are passes and no backup was downloaded for 30 days. | to be written (D42) |
 
 Two devices that both count while apart are merged row by row (each tap is its own row), so no count is lost. If the *same pass* was edited on both, the newer edit wins; that is accepted for v1.
 

@@ -103,7 +103,7 @@ Status column: **Active**, **Updated** (still applies, reworded for v2.0) or **S
 | D28 | Membership and single entry | A membership shows "Unlimited" unless it has a monthly allowance (D32). A single entry is a 1-entry pass. | New |
 | D29 | Adding a row | A blank row at the bottom (hidden behind a button once there is a pass, D39). It saves itself once every required cell is valid and the user leaves the row (or presses Enter). | New |
 | D30 | Extra fields | Price paid, purchase date, "already used" and comments live in a section that opens when a row is tapped. | New |
-| D31 | Order | Rows are sorted by soonest expiry first. Passes with no expiry come last. | New |
+| D31 | Order | ~~Rows are sorted by soonest expiry first. Passes with no expiry come last.~~ Sorted by when the pass was added instead (D41). | **Superseded** by D41 |
 | D32 | Monthly memberships | A membership has an optional **entries per month**. Left blank it is unlimited. With a number it has a counter for the current month that returns to the full allowance at each reset. Unused entries do **not** roll over. A freeze moves only the end date, not the reset day. | New |
 | D33 | Reset day | The count resets on the same day of the month as the purchase (start) date. The user can change that day. A day the month doesn't have (such as the 31st in April) means the last day of that month. | New |
 | D34 | Reset reminder | A banner 3 days before a reset when entries are left (the shortest of the reminder windows, so it follows the Settings value). It has its own on/off switch. The "low entries" banner and badge don't apply to monthly memberships, because they would appear every month. | New |
@@ -113,6 +113,7 @@ Status column: **Active**, **Updated** (still applies, reworded for v2.0) or **S
 | D38 | Opening a backup | Opening a backup file **adds** to what the device already has. Rows are matched by id and the newer edit wins; nothing on the device is deleted, except a pass the backup says was deleted *later* than the device last changed it. A gym with the same name (ignoring case and punctuation) as one already here is the same gym, so no copy is made. Opening the same file twice changes nothing the second time. A file that is not a valid backup, or that is from a newer version of the app, is refused whole with a message, and nothing is changed. | New |
 | D39 | Add a pass button | The blank row is shown only while there are **no active passes** (a list with only Finished passes counts as none). Once there is at least one, it is replaced by an **Add a pass** button; the button opens the row with the cursor in the Gym cell, and a **Close** button hides it again. After a pass is saved the row hides again. This keeps the main screen clean. | New |
 | D40 | Install and data safety | Most people use an iPhone, where Safari clears a website's data after about a week without a visit, while an app on the home screen is not cleaned up. So the app (1) asks once, from the very first visit (before any pass, because on an iPhone the installed app does not see what was saved in a Safari tab), to be added to the home screen (iPhone: the three steps, since Apple allows no install button; Android and desktop Chrome: an Install button), hidden after "Not now" only until the app is opened again, and (2) shows in Settings whether the data is safe: installed, kept by the browser, or at risk (with the steps and a reminder to download a backup file). It stays out of the way: never in the installed app, and "Not now" hides it while the person moves between screens. | New |
+| D41 | Order | Passes are listed **newest first, by when they were added to the app** (the same in the Finished section). A pass keeps its place when it is edited, so rows never jump around under the person's finger. Expiry and purchase date do not affect the order. | New |
 
 ## 5. Pass types
 
@@ -133,7 +134,7 @@ A membership's monthly allowance runs in periods. Each period starts on a reset 
 Priority: **P0** = must have for launch, **P1** = should have for launch, **P2** = nice to have.
 
 ### 6.1 Main screen
-- **FR-1 (P0)** The main screen is a list of rows, one per active pass, with the columns **Gym | Type | Expiry | Left**. Rows are not grouped by gym, and the same gym can appear in many rows. Sorted by soonest expiry first (D31).
+- **FR-1 (P0)** The main screen is a list of rows, one per active pass, with the columns **Gym | Type | Expiry | Left**. Rows are not grouped by gym, and the same gym can appear in many rows. Sorted newest first, by when the pass was added (D41).
 - **FR-2 (P0)** A multipass, class-pack or single-entry row shows entries left with the total (`7 / 10`), the expiry date, and the days left in small text. A membership with a monthly allowance shows this month's entries left (`5 / 8`) and the date it next resets.
 - **FR-3 (P0)** A membership without a monthly allowance shows "Unlimited", the end date and the days left.
 - **FR-4 (P0)** Counted rows and memberships with a monthly allowance have large `−` and `+` buttons (at least 44 px tap targets). See 6.2.

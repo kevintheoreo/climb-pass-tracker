@@ -9,6 +9,8 @@ import type { PassInput } from '../../domain/types'
 
 const today = todayLocal()
 const day = (offset: number) => addDays(today, offset)
+const later = () => new Promise<void>((resolve) => setTimeout(resolve, 5)) // creation times differ
+
 const BOULDER = BUILTIN_GYMS[0]!
 const boulder = { kind: 'builtin', id: BOULDER.id } as const
 
@@ -75,9 +77,10 @@ describe('main screen — the list of rows', () => {
     expect(row).toHaveTextContent('7 / 10')
   })
 
-  it('lists passes by soonest expiry, and keeps two passes at one gym as two rows (D23, D31)', async () => {
-    await repo.createPass(multipass({ expiryDate: day(100), totalEntries: 10, initialUsed: 0 }))
-    await repo.createPass(multipass({ expiryDate: day(40), totalEntries: 20, initialUsed: 0 }))
+  it('lists passes newest first, and keeps two passes at one gym as two rows (D23, D41)', async () => {
+    await repo.createPass(multipass({ expiryDate: day(40), totalEntries: 10, initialUsed: 0 }))
+    await later()
+    await repo.createPass(multipass({ expiryDate: day(100), totalEntries: 20, initialUsed: 0 }))
     renderAt()
     const rows = await rowsOf('Passes')
     expect(rows).toHaveLength(2)
@@ -86,13 +89,14 @@ describe('main screen — the list of rows', () => {
   })
 
   it('shows "Unlimited" for a membership and the count with its reset date for a monthly one', async () => {
-    await repo.createPass(
-      membership({ gymRef: { kind: 'builtin', id: BUILTIN_GYMS[1]!.id }, expiryDate: day(50) }),
-    )
     await repo.createPass(membership({ monthlyEntries: 8, expiryDate: day(60) }), {
       usedThisPeriod: 5,
       today,
     })
+    await later()
+    await repo.createPass(
+      membership({ gymRef: { kind: 'builtin', id: BUILTIN_GYMS[1]!.id }, expiryDate: day(50) }),
+    )
     renderAt()
     const rows = await rowsOf('Passes')
     expect(rows).toHaveLength(2)
@@ -102,7 +106,7 @@ describe('main screen — the list of rows', () => {
     expect(rowText(rows[1]!)).toMatch(/resets \d{1,2} [A-Z][a-z]{2}/)
   })
 
-  it('shows a single entry with no expiry as 1 / 1, last', async () => {
+  it('shows a single entry with no expiry as 1 / 1', async () => {
     await repo.createPass({
       gymRef: boulder,
       passType: 'single_entry',
@@ -113,7 +117,8 @@ describe('main screen — the list of rows', () => {
       totalEntries: 1,
       initialUsed: 0,
     } as PassInput)
-    await repo.createPass(multipass())
+    await later()
+    await repo.createPass(multipass()) // added last, so on top
     renderAt()
     const rows = await rowsOf('Passes')
     expect(rowText(rows[0]!)).toContain('Multipass')
@@ -123,8 +128,9 @@ describe('main screen — the list of rows', () => {
   })
 
   it('flags expiring-soon and low passes', async () => {
-    await repo.createPass(multipass({ expiryDate: day(5), totalEntries: 10, initialUsed: 9 }))
     await repo.createPass(multipass({ expiryDate: day(200), totalEntries: 10, initialUsed: 0 }))
+    await later()
+    await repo.createPass(multipass({ expiryDate: day(5), totalEntries: 10, initialUsed: 9 })) // on top
     renderAt()
     const [flagged, fine] = await rowsOf('Passes')
     const badges = within(within(flagged!).getByRole('list', { name: 'Status' })).getAllByRole(
