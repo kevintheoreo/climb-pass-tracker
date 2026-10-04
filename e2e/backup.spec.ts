@@ -23,10 +23,13 @@ async function newPhone(browser: Browser, baseURL: string | undefined) {
 }
 
 async function addPass(page: Page, gym: string, entries: string, expiry = '+6') {
+  const before = await rows(page).count()
   await gymBox(page).fill(gym)
   await page.getByLabel('Entries', { exact: true }).fill(entries)
   await page.getByRole('button', { name: expiry === '+6' ? '+6 months' : '+12 months' }).click()
   await page.keyboard.press('Enter')
+  // The save runs in the background and clears the blank row: wait for the new row before going on.
+  await expect(rows(page)).toHaveCount(before + 1)
 }
 
 async function downloadBackup(page: Page): Promise<string> {
