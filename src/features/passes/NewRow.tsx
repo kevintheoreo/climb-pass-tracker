@@ -107,8 +107,8 @@ export function NewRow({
         Add a pass
       </h2>
       <p className="mb-3 text-sm text-slate-600 dark:text-slate-400">
-        Fill in the row. It saves when every cell is filled in and you move on, or when you press
-        Enter.
+        Fill in the row. It saves when every cell except the price is filled in and you move on, or
+        when you press Enter.
       </p>
       <form
         noValidate

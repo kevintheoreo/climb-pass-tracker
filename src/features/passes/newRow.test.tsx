@@ -27,6 +27,7 @@ const gymBox = () => screen.findByRole('combobox', { name: 'Gym' })
 const typeSelect = () => screen.getByLabelText('Type')
 const entriesBox = () => screen.getByLabelText(/^Entries/)
 const expiryBox = () => screen.getByLabelText(/^Expiry/)
+const priceBox = () => screen.getByLabelText(/^Price paid/)
 const mainRows = async () =>
   Array.from((await screen.findByRole('list', { name: 'Passes' })).children) as HTMLElement[]
 
@@ -123,6 +124,61 @@ describe('hiding the blank row', () => {
     await user.keyboard('{Enter}')
     expect(await screen.findByRole('button', { name: 'Add a pass' })).toBeVisible()
     expect(screen.queryByRole('combobox', { name: 'Gym' })).not.toBeInTheDocument()
+  })
+})
+
+describe('the optional price (D44)', () => {
+  const fill = async (user: ReturnType<typeof userEvent.setup>) => {
+    await user.type(await gymBox(), 'Zig Zag Wall')
+    await user.type(entriesBox(), '10')
+    await user.type(expiryBox(), inMonths(6))
+  }
+
+  it('is on the blank row, marked optional and empty', async () => {
+    renderApp()
+    await gymBox()
+    expect(priceBox()).toHaveValue('')
+    expect(screen.getByText('Price paid (S$, optional)')).toBeVisible()
+  })
+
+  it('is saved with the pass', async () => {
+    const user = userEvent.setup()
+    renderApp()
+    await fill(user)
+    await user.type(priceBox(), '120.5{Enter}')
+    await waitFor(async () => expect(await repo.listPasses()).toHaveLength(1))
+    expect((await repo.listPasses())[0]?.priceCents).toBe(12050)
+  })
+
+  it('can be left empty: the pass is saved with no price', async () => {
+    const user = userEvent.setup()
+    renderApp()
+    await fill(user)
+    await user.keyboard('{Enter}')
+    await waitFor(async () => expect(await repo.listPasses()).toHaveLength(1))
+    expect((await repo.listPasses())[0]?.priceCents).toBeNull()
+  })
+
+  it('a price that is not an amount stops the save and says so', async () => {
+    const user = userEvent.setup()
+    renderApp()
+    await fill(user)
+    await user.type(priceBox(), 'cheap{Enter}')
+    expect(await screen.findByText('Enter an amount like 120 or 120.50')).toBeVisible()
+    expect(await repo.listPasses()).toEqual([])
+    await user.clear(priceBox())
+    await user.keyboard('{Enter}')
+    await waitFor(async () => expect(await repo.listPasses()).toHaveLength(1))
+  })
+
+  it('is empty again the next time the blank row is opened', async () => {
+    const user = userEvent.setup()
+    renderApp()
+    await fill(user)
+    await user.type(priceBox(), '99{Enter}')
+    await user.click(await screen.findByRole('button', { name: 'Add a pass' }))
+    await gymBox()
+    expect(priceBox()).toHaveValue('')
   })
 })
 
