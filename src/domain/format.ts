@@ -1,5 +1,6 @@
 import { formatDate, formatDayMonth, type LocalDate } from './dates'
 import type { PassStatus } from './passStatus'
+import type { ImportSummary } from './backup'
 import type { Reminder } from './reminders'
 import type { Pass } from './types'
 
@@ -75,4 +76,39 @@ export function reminderText(reminder: Reminder): string {
  */
 export function reminderMessage(reminder: Reminder, label: string): string {
   return `${label}: ${reminderText(reminder)}`
+}
+
+const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`
+
+/**
+ * What importing a backup would do (or just did), one plain line each. Empty when it would change
+ * nothing a person can see.
+ */
+export function importLines(summary: ImportSummary): string[] {
+  const lines: string[] = []
+  if (summary.passesAdded) lines.push(`${plural(summary.passesAdded, 'new pass', 'new passes')}`)
+  if (summary.passesUpdated) {
+    lines.push(
+      `${plural(summary.passesUpdated, 'pass', 'passes')} updated (the backup has a newer edit)`,
+    )
+  }
+  if (summary.passesRemoved) {
+    lines.push(
+      `${plural(summary.passesRemoved, 'pass', 'passes')} removed (deleted after the last change here)`,
+    )
+  }
+  if (summary.usesAdded) {
+    lines.push(`${plural(summary.usesAdded, 'recorded use', 'recorded uses')} added`)
+  }
+  if (summary.usesRemoved) {
+    lines.push(`${plural(summary.usesRemoved, 'recorded use', 'recorded uses')} taken back`)
+  }
+  if (summary.freezesChanged) {
+    lines.push(`${plural(summary.freezesChanged, 'freeze', 'freezes')} changed`)
+  }
+  if (summary.gymsAdded) lines.push(`${plural(summary.gymsAdded, 'new gym', 'new gyms')}`)
+  if (summary.settings === 'added' || summary.settings === 'updated') {
+    lines.push('Reminder settings from the backup')
+  }
+  return lines
 }

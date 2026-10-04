@@ -5,6 +5,13 @@ import {
   type GiveBackPlan,
   type UseBlockReason,
 } from '../domain/counter'
+import {
+  buildBackup,
+  planImport,
+  type Backup,
+  type ImportSummary,
+  type Snapshot,
+} from '../domain/backup'
 import { currentPeriod, usesInPeriod } from '../domain/cycle'
 import type { LocalDate } from '../domain/dates'
 import { buildGymList, resolveGymInput, type BuiltinGym, type GymEntry } from '../domain/gyms'
@@ -407,6 +414,62 @@ export function createRepo(db: ClimbDB, options: RepoOptions = {}) {
     })
   }
 
+  // ---- Backup and import (D37, D38) ----------------------------------------------------------
+
+  /** Every row on the device, deleted ones included, so a backup can carry deletions too. */
+  async function readSnapshot(): Promise<Snapshot> {
+    const [userGyms, passes, uses, freezes, settingsRow] = await Promise.all([
+      db.userGyms.toArray(),
+      db.passes.toArray(),
+      db.uses.toArray(),
+      db.freezes.toArray(),
+      db.settings.get('settings'),
+    ])
+    return {
+      userGyms,
+      passes,
+      uses,
+      freezes,
+      settings: settingsRow
+        ? { ...(await getSettings()), updatedAt: settingsRow.updatedAt }
+        : undefined,
+    }
+  }
+
+  /** The backup file for what is on the device now. */
+  async function exportBackup(): Promise<Backup> {
+    return buildBackup(await readSnapshot(), now())
+  }
+
+  /** What importing this backup would do, without doing it. */
+  async function previewImport(backup: Backup): Promise<ImportSummary> {
+    return planImport(await readSnapshot(), backup, builtinGyms).summary
+  }
+
+  /**
+   * Adds a backup to what is on the device, in one transaction: either all of it is written or none
+   * of it is. See `planImport` for the rules. The backup must already have been checked with
+   * `parseBackup`.
+   */
+  async function importBackup(backup: Backup): Promise<ImportSummary> {
+    return db.transaction(
+      'rw',
+      [db.userGyms, db.passes, db.uses, db.freezes, db.settings],
+      async () => {
+        const plan = planImport(await readSnapshot(), backup, builtinGyms)
+        await db.userGyms.bulkPut(plan.put.userGyms)
+        await db.passes.bulkPut(plan.put.passes)
+        await db.uses.bulkPut(plan.put.uses)
+        await db.freezes.bulkPut(plan.put.freezes)
+        if (plan.put.settings) {
+          const { updatedAt, ...values } = plan.put.settings
+          await db.settings.put({ ...values, id: 'settings', updatedAt })
+        }
+        return plan.summary
+      },
+    )
+  }
+
   // ---- Meta and wipe ----------------------------------------------------------------------
 
   async function getMeta<T = unknown>(key: string): Promise<T | undefined> {
@@ -448,6 +511,10 @@ export function createRepo(db: ClimbDB, options: RepoOptions = {}) {
     dismissReminders,
     getMeta,
     setMeta,
+    readSnapshot,
+    exportBackup,
+    previewImport,
+    importBackup,
     clearAllData,
   }
 }

@@ -1,4 +1,5 @@
 import { ZodError } from 'zod'
+import { backupToText, parseBackup, type Backup } from '../domain/backup'
 import { at, makeUse } from '../domain/testFactories'
 import { getPassStatus } from '../domain/passStatus'
 import { DEFAULT_SETTINGS } from '../domain/settings'
@@ -733,5 +734,177 @@ describe('saving an edited row', () => {
       await repo.saveRow(created.id, 'Fit Bloc', fieldsOf(multipass()), { usedThisMonth: 3, today })
       expect(await repo.listUses(created.id)).toEqual([])
     })
+  })
+})
+
+describe('backup and import', () => {
+  async function populate(repo: ReturnType<typeof makeTestRepo>['repo']) {
+    const own = await repo.findOrCreateGym('Zig Zag Wall')
+    const pack = await repo.createPass(
+      multipass({ gymRef: own.ref, priceCents: 9900, comments: 'sale' }),
+    )
+    const monthly = await repo.createPass(membership({ monthlyEntries: 8, resetDay: 20 }))
+    const gone = await repo.createPass(multipass({ totalEntries: 3 }))
+    await repo.useEntry(pack.id, today)
+    await repo.useEntry(pack.id, today)
+    await repo.useEntry(monthly.id, today)
+    await repo.giveBackEntry(pack.id, today) // a deleted use
+    await repo.addFreeze({ passId: monthly.id, startDate: '2026-11-01', endDate: '2026-11-05' })
+    await repo.deletePass(gone.id)
+    await repo.updateSettings({ lowEntriesThreshold: 5, expiryReminderDays: [30, 7] })
+    return { pack, monthly, gone }
+  }
+
+  const fileFrom = async (repo: ReturnType<typeof makeTestRepo>['repo']) => {
+    const parsed = parseBackup(backupToText(await repo.exportBackup()))
+    if (!parsed.ok) throw new Error(parsed.error)
+    return parsed.backup
+  }
+
+  it('a snapshot has every row, deleted ones too, and settings only once they were saved', async () => {
+    const { repo } = makeTestRepo()
+    expect((await repo.readSnapshot()).settings).toBeUndefined()
+    const { gone } = await populate(repo)
+    const snap = await repo.readSnapshot()
+    expect(snap.passes).toHaveLength(3)
+    expect(snap.passes.find((p) => p.id === gone.id)?.deletedAt).not.toBeNull()
+    expect(snap.uses.some((u) => u.deletedAt !== null)).toBe(true)
+    expect(snap.freezes).toHaveLength(1)
+    expect(snap.userGyms).toHaveLength(1)
+    expect(snap.settings).toMatchObject({ lowEntriesThreshold: 5, expiryReminderDays: [30, 7] })
+    expect(typeof snap.settings?.updatedAt).toBe('string')
+  })
+
+  it('moves everything to an empty device exactly: the same rows, deletions and settings', async () => {
+    const a = makeTestRepo({ idPrefix: 'a' })
+    await populate(a.repo)
+    const b = makeTestRepo({ idPrefix: 'b', startSecond: 100 })
+    const summary = await b.repo.importBackup(await fileFrom(a.repo))
+    expect(summary).toMatchObject({
+      passesAdded: 2,
+      gymsAdded: 1,
+      settings: 'added',
+      nothingNew: false,
+    })
+
+    const sortById = <T extends { id: string }>(rows: T[]) =>
+      [...rows].sort((x, y) => (x.id < y.id ? -1 : 1))
+    const [from, to] = [await a.repo.readSnapshot(), await b.repo.readSnapshot()]
+    expect(sortById(to.passes)).toEqual(sortById(from.passes))
+    expect(sortById(to.uses)).toEqual(sortById(from.uses))
+    expect(sortById(to.freezes)).toEqual(sortById(from.freezes))
+    expect(sortById(to.userGyms)).toEqual(sortById(from.userGyms))
+    expect(to.settings).toEqual(from.settings)
+    // and the screens' view of it
+    expect((await b.repo.listBundles()).map((x) => x.pass.id).sort()).toEqual(
+      (await a.repo.listBundles()).map((x) => x.pass.id).sort(),
+    )
+  })
+
+  it('adds to a device that has its own passes, keeping them', async () => {
+    const a = makeTestRepo({ idPrefix: 'a' })
+    await populate(a.repo)
+    const b = makeTestRepo({ idPrefix: 'b', startSecond: 100 })
+    const mine = await b.repo.createPass(multipass({ totalEntries: 7 }))
+    await b.repo.importBackup(await fileFrom(a.repo))
+    const ids = (await b.repo.listPasses()).map((p) => p.id)
+    expect(ids).toContain(mine.id)
+    expect(ids).toHaveLength(3) // mine, and the two live ones from the file
+  })
+
+  it('the same file twice changes nothing the second time', async () => {
+    const a = makeTestRepo({ idPrefix: 'a' })
+    await populate(a.repo)
+    const file = await fileFrom(a.repo)
+    const b = makeTestRepo({ idPrefix: 'b', startSecond: 100 })
+    await b.repo.importBackup(file)
+    const before = await b.repo.readSnapshot()
+    expect((await b.repo.previewImport(file)).nothingNew).toBe(true)
+    const again = await b.repo.importBackup(file)
+    expect(again.nothingNew).toBe(true)
+    expect(await b.repo.readSnapshot()).toEqual(before)
+  })
+
+  it('two devices used in turn: each adds what the other did, and the newer edit of a pass wins', async () => {
+    const a = makeTestRepo({ idPrefix: 'a' })
+    const { pack } = await populate(a.repo)
+    const b = makeTestRepo({ idPrefix: 'b', startSecond: 100 })
+    await b.repo.importBackup(await fileFrom(a.repo))
+    // On A: another tap. On B (later): the pass is edited.
+    await a.repo.useEntry(pack.id, today, at('2026-10-20'))
+    const bPass = await b.repo.getPass(pack.id)
+    await b.repo.updatePass(pack.id, {
+      ...(bPass as PassInput),
+      comments: 'edited on B',
+    } as PassInput)
+
+    await a.repo.importBackup(await fileFrom(b.repo))
+    await b.repo.importBackup(await fileFrom(a.repo))
+    const [onA, onB] = [await a.repo.readSnapshot(), await b.repo.readSnapshot()]
+    expect(onA.passes.find((p) => p.id === pack.id)?.comments).toBe('edited on B')
+    expect(onB.passes.find((p) => p.id === pack.id)?.comments).toBe('edited on B')
+    expect(onA.uses.length).toBe(onB.uses.length)
+    expect(onA.uses.filter((u) => u.deletedAt === null)).toHaveLength(
+      onB.uses.filter((u) => u.deletedAt === null).length,
+    )
+  })
+
+  it('a pass deleted on one device is deleted on the other after the import', async () => {
+    const a = makeTestRepo({ idPrefix: 'a' })
+    const { pack } = await populate(a.repo)
+    const b = makeTestRepo({ idPrefix: 'b', startSecond: 100 })
+    await b.repo.importBackup(await fileFrom(a.repo))
+    await b.repo.deletePass(pack.id)
+    await a.repo.importBackup(await fileFrom(b.repo))
+    expect(await a.repo.getPass(pack.id)).toBeUndefined()
+  })
+
+  it('a gym with the same name is the same gym: no second copy, and the pass points at the one here', async () => {
+    const a = makeTestRepo({ idPrefix: 'a' })
+    const theirGym = await a.repo.findOrCreateGym('fit  bloc club')
+    await a.repo.createPass(multipass({ gymRef: theirGym.ref }))
+    const b = makeTestRepo({ idPrefix: 'b', startSecond: 100 })
+    const myGym = await b.repo.findOrCreateGym('Fit Bloc Club')
+    const summary = await b.repo.importBackup(await fileFrom(a.repo))
+    expect(summary).toMatchObject({ gymsAdded: 0, gymsMerged: 1 })
+    expect(await b.repo.listUserGyms()).toHaveLength(1)
+    expect((await b.repo.listPasses())[0]?.gymRef).toEqual(myGym.ref)
+  })
+
+  it('previewing writes nothing', async () => {
+    const a = makeTestRepo({ idPrefix: 'a' })
+    await populate(a.repo)
+    const b = makeTestRepo({ idPrefix: 'b', startSecond: 100 })
+    const summary = await b.repo.previewImport(await fileFrom(a.repo))
+    expect(summary.passesAdded).toBe(2)
+    expect((await b.repo.readSnapshot()).passes).toEqual([])
+  })
+
+  it('is all or nothing: if a write fails part-way, nothing at all is changed', async () => {
+    const a = makeTestRepo({ idPrefix: 'a' })
+    await populate(a.repo)
+    const file = await fileFrom(a.repo)
+    // A value IndexedDB cannot store, in the last table written, after gyms and passes were written.
+    const broken = {
+      ...file,
+      freezes: [{ ...file.freezes[0]!, startDate: () => 'x' }],
+    } as unknown as Backup
+    const b = makeTestRepo({ idPrefix: 'b', startSecond: 100 })
+    await expect(b.repo.importBackup(broken)).rejects.toThrow()
+    const after = await b.repo.readSnapshot()
+    expect(after.userGyms).toEqual([])
+    expect(after.passes).toEqual([])
+    expect(after.uses).toEqual([])
+    expect(after.settings).toBeUndefined()
+  })
+
+  it('an import does not touch this device’s settings unless the file’s are newer and different', async () => {
+    const a = makeTestRepo({ idPrefix: 'a' })
+    await a.repo.updateSettings({ lowEntriesThreshold: 9 })
+    const file = await fileFrom(a.repo)
+    const b = makeTestRepo({ idPrefix: 'b', startSecond: 100 })
+    await b.repo.updateSettings({ lowEntriesThreshold: 3 }) // saved after the file was made
+    expect((await b.repo.importBackup(file)).settings).toBe('kept')
+    expect((await b.repo.getSettings()).lowEntriesThreshold).toBe(3)
   })
 })
