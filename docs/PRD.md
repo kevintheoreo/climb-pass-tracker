@@ -198,7 +198,7 @@ Priority: **P0** = must have for launch, **P1** = should have for launch, **P2**
 - **FR-41** **Removed.** There is no sign-out (D37).
 - **FR-42 (P0)** Settings tells the person, plainly, that their data lives **only on this device** (so clearing the app's data, changing phones or deleting the app loses it) and points them to the backup file (FR-62).
 - **FR-62 (P0)** **Download a backup file** (Settings → Your data): one JSON file, named `climb-pass-tracker-backup-<date>.json`, holding everything the device has: the gyms the person added, every pass, freeze and recorded use (deleted ones too, so a deletion can travel), and the reminder settings. It is written on the device and goes nowhere by itself. Built-in gyms are not in it (every copy of the app has them).
-- **FR-63 (P1)** **Share backup file:** where the browser can hand a file to other apps (the phone's share sheet), a button shares the same file instead of saving it. Where it cannot, the button is not shown.
+- **FR-63** *Removed: a Share button did not work in Chrome on Android, and the person can send the downloaded file themselves.*
 - **FR-64 (P0)** **Open a backup file:** the person picks a file. The app checks it completely first, then shows a preview of what it would add (new passes, passes updated, passes removed, recorded uses, gyms, reminder settings), and only changes anything when the person confirms. Cancel changes nothing. The merge rules are D38. The whole import is all-or-nothing.
 - **FR-65 (P0)** A file that is not a backup, is damaged (the message names the first bad pass, use, freeze or gym), points at things it does not contain, is too big (over 20 MB), or comes from a newer version of the app is refused with a message that says why and that nothing was imported. A backup from the same or an older version is accepted. Fields a later version adds are ignored.
 - **FR-66 (P0)** If everything in a backup is already on the device, the preview says so and offers nothing to add.
@@ -267,7 +267,7 @@ Settings
 6. **Expiry warning:** a banner at the top says "Boulder Planet 10-pass expires in 14 days — 4 entries left", and that row is highlighted.
 7. **Pass runs out or expires:** the row moves to the collapsed Finished section.
 8. **Monthly membership:** type a gym, choose Membership, enter 8 entries per month and the end date. The row shows `8 / 8`, "resets 15 Nov" (the purchase date's day). Tap `−` at the gym; at `0 / 8` the button is disabled until 15 Nov, when it shows `8 / 8` again. Three days before, a banner warns if entries are left.
-9. **New phone:** on the old phone, Settings → Download backup file (or Share) → send the file to the new phone (message, email, AirDrop, cloud drive) → on the new phone, open the app → Settings → Open a backup file → check the preview → Add to this device → the same list, counts, expiry dates and gyms. If the new phone already has some passes, they stay.
+9. **New phone:** on the old phone, Settings → Download backup file → send the file to the new phone (message, email, AirDrop, cloud drive) → on the new phone, open the app → Settings → Open a backup file → check the preview → Add to this device → the same list, counts, expiry dates and gyms. If the new phone already has some passes, they stay.
 
 ## 9. Non-functional requirements
 
@@ -318,7 +318,7 @@ The built-in list holds **gym names only**. It covers the main Singapore climbin
 | Milestone | Scope |
 |---|---|
 | **M1 — Core, on-device only** | The main screen: rows, sorting, status and reminder highlights, counter with `−` / `+` (including memberships with a monthly allowance), the blank add row with gym autocomplete (built-in names bundled with the app), tap-to-open details, delete, the Finished section, reminder banners, Settings (reminder thresholds, CSV export, delete local data, install instructions), PWA install and offline support. |
-| **M2 — Move to another device** | Backup file: download, share where supported, open with a preview and a merge that keeps what is already on the device (D37, D38). |
+| **M2 — Move to another device** | Backup file: download, open with a preview and a merge that keeps what is already on the device (D37, D38). |
 | **M3 — Launch polish** | Verified gym names, membership freezes, buy again, privacy policy and terms, accessibility pass, production deploy. |
 
 ## 13. Success measures

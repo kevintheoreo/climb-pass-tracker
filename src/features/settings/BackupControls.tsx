@@ -22,19 +22,6 @@ type Stage =
   | { kind: 'preview'; fileName: string; backup: Backup; summary: ImportSummary }
   | { kind: 'done'; summary: ImportSummary }
 
-/** Can this browser hand a file to another app (the phone's share sheet)? */
-function canShareFiles(): boolean {
-  try {
-    return (
-      typeof navigator.share === 'function' &&
-      typeof navigator.canShare === 'function' &&
-      navigator.canShare({ files: [new File(['{}'], 'x.json', { type: JSON_TYPE })] })
-    )
-  } catch {
-    return false
-  }
-}
-
 function Lines({ lines }: { lines: string[] }) {
   return (
     <ul className="my-2 list-disc space-y-1 pl-5 text-base">
@@ -47,14 +34,13 @@ function Lines({ lines }: { lines: string[] }) {
 
 /**
  * Moving to another device (D37, D38). There is no account, so a backup file is how data travels:
- * download one here (or share it from the phone's share sheet), open it in the app on the other
+ * download one here, send it yourself, open it in the app on the other
  * device. Opening one first shows what it would change, then adds it to what is already there.
  */
 export function BackupControls() {
   const [stage, setStage] = useState<Stage>({ kind: 'idle' })
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState(false)
-  const [canShare] = useState(canShareFiles)
   const picker = useRef<HTMLInputElement>(null)
 
   async function makeBackup() {
@@ -70,22 +56,6 @@ export function BackupControls() {
       `Backup file downloaded (${backup.passes.filter((p) => p.deletedAt === null).length} passes). ` +
         'Send it to your other device, then open it there under Settings.',
     )
-  }
-
-  async function share() {
-    const { text, name } = await makeBackup()
-    try {
-      await navigator.share({
-        files: [new File([text], name, { type: JSON_TYPE })],
-        title: 'Climb Pass Tracker backup',
-      })
-      setMessage('Backup shared.')
-    } catch (error) {
-      // Closing the share sheet is not a failure.
-      if (!(error instanceof DOMException && error.name === 'AbortError')) {
-        setMessage('Could not share the file. Use “Download backup file” instead.')
-      }
-    }
   }
 
   async function chosen(file: File | undefined) {
@@ -146,11 +116,6 @@ export function BackupControls() {
         <button type="button" onClick={run(download)} className={buttonClass('secondary')}>
           Download backup file
         </button>
-        {canShare && (
-          <button type="button" onClick={run(share)} className={buttonClass('secondary')}>
-            Share backup file
-          </button>
-        )}
         <label
           className={`${buttonClass('secondary')} cursor-pointer focus-within:ring-2 focus-within:ring-teal-600`}
         >

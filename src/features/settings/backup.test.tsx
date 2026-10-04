@@ -46,7 +46,6 @@ async function otherDevicesFile() {
 }
 
 let downloads: { filename: string; text: string; type: string }[] = []
-const original = { share: navigator.share, canShare: navigator.canShare }
 
 beforeEach(async () => {
   await repo.clearAllData()
@@ -74,8 +73,6 @@ beforeEach(async () => {
 
 afterEach(() => {
   vi.restoreAllMocks()
-  Object.defineProperty(navigator, 'share', { value: original.share, configurable: true })
-  Object.defineProperty(navigator, 'canShare', { value: original.canShare, configurable: true })
 })
 
 const chooseFile = async (user: ReturnType<typeof userEvent.setup>, file: File) => {
@@ -114,56 +111,6 @@ describe('downloading a backup', () => {
     expect(section).toHaveTextContent('Back up or move to another device')
     expect(section).toHaveTextContent('send it to the other device')
     expect(section).toHaveTextContent('There are no accounts')
-  })
-})
-
-describe('sharing a backup', () => {
-  it('has no Share button on a browser that cannot share files', async () => {
-    Object.defineProperty(navigator, 'share', { value: undefined, configurable: true })
-    renderSettings()
-    await screen.findByRole('button', { name: 'Download backup file' })
-    expect(screen.queryByRole('button', { name: 'Share backup file' })).not.toBeInTheDocument()
-  })
-
-  function canShare(share: (data: ShareData) => Promise<void>) {
-    Object.defineProperty(navigator, 'share', { value: share, configurable: true })
-    Object.defineProperty(navigator, 'canShare', { value: () => true, configurable: true })
-  }
-
-  it('hands the file to the phone’s share sheet', async () => {
-    const user = userEvent.setup()
-    const share = vi.fn(async () => {})
-    canShare(share)
-    await repo.createPass(multipass())
-    renderSettings()
-    await user.click(await screen.findByRole('button', { name: 'Share backup file' }))
-    await waitFor(() => expect(share).toHaveBeenCalledTimes(1))
-    const data = (share.mock.calls[0] as unknown as [ShareData])[0]
-    expect(data.files).toHaveLength(1)
-    expect(data.files![0]!.name).toBe(`climb-pass-tracker-backup-${today}.json`)
-    expect(data.files![0]!.type).toBe('application/json')
-    expect(parseBackup(await data.files![0]!.text()).ok).toBe(true)
-  })
-
-  it('closing the share sheet is not an error', async () => {
-    const user = userEvent.setup()
-    canShare(async () => {
-      throw new DOMException('cancelled', 'AbortError')
-    })
-    renderSettings()
-    await user.click(await screen.findByRole('button', { name: 'Share backup file' }))
-    await new Promise((r) => setTimeout(r, 20))
-    expect(screen.queryByText(/Could not share/)).not.toBeInTheDocument()
-  })
-
-  it('a real failure points to the download button', async () => {
-    const user = userEvent.setup()
-    canShare(async () => {
-      throw new Error('no apps')
-    })
-    renderSettings()
-    await user.click(await screen.findByRole('button', { name: 'Share backup file' }))
-    expect(await screen.findByText(/Could not share the file/)).toBeVisible()
   })
 })
 
