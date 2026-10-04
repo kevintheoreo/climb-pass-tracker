@@ -85,12 +85,6 @@ export function PassRow({
         <div className="col-start-2 row-start-1 flex flex-col items-end sm:col-start-4 sm:items-start">
           <Counter row={row} today={today} onUsedLast={onUsedLast} />
           {reset && <p className={`text-sm ${muted}`}>{reset}</p>}
-          {perEntry && (
-            <p className={`text-sm ${muted}`}>
-              <span className="sr-only">Price per entry: </span>
-              {perEntry}
-            </p>
-          )}
         </div>
 
         <p
@@ -98,6 +92,12 @@ export function PassRow({
         >
           <span className="sr-only">Type: </span>
           {row.typeLabel}
+          {perEntry && (
+            <span className="block text-sm">
+              <span className="sr-only">Price per entry: </span>
+              {perEntry}
+            </span>
+          )}
         </p>
 
         <p

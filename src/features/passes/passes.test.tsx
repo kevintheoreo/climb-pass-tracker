@@ -100,6 +100,10 @@ describe('main screen — the list of rows', () => {
     const withPrice = rows.filter((r) => rowText(r).includes('S$12.00 each'))
     expect(withPrice).toHaveLength(1) // only the priced multipass
     expect(withPrice[0]).toHaveTextContent('Price per entry: S$12.00 each')
+    // Under the type, level with the time left under the expiry date (not under the count).
+    const type = within(withPrice[0]!).getByText('Multipass').closest('p')!
+    expect(type).toHaveTextContent('S$12.00 each')
+    expect(within(withPrice[0]!).getByText('7 / 10').closest('p')).not.toHaveTextContent('each')
     expect(rows.filter((r) => /S\$/.test(rowText(r)))).toHaveLength(1)
   })
 
