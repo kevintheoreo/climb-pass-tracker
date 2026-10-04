@@ -504,3 +504,17 @@ describe('save confirmation', () => {
     expect(within(panel()).queryByText('Saved')).not.toBeInTheDocument()
   })
 })
+
+describe('save confirmation after a quick expiry button', () => {
+  it('saves and says Saved when the person taps away, even if focus never left', async () => {
+    const user = userEvent.setup()
+    const pass = await repo.createPass(multipass())
+    renderApp()
+    await user.click(await screen.findByRole('button', { name: /show details/ }))
+    await user.click(within(panel()).getByRole('button', { name: '+12 months' }))
+    // A phone does not move focus to a tapped button, so no blur comes: only the press.
+    fireEvent.pointerDown(screen.getByRole('heading', { name: 'Passes' }))
+    expect(await within(panel()).findByText('Saved')).toBeInTheDocument()
+    await waitFor(async () => expect((await repo.getPass(pass.id))?.expiryDate).not.toBe(day(100)))
+  })
+})

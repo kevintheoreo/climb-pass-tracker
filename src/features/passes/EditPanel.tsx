@@ -1,4 +1,4 @@
-import { useId, useRef, useState, type FocusEvent } from 'react'
+import { useEffect, useId, useRef, useState, type FocusEvent } from 'react'
 import { ConfirmDelete } from '../../components/ConfirmDelete'
 import { buttonClass } from '../../components/formUtils'
 import { NotFoundError, repo } from '../../db'
@@ -58,6 +58,7 @@ export function EditPanel({
   const [saved, setSaved] = useState(false)
   const saving = useRef(false)
   const headingId = useId()
+  const section = useRef<HTMLElement>(null)
 
   // The saved pass moved on (a `−` tap, or this panel's own save): boxes not being edited follow it.
   if (JSON.stringify(original) !== JSON.stringify(seen)) {
@@ -110,6 +111,17 @@ export function EditPanel({
     }
   }
 
+  // Pressing anywhere outside the panel also leaves it. Focus alone is not enough: a button that was
+  // tapped last (+6 / +12 months) may not hold the focus, so no blur would ever come.
+  useEffect(() => {
+    const away = (e: PointerEvent) => {
+      if (e.target instanceof Node && section.current?.contains(e.target)) return
+      void save()
+    }
+    document.addEventListener('pointerdown', away)
+    return () => document.removeEventListener('pointerdown', away)
+  })
+
   const onBlur = (e: FocusEvent<HTMLElement>) => {
     // Moving between the panel's own cells is not leaving it.
     if (e.relatedTarget instanceof Node && e.currentTarget.contains(e.relatedTarget)) return
@@ -118,6 +130,7 @@ export function EditPanel({
 
   return (
     <section
+      ref={section}
       id={id}
       aria-labelledby={headingId}
       onBlur={onBlur}
