@@ -54,6 +54,8 @@ export function EditPanel({
   const [seen, setSeen] = useState<PassDraft>(original)
   const [errors, setErrors] = useState<PassErrors>({})
   const [failed, setFailed] = useState(false)
+  // A change was saved and nothing has been edited since: the panel says so.
+  const [saved, setSaved] = useState(false)
   const saving = useRef(false)
   const headingId = useId()
 
@@ -66,6 +68,7 @@ export function EditPanel({
   const update = (changes: Partial<PassDraft>) => {
     setDraft((d) => ({ ...d, ...changes }))
     setFailed(false)
+    setSaved(false)
     setErrors((e) => {
       const next = { ...e }
       for (const key of Object.keys(changes)) delete next[key as keyof PassErrors]
@@ -95,6 +98,7 @@ export function EditPanel({
       })
       setErrors({})
       setFailed(false)
+      setSaved(true)
       return true
     } catch (error) {
       if (error instanceof NotFoundError)
@@ -140,6 +144,7 @@ export function EditPanel({
             setDraft((d) => withPassType(d, type))
             setErrors(({ gym }) => (gym ? { gym } : {}))
             setFailed(false)
+            setSaved(false)
           }}
           gyms={gyms}
           quickFrom={/^\d{4}-\d{2}-\d{2}$/.test(draft.purchaseDate) ? draft.purchaseDate : today}
@@ -162,16 +167,22 @@ export function EditPanel({
         </p>
       )}
 
-      <div className="mt-4 flex flex-wrap items-start gap-3">
+      <p role="status" className="mt-3 min-h-5 text-sm text-emerald-800 dark:text-emerald-300">
+        {saved ? 'Saved' : ''}
+      </p>
+
+      <div className="mt-2 flex flex-wrap items-start gap-3">
         <button
           type="button"
           onClick={() => {
-            // Keep a valid edit; drop a half-finished one.
-            void save().then(() => onClose())
+            // Keep a valid edit. A half-finished one stays open, with what is wrong shown.
+            void save().then((ok) => {
+              if (ok) onClose()
+            })
           }}
           className={buttonClass('primary')}
         >
-          Close
+          Done
         </button>
         <button
           type="button"

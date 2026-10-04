@@ -56,7 +56,7 @@ test('an unfinished edit says what is wrong and is not saved', async ({ page }) 
   await page.getByRole('heading', { name: 'Passes', exact: true }).tap()
   await expect(panel(page).getByText('Entries must be at least 1')).toBeVisible()
   await expect(panel(page).getByText('Enter a whole number')).toBeVisible()
-  await panel(page).getByRole('button', { name: 'Close' }).click()
+  await panel(page).getByRole('button', { name: 'Done' }).click()
   await expect(mainRows(page).filter({ hasText: '7 / 10' })).toHaveCount(1)
 })
 

@@ -264,13 +264,13 @@ describe('editing', () => {
     expect(within(panel()).getByText('Entries must be at least 1')).toBeInTheDocument()
   })
 
-  it('Close keeps a valid edit and drops a half-finished one', async () => {
+  it('Done keeps a valid edit and stays open on a half-finished one', async () => {
     const user = userEvent.setup()
     const pass = await repo.createPass(multipass())
     renderApp()
     await user.click(await screen.findByRole('button', { name: /show details/ }))
     await user.type(field(/^Comments/), 'kept')
-    await user.click(within(panel()).getByRole('button', { name: 'Close' }))
+    await user.click(within(panel()).getByRole('button', { name: 'Done' }))
     await waitFor(() =>
       expect(screen.queryByRole('region', { name: /^Details:/ })).not.toBeInTheDocument(),
     )
@@ -279,13 +279,10 @@ describe('editing', () => {
     await user.click(await screen.findByRole('button', { name: /show details/ }))
     await user.clear(field('Entries'))
     await user.type(field('Entries'), '0')
-    await user.click(within(panel()).getByRole('button', { name: 'Close' }))
-    await waitFor(() =>
-      expect(screen.queryByRole('region', { name: /^Details:/ })).not.toBeInTheDocument(),
-    )
+    await user.click(within(panel()).getByRole('button', { name: 'Done' }))
+    // Nothing is thrown away: the panel stays open and says what is wrong.
+    expect(within(panel()).getByText('Entries must be at least 1')).toBeInTheDocument()
     expect(totalOf(await repo.getPass(pass.id))).toBe(10)
-    await user.click(await screen.findByRole('button', { name: /show details/ }))
-    expect(field('Entries')).toHaveValue('10')
   })
 
   it('leaving the panel with nothing changed writes nothing', async () => {
@@ -488,5 +485,22 @@ describe('the Moved to Finished notice', () => {
     await screen.findByText(/moved to Finished/)
     expect(screen.getAllByText(/moved to Finished/)).toHaveLength(1)
     expect(await repo.listUses((await repo.listPasses())[0]!.id)).toHaveLength(1)
+  })
+})
+
+describe('save confirmation', () => {
+  it('says Saved after a change is saved, and clears when editing again', async () => {
+    const user = userEvent.setup()
+    const pass = await repo.createPass(multipass())
+    renderApp()
+    await user.click(await screen.findByRole('button', { name: /show details/ }))
+    expect(within(panel()).queryByText('Saved')).not.toBeInTheDocument()
+    await user.type(field(/^Comments/), 'note')
+    await user.tab()
+    await user.click(within(panel()).getByRole('heading', { name: /^Details:/ }))
+    expect(await within(panel()).findByText('Saved')).toBeInTheDocument()
+    await waitFor(async () => expect((await repo.getPass(pass.id))?.comments).toBe('note'))
+    await user.type(field(/^Comments/), 'x')
+    expect(within(panel()).queryByText('Saved')).not.toBeInTheDocument()
   })
 })
