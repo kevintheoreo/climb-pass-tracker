@@ -2,6 +2,7 @@ import { useCallback, useRef, useState } from 'react'
 import { Page } from '../../components/Page'
 import { buttonClass } from '../../components/formUtils'
 import { repo } from '../../db'
+import type { PassDraft } from '../../domain/passForm'
 import type { Row } from '../../domain/rows'
 import { InstallPrompt } from '../install/InstallPrompt'
 import { BackupNudge } from '../settings/BackupNudge'
@@ -19,12 +20,20 @@ export default function PassesPage() {
   // The blank row is hidden behind a button once there is a pass (it is always shown while there
   // are none). `adding` is whether the person opened it.
   const [adding, setAdding] = useState(false)
+  // "Buy again" opens the blank row with a pass's details in it; `fresh` makes the row start over.
+  const [prefill, setPrefill] = useState<{ draft: PassDraft; key: number } | null>(null)
   // Set when the blank row closes, so the button that replaces it takes the focus and the keyboard
   // does not lose its place.
   const focusButton = useRef(false)
   const closeRow = () => {
     focusButton.current = true
     setAdding(false)
+    setPrefill(null)
+  }
+  const buyAgain = (draft: PassDraft) => {
+    setOpenId(null)
+    setPrefill({ draft, key: Date.now() })
+    setAdding(true)
   }
 
   if (!rows) return <Page title="Passes" />
@@ -73,6 +82,7 @@ export default function PassesPage() {
     onToggle: toggle,
     onClose: close,
     onUsedLast: usedLast,
+    onBuyAgain: buyAgain,
   }
 
   return (
@@ -97,9 +107,24 @@ export default function PassesPage() {
       {active.length > 0 && <RowList rows={active} label="Passes" {...lists} />}
 
       {active.length === 0 ? (
-        <NewRow gyms={gyms} today={today} onAdded={added} />
+        <NewRow
+          key={prefill?.key}
+          gyms={gyms}
+          today={today}
+          autoFocus={prefill !== null}
+          {...(prefill && { initial: prefill.draft })}
+          onAdded={added}
+        />
       ) : adding ? (
-        <NewRow gyms={gyms} today={today} autoFocus onAdded={added} onClose={closeRow} />
+        <NewRow
+          key={prefill?.key}
+          gyms={gyms}
+          today={today}
+          autoFocus
+          {...(prefill && { initial: prefill.draft })}
+          onAdded={added}
+          onClose={closeRow}
+        />
       ) : (
         <button
           ref={(button) => {

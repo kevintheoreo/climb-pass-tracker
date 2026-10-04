@@ -1,5 +1,6 @@
 import type { LocalDate } from '../../domain/dates'
 import type { GymEntry } from '../../domain/gyms'
+import type { PassDraft } from '../../domain/passForm'
 import type { Row } from '../../domain/rows'
 import { WIDE_COLUMNS } from './fields'
 import { PassRow } from './PassRow'
@@ -16,6 +17,7 @@ export function RowList({
   onToggle,
   onClose,
   onUsedLast,
+  onBuyAgain,
 }: {
   rows: Row[]
   label: string
@@ -30,6 +32,7 @@ export function RowList({
   onToggle: (passId: string) => void
   onClose: () => void
   onUsedLast?: ((row: Row) => void) | undefined
+  onBuyAgain: (draft: PassDraft) => void
 }) {
   return (
     <div className="overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
@@ -55,6 +58,7 @@ export function RowList({
             onToggle={() => onToggle(row.pass.id)}
             onClose={onClose}
             onUsedLast={onUsedLast}
+            onBuyAgain={onBuyAgain}
           />
         ))}
       </ul>

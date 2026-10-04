@@ -23,6 +23,7 @@ export function NewRow({
   gyms,
   today,
   autoFocus = false,
+  initial = BLANK_DRAFT,
   onAdded,
   onClose,
 }: {
@@ -30,12 +31,14 @@ export function NewRow({
   today: LocalDate
   /** Put the cursor in the gym cell when the row appears (it was opened by a button). */
   autoFocus?: boolean
+  /** What the row starts with ("Buy again" fills in the gym, type, entries and price). */
+  initial?: PassDraft
   /** Called after a pass was saved, with its id. */
   onAdded?: (passId: string) => void
   /** When given, the row has a Close button that hides it again. */
   onClose?: () => void
 }) {
-  const [draft, setDraft] = useState<PassDraft>(BLANK_DRAFT)
+  const [draft, setDraft] = useState<PassDraft>(initial)
   const [errors, setErrors] = useState<PassErrors>({})
   const [failed, setFailed] = useState(false)
   const [added, setAdded] = useState('')
