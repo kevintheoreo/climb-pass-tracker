@@ -180,7 +180,7 @@ describe('opening a backup file', () => {
     expect(within(preview).getByText('1 recorded use added')).toBeVisible()
     expect(within(preview).getByText('1 new gym')).toBeVisible()
     expect(within(preview).getByText('Reminder settings from the backup')).toBeVisible()
-    expect(preview).toHaveTextContent('Nothing already here is deleted')
+    expect(preview).toHaveTextContent('Passes on this phone stay')
     expect(await repo.listPasses()).toHaveLength(1) // nothing changed yet
 
     await user.click(within(preview).getByRole('button', { name: 'Add to this device' }))

@@ -197,8 +197,8 @@ export function BackupControls() {
                 <p className="mt-1 text-base">Adding it to this device will give you:</p>
                 <Lines lines={importLines(stage.summary)} />
                 <p className="mb-2 text-sm text-slate-600 dark:text-slate-400">
-                  Nothing already here is deleted. When the same pass was changed in both places,
-                  the newer change is kept.
+                  Passes on this phone stay. If a pass is on both phones, the version edited most
+                  recently is kept, and recorded uses from both phones are counted.
                 </p>
               </>
             )}
