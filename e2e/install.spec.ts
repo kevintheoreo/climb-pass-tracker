@@ -9,23 +9,23 @@ test.use({
     'Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1',
 })
 
-const prompt = (page: Page) =>
-  page.getByRole('region', { name: /add this app to your home screen/i })
+const prompt = (page: Page) => page.getByRole('region', { name: /designed to be installed/i })
 
-test('after a first pass an iPhone is asked once to add the app to the home screen', async ({
+test('an iPhone is asked once, from the start, to add the app to the home screen', async ({
   page,
 }) => {
   await page.goto('/')
   await expect(page.getByText('No passes yet')).toBeVisible()
-  await expect(prompt(page)).toHaveCount(0) // nothing worth keeping yet
+  await expect(prompt(page)).toBeVisible() // before any pass: nothing saved in the tab yet
+  await expect(prompt(page)).toContainText('keep your entries safely')
 
   await page.getByRole('combobox', { name: 'Gym' }).fill('Fitbloc')
   await page.getByLabel('Entries', { exact: true }).fill('10')
   await page.getByRole('button', { name: '+6 months' }).click()
   await page.keyboard.press('Enter')
 
+  await expect(page.getByRole('list', { name: 'Passes' })).toBeVisible()
   await expect(prompt(page)).toBeVisible()
-  await expect(prompt(page)).toContainText('Safari can erase')
   await expect(prompt(page)).toContainText('Add to Home Screen')
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360)
   const dismiss = prompt(page).getByRole('button', { name: 'Not now' })

@@ -61,7 +61,7 @@ function renderAt(path: string) {
 /** Gives the screen time to show something that would be wrong, before checking it is not there. */
 const settle = () => act(() => new Promise<void>((resolve) => setTimeout(resolve, 50)))
 
-const prompt = () => screen.queryByRole('region', { name: /add this app to your home screen/i })
+const prompt = () => screen.queryByRole('region', { name: /designed to be installed/i })
 
 beforeAll(() => listenForInstallPrompt())
 
@@ -79,20 +79,12 @@ afterEach(() => {
 })
 
 describe('the install prompt on the main screen', () => {
-  it('waits for a first pass', async () => {
+  it('is there from the start, before any pass, with the steps on an iPhone', async () => {
     phone('ios')
     renderAt('/')
     expect(await screen.findByText(/No passes yet/)).toBeInTheDocument()
-    await settle()
-    expect(prompt()).not.toBeInTheDocument()
-  })
-
-  it('on an iPhone, explains why and gives the steps once there is a pass', async () => {
-    phone('ios')
-    await repo.createPass(pass())
-    renderAt('/')
-    const region = await screen.findByRole('region', { name: /add this app to your home screen/i })
-    expect(region).toHaveTextContent('Safari can erase')
+    const region = await screen.findByRole('region', { name: /designed to be installed/i })
+    expect(region).toHaveTextContent('keep your entries safely in your phone’s storage')
     expect(region).toHaveTextContent('Add to Home Screen')
     expect(screen.queryByRole('button', { name: 'Install the app' })).not.toBeInTheDocument()
   })

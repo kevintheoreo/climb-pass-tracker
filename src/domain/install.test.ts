@@ -31,7 +31,6 @@ describe('protectionOf', () => {
 
 describe('shouldOfferInstall', () => {
   const base = {
-    hasPasses: true,
     standalone: false,
     dismissed: false,
     platform: 'ios',
@@ -48,8 +47,7 @@ describe('shouldOfferInstall', () => {
   it('does not offer on a computer without an install prompt', () => {
     expect(shouldOfferInstall({ ...base, platform: 'other' })).toBe(false)
   })
-  it('waits for a first pass, and never nags an installed or dismissed app', () => {
-    expect(shouldOfferInstall({ ...base, hasPasses: false })).toBe(false)
+  it('never nags an installed or dismissed app', () => {
     expect(shouldOfferInstall({ ...base, standalone: true })).toBe(false)
     expect(shouldOfferInstall({ ...base, dismissed: true })).toBe(false)
   })

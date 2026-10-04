@@ -21,10 +21,11 @@ export function IosSteps() {
 /**
  * Asks the person, once, to put the app on the home screen (D40). Passes are saved only on the
  * phone, and Safari can erase a website's data after about a week without a visit; an installed
- * app is not cleaned up that way. It waits for a first pass, so there is something worth keeping,
- * and it stays away for good once dismissed (Settings keeps the status and the steps).
+ * app is not cleaned up that way. It is there from the first visit, before any pass, because on an
+ * iPhone the installed app does not see what was saved in a Safari tab. It stays away for good
+ * once dismissed (Settings keeps the status and the steps).
  */
-export function InstallPrompt({ hasPasses }: { hasPasses: boolean }) {
+export function InstallPrompt() {
   const dismissed = useLiveQuery(async () => (await repo.getMeta(DISMISSED)) === true, [])
   const canPrompt = useCanPromptInstall()
   const [platform] = useState(browserPlatform)
@@ -32,7 +33,7 @@ export function InstallPrompt({ hasPasses }: { hasPasses: boolean }) {
 
   if (
     dismissed === undefined ||
-    !shouldOfferInstall({ hasPasses, standalone, dismissed, platform, canPrompt })
+    !shouldOfferInstall({ standalone, dismissed, platform, canPrompt })
   ) {
     return null
   }
@@ -44,13 +45,10 @@ export function InstallPrompt({ hasPasses }: { hasPasses: boolean }) {
       className="mb-4 rounded-lg border border-teal-700 bg-teal-50 p-4 dark:border-teal-500 dark:bg-teal-950"
     >
       <h2 id="install-prompt-heading" className="text-base font-semibold">
-        Keep your passes safe: add this app to your home screen
+        This app was designed to be installed on your home screen.
       </h2>
       <p className="mb-3 mt-1 text-base">
-        Your passes are saved only on this phone.{' '}
-        {platform === 'ios'
-          ? 'Safari can erase a website’s data if you don’t open it for about a week. An app on your home screen is not erased.'
-          : 'An installed app is kept safer than a website, and opens like any other app.'}
+        The installed app will keep your entries safely in your phone’s storage.
       </p>
       {platform === 'ios' && <IosSteps />}
       <div className="mt-3 flex flex-wrap gap-3">

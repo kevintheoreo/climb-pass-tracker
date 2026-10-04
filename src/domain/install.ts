@@ -40,21 +40,19 @@ export function protectionOf({
   return persisted ? 'kept' : 'at-risk'
 }
 
-/** Whether to offer to install: only when there is something to keep, and it is not installed. */
+/** Whether to offer to install: from the first visit, unless it is installed or was dismissed. */
 export function shouldOfferInstall({
-  hasPasses,
   standalone,
   dismissed,
   platform,
   canPrompt,
 }: {
-  hasPasses: boolean
   standalone: boolean
   dismissed: boolean
   platform: Platform
   /** The browser handed over its install prompt (Chrome on Android and desktop). */
   canPrompt: boolean
 }): boolean {
-  if (!hasPasses || standalone || dismissed) return false
+  if (standalone || dismissed) return false
   return platform === 'ios' || canPrompt
 }

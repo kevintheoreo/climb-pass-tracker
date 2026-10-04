@@ -71,7 +71,7 @@ export default function PassesPage() {
       )}
 
       <ReminderBanners reminders={reminders} rows={active} />
-      <InstallPrompt hasPasses={active.length + finished.length > 0} />
+      <InstallPrompt />
 
       {active.length > 0 && <RowList rows={active} label="Passes" {...lists} />}
 
