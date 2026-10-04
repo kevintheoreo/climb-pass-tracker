@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import App from '../../app/App'
@@ -88,5 +88,36 @@ describe('Buy again (FR-21)', () => {
     await user.keyboard('{Enter}')
     expect(await screen.findByText('Enter an expiry date')).toBeInTheDocument()
     expect(await repo.listBundles()).toHaveLength(1)
+  })
+})
+
+describe('Buy again, leaving the row', () => {
+  it('saves when focus leaves the row, like a normal new pass', async () => {
+    await repo.createPass(multipass())
+    const user = userEvent.setup()
+    renderApp()
+    await user.click(await screen.findByRole('button', { name: /show details/ }))
+    await user.click(screen.getByRole('button', { name: 'Buy again' }))
+    await user.type(await screen.findByLabelText(/^Expiry/), addDays(today, 200))
+    await user.click(screen.getByRole('heading', { name: 'Passes' }))
+    await waitFor(async () => expect(await repo.listBundles()).toHaveLength(2))
+  })
+})
+
+describe('Buy again, when focus never entered the row', () => {
+  it('still saves when the person taps elsewhere', async () => {
+    await repo.createPass(multipass())
+    const user = userEvent.setup()
+    renderApp()
+    await user.click(await screen.findByRole('button', { name: /show details/ }))
+    await user.click(screen.getByRole('button', { name: 'Buy again' }))
+    const form = await screen.findByRole('form', { name: 'New pass' })
+    // A phone may refuse the programmatic focus, and its buttons do not take focus when tapped.
+    ;(document.activeElement as HTMLElement | null)?.blur()
+    fireEvent.pointerDown(screen.getByRole('button', { name: '+12 months' }))
+    fireEvent.click(screen.getByRole('button', { name: '+12 months' }))
+    expect(form).toBeInTheDocument()
+    fireEvent.pointerDown(screen.getByRole('heading', { name: 'Passes' }))
+    await waitFor(async () => expect(await repo.listBundles()).toHaveLength(2))
   })
 })
