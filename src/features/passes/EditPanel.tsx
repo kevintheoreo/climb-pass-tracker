@@ -40,6 +40,7 @@ export function EditPanel({
   today,
   onClose,
   onBuyAgain,
+  onSaved,
 }: {
   id: string
   row: Row
@@ -48,14 +49,14 @@ export function EditPanel({
   onClose: () => void
   /** Open the blank row filled in like this pass (FR-21). */
   onBuyAgain: (draft: PassDraft) => void
+  /** A change was saved: the page says so (the panel can be much taller than the screen). */
+  onSaved: () => void
 }) {
   const original = draftFromPass(row.pass, row.gymName, usedThisMonthOf(row, today))
   const [draft, setDraft] = useState<PassDraft>(original)
   const [seen, setSeen] = useState<PassDraft>(original)
   const [errors, setErrors] = useState<PassErrors>({})
   const [failed, setFailed] = useState(false)
-  // A change was saved and nothing has been edited since: the panel says so.
-  const [saved, setSaved] = useState(false)
   const saving = useRef(false)
   const headingId = useId()
   const section = useRef<HTMLElement>(null)
@@ -69,7 +70,6 @@ export function EditPanel({
   const update = (changes: Partial<PassDraft>) => {
     setDraft((d) => ({ ...d, ...changes }))
     setFailed(false)
-    setSaved(false)
     setErrors((e) => {
       const next = { ...e }
       for (const key of Object.keys(changes)) delete next[key as keyof PassErrors]
@@ -99,7 +99,7 @@ export function EditPanel({
       })
       setErrors({})
       setFailed(false)
-      setSaved(true)
+      onSaved()
       return true
     } catch (error) {
       if (error instanceof NotFoundError)
@@ -157,7 +157,6 @@ export function EditPanel({
             setDraft((d) => withPassType(d, type))
             setErrors(({ gym }) => (gym ? { gym } : {}))
             setFailed(false)
-            setSaved(false)
           }}
           gyms={gyms}
           quickFrom={/^\d{4}-\d{2}-\d{2}$/.test(draft.purchaseDate) ? draft.purchaseDate : today}
@@ -180,11 +179,7 @@ export function EditPanel({
         </p>
       )}
 
-      <p role="status" className="mt-3 min-h-5 text-sm text-emerald-800 dark:text-emerald-300">
-        {saved ? 'Saved' : ''}
-      </p>
-
-      <div className="mt-2 flex flex-wrap items-start gap-3">
+      <div className="mt-4 flex flex-wrap items-start gap-3">
         <button
           type="button"
           onClick={() => {

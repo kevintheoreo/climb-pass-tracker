@@ -48,6 +48,9 @@ export default function PassesPage() {
       passId: row.pass.id,
       what: `${row.gymName}, ${row.typeLabel}`,
     })
+  // A change in the details panel was saved: say so, wherever the long panel is scrolled to.
+  const saved = (row: Row) =>
+    setNotice({ key: Date.now(), kind: 'saved', passId: row.pass.id, what: '' })
   // A pass was just added: say so (the name is filled in below, once its row is on screen).
   const added = (passId: string) => {
     closeRow()
@@ -66,6 +69,8 @@ export default function PassesPage() {
   let shownNotice: Notice | null = null
   if (notice?.kind === 'finished') {
     shownNotice = finished.some((row) => row.pass.id === notice.passId) ? notice : null
+  } else if (notice?.kind === 'saved') {
+    shownNotice = notice
   } else if (notice?.kind === 'added') {
     const row = [...active, ...finished].find((r) => r.pass.id === notice.passId)
     if (row) shownNotice = { ...notice, what: `${row.gymName}, ${row.typeLabel}` }
@@ -83,6 +88,7 @@ export default function PassesPage() {
     onClose: close,
     onUsedLast: usedLast,
     onBuyAgain: buyAgain,
+    onSaved: saved,
   }
 
   return (

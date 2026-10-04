@@ -489,19 +489,17 @@ describe('the Moved to Finished notice', () => {
 })
 
 describe('save confirmation', () => {
-  it('says Saved after a change is saved, and clears when editing again', async () => {
+  it('says Changes saved (on the screen, not inside the long panel) after a change is saved', async () => {
     const user = userEvent.setup()
     const pass = await repo.createPass(multipass())
     renderApp()
     await user.click(await screen.findByRole('button', { name: /show details/ }))
-    expect(within(panel()).queryByText('Saved')).not.toBeInTheDocument()
+    expect(screen.queryByText('Changes saved')).not.toBeInTheDocument()
     await user.type(field(/^Comments/), 'note')
     await user.tab()
     await user.click(within(panel()).getByRole('heading', { name: /^Details:/ }))
-    expect(await within(panel()).findByText('Saved')).toBeInTheDocument()
+    expect(await screen.findByText('Changes saved')).toBeInTheDocument()
     await waitFor(async () => expect((await repo.getPass(pass.id))?.comments).toBe('note'))
-    await user.type(field(/^Comments/), 'x')
-    expect(within(panel()).queryByText('Saved')).not.toBeInTheDocument()
   })
 })
 
@@ -514,7 +512,20 @@ describe('save confirmation after a quick expiry button', () => {
     await user.click(within(panel()).getByRole('button', { name: '+12 months' }))
     // A phone does not move focus to a tapped button, so no blur comes: only the press.
     fireEvent.pointerDown(screen.getByRole('heading', { name: 'Passes' }))
-    expect(await within(panel()).findByText('Saved')).toBeInTheDocument()
+    expect(await screen.findByText('Changes saved')).toBeInTheDocument()
     await waitFor(async () => expect((await repo.getPass(pass.id))?.expiryDate).not.toBe(day(100)))
+  })
+})
+
+describe('save confirmation with Done', () => {
+  it('says Changes saved when Done saves a change and closes the panel', async () => {
+    const user = userEvent.setup()
+    await repo.createPass(multipass())
+    renderApp()
+    await user.click(await screen.findByRole('button', { name: /show details/ }))
+    await user.type(field(/^Comments/), 'via done')
+    await user.click(within(panel()).getByRole('button', { name: 'Done' }))
+    expect(await screen.findByText('Changes saved')).toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: /^Details:/ })).not.toBeInTheDocument()
   })
 })

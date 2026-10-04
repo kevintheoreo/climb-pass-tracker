@@ -34,6 +34,7 @@ export function PassRow({
   onClose,
   onUsedLast,
   onBuyAgain,
+  onSaved,
 }: {
   row: Row
   today: LocalDate
@@ -47,6 +48,7 @@ export function PassRow({
   onClose: () => void
   onUsedLast?: ((row: Row) => void) | undefined
   onBuyAgain: (draft: PassDraft) => void
+  onSaved: (row: Row) => void
 }) {
   const { status } = row
   const badges = badgesFor(row.pass, status)
@@ -153,6 +155,7 @@ export function PassRow({
             today={today}
             onClose={onClose}
             onBuyAgain={onBuyAgain}
+            onSaved={() => onSaved(row)}
           />
         </div>
       )}

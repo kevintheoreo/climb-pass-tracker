@@ -196,14 +196,26 @@ test('a price paid shows what one entry cost, on the row, and fits a phone', asy
   await expect(mainRows(page).filter({ hasText: '7 / 10' })).toContainText('S$12.00 each')
 })
 
-test('the panel says Saved after a change made with a button only, and tapping away', async ({
+test('Changes saved is in view after a change made with a button only, and tapping away', async ({
   page,
 }) => {
   await seeded(page)
   const row = mainRows(page).filter({ hasText: '7 / 10' })
   await toggle(row).click()
   await panel(page).getByRole('button', { name: '+12 months' }).click()
-  await expect(panel(page).getByText('Saved')).toHaveCount(0)
+  await expect(page.getByText('Changes saved')).toHaveCount(0)
   await page.getByRole('heading', { name: 'Passes', exact: true }).tap()
-  await expect(panel(page).getByText('Saved')).toBeVisible()
+  await expect(page.getByText('Changes saved')).toBeInViewport()
+})
+
+test('Changes saved is in view when Done saves', async ({ page }) => {
+  await seeded(page)
+  const row = mainRows(page).filter({ hasText: '7 / 10' })
+  await toggle(row).click()
+  await panel(page)
+    .getByLabel(/^Comments/)
+    .fill('done note')
+  await panel(page).getByRole('button', { name: 'Done' }).click()
+  await expect(page.getByText('Changes saved')).toBeInViewport()
+  await expect(panel(page)).toHaveCount(0)
 })
