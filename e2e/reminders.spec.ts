@@ -120,3 +120,35 @@ test('on a phone Settings and the banners fit, and every control is at least 44p
   }
   await expect(page.getByText(/version \d/)).toBeVisible()
 })
+
+test('tapping − down to the low level does not move the list; the banner comes at the next opening', async ({
+  page,
+}) => {
+  await seeded(page)
+  const row = mainRows(page).filter({ hasText: '3 / 20' }) // 3 left: not low yet
+  const minus = row.getByRole('button', { name: /^Use one entry/ })
+  const bannerCount = await banners(page).getByRole('listitem').count()
+  // Where the row is on the page, however far the page is scrolled.
+  const top = (r: ReturnType<typeof mainRows>) =>
+    r.evaluate((el) => el.getBoundingClientRect().top + window.scrollY)
+  const before = await top(row)
+
+  await minus.click() // 2 left: low
+  await expect(mainRows(page).filter({ hasText: '2 / 20' })).toHaveCount(1)
+  await mainRows(page)
+    .filter({ hasText: '2 / 20' })
+    .getByRole('button', { name: /^Use one entry/ })
+    .click()
+  await expect(mainRows(page).filter({ hasText: '1 / 20' })).toHaveCount(1)
+
+  // Nothing was pushed in above the list, so the next tap lands where the last one did.
+  await expect(banners(page).getByRole('listitem')).toHaveCount(bannerCount)
+  expect(await top(mainRows(page).filter({ hasText: '1 / 20' }))).toBe(before)
+  await expect(
+    mainRows(page).filter({ hasText: '1 / 20' }).getByText('Low', { exact: true }),
+  ).toBeVisible()
+
+  // The next time the app is opened, the banner is there.
+  await page.reload()
+  await expect(banners(page).getByRole('listitem')).toHaveCount(bannerCount + 1)
+})

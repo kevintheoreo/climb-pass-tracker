@@ -131,9 +131,13 @@ test('a week at the gym: counting, two packs, a membership, Finished, reminders,
   await expect(row(page, 'Single entry')).toHaveCount(0)
   await expect(page.getByText(/Climb Central, Single entry moved to Finished/)).toBeVisible()
 
-  // Few entries left: a banner, and its row is highlighted.
+  // Few entries left: the row says Low at once, but no banner is pushed in while tapping (D42).
   await addPass(page, 'Fitbloc', { entries: '3', expiry: '+6' })
   await minus(row(page, '3 / 3')).click()
+  await expect(row(page, '2 / 3').getByText('Low', { exact: true })).toBeVisible()
+  await expect(banners(page).getByText('Fitbloc, Multipass: 2 entries left')).toHaveCount(0)
+  // The next time the app is opened, the banner is there and its row is highlighted.
+  await page.reload()
   await expect(banners(page).getByText('Fitbloc, Multipass: 2 entries left')).toBeVisible()
   await expect(row(page, '2 / 3').getByText('Has a reminder.')).toBeAttached()
 

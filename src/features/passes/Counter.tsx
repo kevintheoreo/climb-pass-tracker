@@ -4,6 +4,7 @@ import type { LocalDate } from '../../domain/dates'
 import { expiryLabel, leftLabel } from '../../domain/format'
 import type { Row } from '../../domain/rows'
 import { isMonthly } from '../../domain/types'
+import { markTapped } from './ownTaps'
 
 const button =
   'inline-flex size-11 shrink-0 items-center justify-center rounded-full text-2xl leading-none disabled:cursor-not-allowed'
@@ -46,13 +47,14 @@ export function Counter({
           type="button"
           aria-label={`Use one entry: ${what}`}
           disabled={!view.canUse}
-          onClick={() =>
+          onClick={() => {
+            markTapped(pass.id)
             void ignoreMissing(
               repo.useEntry(pass.id, today).then((result) => {
                 if (result.ok && lastEntry) onUsedLast?.(row)
               }),
             )
-          }
+          }}
           className={`${button} bg-teal-700 text-white hover:bg-teal-800 disabled:bg-slate-200 disabled:text-slate-400 disabled:hover:bg-slate-200 dark:disabled:bg-slate-800 dark:disabled:text-slate-600 dark:disabled:hover:bg-slate-800`}
         >
           <span aria-hidden="true">−</span>
@@ -67,7 +69,10 @@ export function Counter({
           type="button"
           aria-label={`Give one entry back: ${what}`}
           disabled={!view.canGiveBack}
-          onClick={() => void ignoreMissing(repo.giveBackEntry(pass.id, today))}
+          onClick={() => {
+            markTapped(pass.id)
+            void ignoreMissing(repo.giveBackEntry(pass.id, today))
+          }}
           className={`${button} border border-slate-300 bg-white text-slate-900 hover:bg-slate-100 disabled:border-slate-200 disabled:text-slate-300 disabled:hover:bg-white dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800 dark:disabled:border-slate-800 dark:disabled:text-slate-700 dark:disabled:hover:bg-slate-900`}
         >
           <span aria-hidden="true">+</span>
