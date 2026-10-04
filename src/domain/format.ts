@@ -8,6 +8,7 @@ import {
 } from './dates'
 import type { PassStatus } from './passStatus'
 import type { ImportSummary } from './backup'
+import { formatSgd } from './money'
 import type { Reminder } from './reminders'
 import type { Pass } from './types'
 
@@ -70,6 +71,17 @@ export function leftLabel(status: PassStatus): string {
 /** "resets 15 Nov" for a membership with a monthly allowance, otherwise null. */
 export function resetLabel(status: PassStatus): string | null {
   return status.nextReset === null ? null : `resets ${formatDayMonth(status.nextReset)}`
+}
+
+/**
+ * "S$12.00 each": what one entry cost, for splitting the cost with a friend who uses the pass
+ * (D44). Only for a pass that has a price and more than one entry: a single entry's cost is its
+ * price, and a membership has no fixed number of entries. Rounded to the nearest cent.
+ */
+export function pricePerEntryLabel(pass: Pass): string | null {
+  if (pass.passType === 'membership' || pass.priceCents === null) return null
+  if (pass.priceCents === 0 || pass.totalEntries < 2) return null
+  return `${formatSgd(Math.round(pass.priceCents / pass.totalEntries))} each`
 }
 
 export type BadgeTone = 'warn' | 'info' | 'muted'

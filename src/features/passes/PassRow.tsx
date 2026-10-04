@@ -1,5 +1,11 @@
 import type { LocalDate } from '../../domain/dates'
-import { badgesFor, expiryLabel, relativeTime, resetLabel } from '../../domain/format'
+import {
+  badgesFor,
+  expiryLabel,
+  pricePerEntryLabel,
+  relativeTime,
+  resetLabel,
+} from '../../domain/format'
 import type { BadgeTone } from '../../domain/format'
 import type { Row } from '../../domain/rows'
 import type { GymEntry } from '../../domain/gyms'
@@ -38,6 +44,7 @@ export function PassRow({
   const { status } = row
   const badges = badgesFor(row.pass, status)
   const reset = resetLabel(status)
+  const perEntry = pricePerEntryLabel(row.pass)
   const days = row.status.isActive ? row.status.daysLeft : null
   const panelId = `details-${row.pass.id}`
 
@@ -78,6 +85,12 @@ export function PassRow({
         <div className="col-start-2 row-start-1 flex flex-col items-end sm:col-start-4 sm:items-start">
           <Counter row={row} today={today} onUsedLast={onUsedLast} />
           {reset && <p className={`text-sm ${muted}`}>{reset}</p>}
+          {perEntry && (
+            <p className={`text-sm ${muted}`}>
+              <span className="sr-only">Price per entry: </span>
+              {perEntry}
+            </p>
+          )}
         </div>
 
         <p

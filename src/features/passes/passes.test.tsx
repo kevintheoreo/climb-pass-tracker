@@ -77,6 +77,32 @@ describe('main screen — the list of rows', () => {
     expect(row).toHaveTextContent('7 / 10')
   })
 
+  it('shows what one entry cost when a price was entered, and nothing otherwise (D44)', async () => {
+    await repo.createPass(multipass({ priceCents: 12000, totalEntries: 10, comments: 'priced' }))
+    await later()
+    await repo.createPass(multipass({ priceCents: null, totalEntries: 10, comments: 'no price' }))
+    await later()
+    await repo.createPass(membership({ priceCents: 9000 }))
+    await later()
+    await repo.createPass({
+      gymRef: boulder,
+      passType: 'single_entry',
+      priceCents: 2500,
+      comments: null,
+      purchaseDate: today,
+      expiryDate: null,
+      totalEntries: 1,
+      initialUsed: 0,
+    } as PassInput)
+    renderAt()
+    const rows = await rowsOf('Passes')
+    expect(rows).toHaveLength(4)
+    const withPrice = rows.filter((r) => rowText(r).includes('S$12.00 each'))
+    expect(withPrice).toHaveLength(1) // only the priced multipass
+    expect(withPrice[0]).toHaveTextContent('Price per entry: S$12.00 each')
+    expect(rows.filter((r) => /S\$/.test(rowText(r)))).toHaveLength(1)
+  })
+
   it('lists passes newest first, and keeps two passes at one gym as two rows (D23, D41)', async () => {
     await repo.createPass(multipass({ expiryDate: day(40), totalEntries: 10, initialUsed: 0 }))
     await later()
