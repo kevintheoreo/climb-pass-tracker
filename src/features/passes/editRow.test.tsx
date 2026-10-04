@@ -159,6 +159,19 @@ describe('editing', () => {
     expect((await repo.getPass(pass.id))?.priceCents).toBe(9990)
   })
 
+  it('the cost of one entry on the row follows a price typed in the panel (D44)', async () => {
+    const user = userEvent.setup()
+    await repo.createPass(multipass({ priceCents: null }))
+    renderApp()
+    await user.click(await screen.findByRole('button', { name: /show details/ }))
+    expect(screen.queryByText(/each$/)).not.toBeInTheDocument()
+    await user.type(field(/^Price paid/), '150{Enter}')
+    expect(await screen.findByText('S$15.00 each')).toBeInTheDocument()
+    await user.clear(field(/^Price paid/))
+    await user.keyboard('{Enter}')
+    await waitFor(() => expect(screen.queryByText(/each$/)).not.toBeInTheDocument())
+  })
+
   it('Enter saves too, and the row on screen follows', async () => {
     const user = userEvent.setup()
     const pass = await repo.createPass(multipass())

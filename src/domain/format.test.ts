@@ -4,6 +4,7 @@ import {
   badgesFor,
   expiryLabel,
   leftLabel,
+  pricePerEntryLabel,
   relativeTime,
   resetLabel,
   reminderMessage,
@@ -84,6 +85,43 @@ describe('relativeTime', () => {
     expect(inDays(-45)).toBe('1 month 14 days ago')
     expect(inDays(-200)).toBe('6 months ago')
     expect(inDays(-400)).toBe('1 year 1 month ago')
+  })
+})
+
+describe('pricePerEntryLabel', () => {
+  it('divides the price by the number of entries, to the cent', () => {
+    expect(pricePerEntryLabel(makeCounted({ priceCents: 12000, totalEntries: 10 }))).toBe(
+      'S$12.00 each',
+    )
+    expect(pricePerEntryLabel(makeCounted({ priceCents: 10000, totalEntries: 3 }))).toBe(
+      'S$33.33 each',
+    )
+    expect(pricePerEntryLabel(makeCounted({ priceCents: 10001, totalEntries: 3 }))).toBe(
+      'S$33.34 each',
+    )
+    expect(pricePerEntryLabel(makeCounted({ priceCents: 118000, totalEntries: 20 }))).toBe(
+      'S$59.00 each',
+    )
+  })
+
+  it('uses all the entries bought, however many are used already', () => {
+    expect(
+      pricePerEntryLabel(makeCounted({ priceCents: 12000, totalEntries: 10, initialUsed: 4 })),
+    ).toBe('S$12.00 each')
+  })
+
+  it('shows nothing without a price, for a free pass, a single entry or a membership', () => {
+    expect(pricePerEntryLabel(makeCounted({ priceCents: null, totalEntries: 10 }))).toBeNull()
+    expect(pricePerEntryLabel(makeCounted({ priceCents: 0, totalEntries: 10 }))).toBeNull()
+    expect(pricePerEntryLabel(makeSingle({ priceCents: 2500 }))).toBeNull()
+    expect(pricePerEntryLabel(makeMembership({ priceCents: 9000 }))).toBeNull()
+    expect(pricePerEntryLabel(makeMonthly({ priceCents: 9000 }))).toBeNull()
+  })
+
+  it('reads well in thousands', () => {
+    expect(pricePerEntryLabel(makeCounted({ priceCents: 300000, totalEntries: 2 }))).toBe(
+      'S$1,500.00 each',
+    )
   })
 })
 

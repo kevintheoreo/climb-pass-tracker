@@ -178,3 +178,20 @@ test.describe('with a mouse', () => {
     await expect(notice).toHaveCount(0, { timeout: 12_000 })
   })
 })
+
+test('a price paid shows what one entry cost, on the row, and fits a phone', async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 740 })
+  await seeded(page)
+  const row = mainRows(page).filter({ hasText: '7 / 10' })
+  await expect(row).not.toContainText('each')
+  await toggle(row).click()
+  await panel(page)
+    .getByLabel(/^Price paid/)
+    .fill('120')
+  await page.getByRole('heading', { name: 'Passes', exact: true }).tap() // tap away
+  await expect(mainRows(page).filter({ hasText: '7 / 10' })).toContainText('S$12.00 each')
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360)
+
+  await page.reload() // it is kept
+  await expect(mainRows(page).filter({ hasText: '7 / 10' })).toContainText('S$12.00 each')
+})

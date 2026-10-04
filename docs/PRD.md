@@ -116,6 +116,7 @@ Status column: **Active**, **Updated** (still applies, reworded for v2.0) or **S
 | D41 | Order | Passes are listed **newest first, by when they were added to the app** (the same in the Finished section). A pass keeps its place when it is edited, so rows never jump around under the person's finger. Expiry and purchase date do not affect the order. | New |
 | D42 | Banners and your own taps | A banner that would appear because of the person's own taps on `−` / `+` (a pass reaching the low level, or a monthly reset banner) is held back for the rest of that visit, because a banner inserted above the list pushes every row down and the next tap lands on something else. The row still shows its **Low** badge, and the banner is there the next time the app is opened. Banners already showing when the app was opened stay and keep following the count; expiring banners are never held back (taps cannot cause them). | New |
 | D43 | Time left | "How long until" is written the way people think about time, not as a big number of days: days up to a month (`in 12 days`), then months and days (`in 2 months 5 days`), whole months from six months (`in 6 months`), then years and months (`in 1 year 3 months`); `today`, `tomorrow`, `yesterday` and `10 days ago` as before. Months are calendar months, counted from today. The exact date is always shown next to it. The same wording is used in reminder banners (`expires in 2 months`). | New |
+| D44 | Cost per entry | When a price paid was entered, the row shows what one entry cost under the entries left (`S$12.00 each` = price ÷ total entries, to the nearest cent), so the cost is easy to split with a friend who uses the pass. Not shown for a single entry (it is just the price), a membership (no fixed number of entries), a free pass or a pass with no price. | New |
 
 ## 5. Pass types
 
@@ -217,6 +218,7 @@ Priority: **P0** = must have for launch, **P1** = should have for launch, **P2**
 - **FR-48 (P0)** Links to the privacy policy and terms, plus the app version.
 - **FR-49 (P1)** **Add to home screen:** from the first visit, while the app is not installed, a dismissible card on the main screen says the app is designed to be installed and keeps the entries safely in the phone's storage, and shows the steps on an iPhone, or an **Install the app** button where the browser offers one (Chrome). **Not now** hides it until the app is opened again (it stays out of the way while moving between screens). Not shown in the installed app. The steps stay in Settings (D40).
 - **FR-67 (P1)** **Data status:** under Settings → Your data, one line says whether the browser can delete the passes: *installed*, *the browser has promised to keep the data*, or a warning (*could be erased by your browser*) with the steps and the Install button where available, and a pointer to the backup file (D40).
+- **FR-68 (P2)** **Cost per entry:** a pass with a price and more than one entry shows `S$12.00 each` in small text under its entries left (D44).
 
 ## 7. Data model (logical)
 
