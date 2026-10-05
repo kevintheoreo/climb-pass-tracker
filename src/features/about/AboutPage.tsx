@@ -1,5 +1,7 @@
 import type { ReactNode } from 'react'
-import { Page } from '../../components/Page'
+import { Link } from 'react-router-dom'
+import { ArrowUpRightIcon, CameraIcon, CoffeeIcon, MonkeyIcon } from '../../app/icons'
+import { usePageTitle } from '../../components/usePageTitle'
 import { buttonClass } from '../../components/formUtils'
 
 const INSTAGRAM = 'https://www.instagram.com/crampingapey'
@@ -23,27 +25,75 @@ function OutsideLink({
   )
 }
 
-/** Who made the app, with a link to their Instagram and a way to say thanks (D54, FR-74). */
+const cardClass =
+  'rounded-2xl border border-stone-200 bg-white shadow-sm dark:border-stone-700 dark:bg-stone-900'
+
+/**
+ * Who made the app (D54, FR-74): a bold orange top with the monkey, the developer's Instagram as a
+ * tappable card, and a warm card for Buy me a coffee. White on the main orange is 3.3:1, so only
+ * large bold text sits on the orange band (3:1 is enough for that).
+ */
 export default function AboutPage() {
+  usePageTitle('About')
   return (
-    <Page title="About">
-      <p className="mb-6 text-lg">
-        Developed by{' '}
+    <div className="pb-10">
+      <section className="rounded-b-[2.5rem] bg-brand-500 px-4 pb-10 pt-5 text-center text-white">
+        <div className="mx-auto max-w-3xl">
+          <h1 className="text-left text-2xl font-bold">About</h1>
+          <div className="mx-auto mt-6 flex size-32 items-center justify-center rounded-[2rem] bg-brand-950/20 text-brand-50">
+            <MonkeyIcon size={92} />
+          </div>
+          <p className="mt-5 text-2xl font-bold">Climb Pass Tracker</p>
+        </div>
+      </section>
+
+      <div className="mx-auto mt-6 w-full max-w-3xl space-y-4 px-4">
         <OutsideLink
           href={INSTAGRAM}
-          className="font-medium text-brand-700 underline dark:text-brand-400"
+          className={`${cardClass} flex min-h-16 flex-wrap items-center gap-x-4 gap-y-2 p-4`}
         >
-          @crampingapey
+          <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-brand-100 text-brand-700 dark:bg-brand-950 dark:text-brand-400">
+            <CameraIcon size={26} />
+          </span>
+          <span className="min-w-0 flex-1 basis-32">
+            <span className="block text-sm text-stone-600 dark:text-stone-400">Developed by</span>
+            <span className="block break-all text-lg font-bold">@crampingapey</span>
+          </span>
+          <span className="text-stone-500 dark:text-stone-400">
+            <ArrowUpRightIcon />
+          </span>
         </OutsideLink>
-      </p>
-      <p className="mb-6">
-        <OutsideLink href={COFFEE} className={buttonClass('primary')}>
-          Buy me a coffee
-        </OutsideLink>
-      </p>
-      <p className="pb-8 text-sm text-stone-600 dark:text-stone-400">
-        Climb Pass Tracker, version {__APP_VERSION__}
-      </p>
-    </Page>
+
+        <div className="rounded-2xl border border-[#F5A43A]/50 bg-[#F5A43A]/20 p-4 dark:border-[#F5A43A]/40 dark:bg-[#F5A43A]/15">
+          <div className="flex flex-wrap items-center gap-4">
+            <span className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-[#F5A43A]/40 text-stone-900 dark:text-stone-100">
+              <CoffeeIcon size={26} />
+            </span>
+            <p className="text-lg font-bold">Enjoying the app?</p>
+          </div>
+          <OutsideLink href={COFFEE} className={`${buttonClass('primary')} mt-4 w-full`}>
+            Buy me a coffee
+          </OutsideLink>
+        </div>
+
+        <footer className="pt-2 text-center text-sm text-stone-600 dark:text-stone-400">
+          <p>Version {__APP_VERSION__}</p>
+          <nav aria-label="Legal" className="mt-1 flex flex-wrap justify-center gap-x-2">
+            {[
+              { to: '/privacy', label: 'Privacy policy' },
+              { to: '/terms', label: 'Terms of use' },
+            ].map((link) => (
+              <Link
+                key={link.to}
+                to={link.to}
+                className="inline-flex min-h-11 items-center rounded-lg px-2 font-medium text-brand-700 underline dark:text-brand-400"
+              >
+                {link.label}
+              </Link>
+            ))}
+          </nav>
+        </footer>
+      </div>
+    </div>
   )
 }

@@ -1,12 +1,9 @@
-import { useEffect, type ReactNode } from 'react'
-
-const APP_NAME = 'Climb Pass Tracker'
+import type { ReactNode } from 'react'
+import { usePageTitle } from './usePageTitle'
 
 /** Standard screen wrapper: the page heading, and the browser/tab title to match. */
 export function Page({ title, children }: { title: string; children?: ReactNode }) {
-  useEffect(() => {
-    document.title = `${title} · ${APP_NAME}`
-  }, [title])
+  usePageTitle(title)
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 pt-6">
