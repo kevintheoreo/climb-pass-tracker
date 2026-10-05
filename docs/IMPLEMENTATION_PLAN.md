@@ -181,3 +181,14 @@ The file holds the checked list. To add a gym, add a row with a new id; to renam
 | Q5 | CI | A GitHub Actions workflow runs lint, typecheck and tests on every PR. |
 | Q6 | Redesign | One screen of rows (D23–D34, including monthly-allowance memberships), as set out in PRD v2.1. |
 | Q7 | Accounts and sync | Dropped (D37). No Google sign-in, no Supabase, no server. A backup file moves data between devices (D38). The database work started for it (a closed pull request) was not used. |
+
+---
+
+## 7. Future ideas, not yet planned
+
+These are not part of milestones 1 to 3. The full descriptions, and what each one would have to change, are in PRD section 14.
+
+| Idea | Depends on | Notes |
+|---|---|---|
+| **Pass usage history:** an expandable section below Finished listing every entry (gym, type, date), with each date editable. | Nothing new: the uses are already recorded (D26). | Do it before friends. Decide how an edited date affects `+` and a monthly membership's current period first. |
+| **Friends:** add friends, see their passes, search friends' multipasses. | Accounts and a server (reversing D37), a new privacy policy and terms, consent controls. | A separate milestone, not a feature: it changes the hosting, the data model and what the privacy policy says. |
