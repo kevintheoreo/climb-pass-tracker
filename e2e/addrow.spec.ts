@@ -36,7 +36,9 @@ test('a pass added in the blank row appears, and is still there after a reload',
   await expect(page.getByRole('option', { name: /as a new gym/ })).toHaveCount(0)
 })
 
-test('tapping a suggestion and then tapping away saves the row', async ({ page }) => {
+test('tapping a suggestion and then Add pass saves the row; tapping away does not', async ({
+  page,
+}) => {
   await page.goto('/')
   await fillRow(page, 'Zig Zag Wall', '5')
   await page.keyboard.press('Enter')
@@ -50,13 +52,16 @@ test('tapping a suggestion and then tapping away saves the row', async ({ page }
   await page.getByRole('button', { name: '+12 months' }).tap()
   await expect(mainRows(page)).toHaveCount(1) // still inside the row: not saved yet
   await page.getByRole('heading', { name: 'Passes', exact: true }).tap() // tap outside the form
+  await page.waitForTimeout(300)
+  await expect(mainRows(page)).toHaveCount(1) // tapping away saves nothing
+  await page.getByRole('button', { name: 'Add pass', exact: true }).tap()
   await expect(mainRows(page)).toHaveCount(2)
 })
 
 test('an unfinished row says what is missing and saves nothing', async ({ page }) => {
   await page.goto('/')
   await gym(page).fill('Zig Zag Wall')
-  await page.getByRole('heading', { name: 'Add a pass' }).tap()
+  await page.getByRole('button', { name: 'Add pass', exact: true }).tap()
   await expect(page.getByText('Enter the number of entries')).toBeVisible()
   await expect(page.getByText('Enter an expiry date')).toBeVisible()
   await expect(page.getByText('No passes yet')).toBeVisible()

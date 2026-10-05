@@ -13,7 +13,7 @@ async function seeded(page: Page) {
   await expect(mainRows(page)).toHaveCount(7)
 }
 
-test('editing an expiry in the details panel saves by itself and survives a reload', async ({
+test('editing an expiry in the details panel saves with Save and survives a reload', async ({
   page,
 }) => {
   await seeded(page)
@@ -26,7 +26,7 @@ test('editing an expiry in the details panel saves by itself and survives a relo
   await panel(page)
     .getByLabel(/^Comments/)
     .fill('bought at the sale')
-  await page.getByRole('heading', { name: 'Passes', exact: true }).tap() // tap away
+  await panel(page).getByRole('button', { name: 'Save' }).click()
   // The save runs in the background: wait until the row shows the new expiry. (Not by comparing
   // the whole row's text: opening the panel already changes that.)
   await expect(mainRows(page).filter({ hasText: '7 / 10' })).not.toContainText(seededExpiry)
@@ -53,10 +53,10 @@ test('an unfinished edit says what is wrong and is not saved', async ({ page }) 
   await toggle(row).click()
   await panel(page).getByLabel('Entries', { exact: true }).fill('0')
   await panel(page).getByLabel('Already used').fill('x')
-  await page.getByRole('heading', { name: 'Passes', exact: true }).tap()
+  await panel(page).getByRole('button', { name: 'Save' }).click()
   await expect(panel(page).getByText('Entries must be at least 1')).toBeVisible()
   await expect(panel(page).getByText('Enter a whole number')).toBeVisible()
-  await panel(page).getByRole('button', { name: 'Done' }).click()
+  await panel(page).getByRole('button', { name: 'Cancel changes' }).click()
   await expect(mainRows(page).filter({ hasText: '7 / 10' })).toHaveCount(1)
 })
 
@@ -65,7 +65,7 @@ test('deleting asks first and then removes the row', async ({ page }) => {
   const row = mainRows(page).filter({ hasText: '1 / 1' })
   await toggle(row).click()
   await panel(page).getByRole('button', { name: 'Delete this pass' }).click()
-  await panel(page).getByRole('button', { name: 'Cancel' }).click()
+  await panel(page).getByRole('button', { name: 'Cancel', exact: true }).click()
   await expect(mainRows(page)).toHaveCount(7)
   await panel(page).getByRole('button', { name: 'Delete this pass' }).click()
   await panel(page).getByRole('button', { name: 'Yes, delete' }).click()
@@ -115,9 +115,8 @@ test('editing works with no network', async ({ page, context }) => {
   await panel(page)
     .getByLabel(/^Comments/)
     .fill('offline note')
-  await page.getByRole('heading', { name: 'Passes', exact: true }).tap()
-  await toggle(mainRows(page).filter({ hasText: '7 / 10' })).click() // close, then reopen to check
-  await toggle(mainRows(page).filter({ hasText: '7 / 10' })).click()
+  await panel(page).getByRole('button', { name: 'Save' }).click()
+  await toggle(mainRows(page).filter({ hasText: '7 / 10' })).click() // Save closed it: reopen to check
   await expect(panel(page).getByLabel(/^Comments/)).toHaveValue('offline note')
 })
 
@@ -188,7 +187,7 @@ test('a price paid shows what one entry cost, on the row, and fits a phone', asy
   await panel(page)
     .getByLabel(/^Price paid/)
     .fill('120')
-  await page.getByRole('heading', { name: 'Passes', exact: true }).tap() // tap away
+  await panel(page).getByRole('button', { name: 'Save' }).click()
   await expect(mainRows(page).filter({ hasText: '7 / 10' })).toContainText('S$12.00 each')
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360)
 
@@ -196,26 +195,32 @@ test('a price paid shows what one entry cost, on the row, and fits a phone', asy
   await expect(mainRows(page).filter({ hasText: '7 / 10' })).toContainText('S$12.00 each')
 })
 
-test('Changes saved is in view after a change made with a button only, and tapping away', async ({
+test('pressing outside saves nothing; Save does, and Changes saved is in view', async ({
   page,
 }) => {
   await seeded(page)
   const row = mainRows(page).filter({ hasText: '7 / 10' })
+  const seededExpiry = relativeTime(120, todayLocal())
   await toggle(row).click()
   await panel(page).getByRole('button', { name: '+12 months' }).click()
-  await expect(page.getByText('Changes saved')).toHaveCount(0)
   await page.getByRole('heading', { name: 'Passes', exact: true }).tap()
+  await page.waitForTimeout(300)
+  await expect(page.getByText('Changes saved')).toHaveCount(0)
+  await expect(mainRows(page).filter({ hasText: '7 / 10' })).toContainText(seededExpiry)
+  await panel(page).getByRole('button', { name: 'Save' }).click()
   await expect(page.getByText('Changes saved')).toBeInViewport()
+  await expect(panel(page)).toHaveCount(0)
 })
 
-test('Changes saved is in view when Done saves', async ({ page }) => {
+test('Cancel closes the panel and drops the edit', async ({ page }) => {
   await seeded(page)
   const row = mainRows(page).filter({ hasText: '7 / 10' })
   await toggle(row).click()
   await panel(page)
     .getByLabel(/^Comments/)
-    .fill('done note')
-  await panel(page).getByRole('button', { name: 'Done' }).click()
-  await expect(page.getByText('Changes saved')).toBeInViewport()
+    .fill('dropped note')
+  await panel(page).getByRole('button', { name: 'Cancel changes' }).click()
   await expect(panel(page)).toHaveCount(0)
+  await toggle(mainRows(page).filter({ hasText: '7 / 10' })).click()
+  await expect(panel(page).getByLabel(/^Comments/)).not.toHaveValue('dropped note')
 })

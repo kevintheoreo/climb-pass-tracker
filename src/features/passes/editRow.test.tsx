@@ -142,7 +142,7 @@ describe('opening the details', () => {
 })
 
 describe('editing', () => {
-  it('saves by itself when everything is valid and focus leaves the panel', async () => {
+  it('saves with the Save button when everything is valid, and not before', async () => {
     const user = userEvent.setup()
     const pass = await repo.createPass(multipass())
     renderApp()
@@ -150,9 +150,9 @@ describe('editing', () => {
     await user.type(field(/^Comments/), 'bought at a sale')
     await user.clear(field(/^Price paid/))
     await user.type(field(/^Price paid/), '99.9')
-    expect((await repo.getPass(pass.id))?.comments).toBeNull() // still inside the panel
+    expect((await repo.getPass(pass.id))?.comments).toBeNull() // not saved by typing
 
-    await user.click(document.body)
+    await user.click(within(panel()).getByRole('button', { name: 'Save' }))
     await waitFor(async () =>
       expect((await repo.getPass(pass.id))?.comments).toBe('bought at a sale'),
     )
@@ -194,7 +194,7 @@ describe('editing', () => {
     await user.click(screen.getByRole('button', { name: /show details/ }))
     await user.clear(field('Expiry'))
     await user.type(field('Expiry'), day(60))
-    await user.click(document.body)
+    await user.click(within(panel()).getByRole('button', { name: 'Save' }))
 
     const [row] = await waitFor(async () => {
       const rows = await mainRows()
@@ -213,8 +213,7 @@ describe('editing', () => {
     await user.click(await screen.findByRole('button', { name: /show details/ }))
 
     await user.clear(field('Gym'))
-    await user.type(field('Gym'), 'Brand New Gym')
-    await user.click(document.body)
+    await user.type(field('Gym'), 'Brand New Gym{Enter}')
     await waitFor(async () =>
       expect((await repo.listUserGyms()).map((g) => g.name).sort()).toEqual([
         'Brand New Gym',
@@ -224,8 +223,7 @@ describe('editing', () => {
 
     // the panel stays open after a save
     await user.clear(field('Gym'))
-    await user.type(field('Gym'), 'zig zag WALL')
-    await user.click(document.body)
+    await user.type(field('Gym'), 'zig zag WALL{Enter}')
     await waitFor(async () => expect((await repo.getPass(pass.id))?.gymRef).toEqual(ref))
     expect(await repo.listUserGyms()).toHaveLength(2)
   })
@@ -237,7 +235,7 @@ describe('editing', () => {
     await user.click(await screen.findByRole('button', { name: /show details/ }))
     await user.selectOptions(field('Type'), 'membership')
     expect(field('Entries per month')).toHaveValue('') // the 10 entries are not carried over
-    await user.click(document.body)
+    await user.click(within(panel()).getByRole('button', { name: 'Save' }))
     expect(await screen.findByText('Unlimited')).toBeInTheDocument()
   })
 
@@ -251,7 +249,7 @@ describe('editing', () => {
     await user.type(field('Entries'), '0')
     await user.type(field('Already used'), 'x')
     await user.clear(field(/^Comments/))
-    await user.click(document.body)
+    await user.click(within(panel()).getByRole('button', { name: 'Save' }))
 
     expect(await within(panel()).findByText('Enter a gym name')).toBeInTheDocument()
     expect(within(panel()).getByText('Entries must be at least 1')).toBeInTheDocument()
@@ -264,13 +262,13 @@ describe('editing', () => {
     expect(within(panel()).getByText('Entries must be at least 1')).toBeInTheDocument()
   })
 
-  it('Done keeps a valid edit and stays open on a half-finished one', async () => {
+  it('Save keeps a valid edit and closes; a half-finished one stays open', async () => {
     const user = userEvent.setup()
     const pass = await repo.createPass(multipass())
     renderApp()
     await user.click(await screen.findByRole('button', { name: /show details/ }))
     await user.type(field(/^Comments/), 'kept')
-    await user.click(within(panel()).getByRole('button', { name: 'Done' }))
+    await user.click(within(panel()).getByRole('button', { name: 'Save' }))
     await waitFor(() =>
       expect(screen.queryByRole('region', { name: /^Details:/ })).not.toBeInTheDocument(),
     )
@@ -279,23 +277,23 @@ describe('editing', () => {
     await user.click(await screen.findByRole('button', { name: /show details/ }))
     await user.clear(field('Entries'))
     await user.type(field('Entries'), '0')
-    await user.click(within(panel()).getByRole('button', { name: 'Done' }))
+    await user.click(within(panel()).getByRole('button', { name: 'Save' }))
     // Nothing is thrown away: the panel stays open and says what is wrong.
     expect(within(panel()).getByText('Entries must be at least 1')).toBeInTheDocument()
     expect(totalOf(await repo.getPass(pass.id))).toBe(10)
   })
 
-  it('leaving the panel with nothing changed writes nothing', async () => {
+  it('saving with nothing changed writes nothing', async () => {
     const user = userEvent.setup()
     const pass = await repo.createPass(multipass())
     renderApp()
     await user.click(await screen.findByRole('button', { name: /show details/ }))
     await user.click(field('Entries'))
-    await user.click(document.body)
+    await user.click(within(panel()).getByRole('button', { name: 'Save' }))
     expect((await repo.getPass(pass.id))?.updatedAt).toBe(pass.updatedAt)
   })
 
-  it('tapping another row saves a valid edit on the first one', async () => {
+  it('tapping another row drops an edit that was not saved', async () => {
     const user = userEvent.setup()
     const second = await repo.createPass(multipass({ expiryDate: day(60), totalEntries: 20 }))
     await later()
@@ -306,10 +304,9 @@ describe('editing', () => {
     await user.click(firstToggle!)
     await user.type(field(/^Comments/), ' edited')
     await user.click(secondToggle!)
-    await waitFor(async () =>
-      expect((await repo.listPasses()).map((p) => p.comments)).toContain('first edited'),
-    )
     expect(field('Entries')).toHaveValue(String(totalOf(await repo.getPass(second.id))))
+    await new Promise((r) => setTimeout(r, 100))
+    expect((await repo.listPasses()).map((p) => p.comments)).not.toContain('first edited')
   })
 
   it('a − tap while the panel is open updates the untouched boxes and keeps what is being typed', async () => {
@@ -344,13 +341,11 @@ describe('monthly memberships', () => {
     await user.click(await screen.findByRole('button', { name: /show details/ }))
     expect(await screen.findByText('8 / 8')).toBeInTheDocument()
     await user.clear(field('Already used this month'))
-    await user.type(field('Already used this month'), '5')
-    await user.click(document.body)
+    await user.type(field('Already used this month'), '5{Enter}')
     expect(await screen.findByText('3 / 8')).toBeInTheDocument()
 
     await user.clear(field(/^Reset day/))
-    await user.type(field(/^Reset day/), '28')
-    await user.click(document.body)
+    await user.type(field(/^Reset day/), '28{Enter}')
     await waitFor(() => expect(screen.getByText(/resets 28 /)).toBeInTheDocument())
   })
 
@@ -360,7 +355,7 @@ describe('monthly memberships', () => {
     renderApp()
     await user.click(await screen.findByRole('button', { name: /show details/ }))
     await user.type(field('Already used this month'), '{Backspace}9')
-    await user.click(document.body)
+    await user.click(within(panel()).getByRole('button', { name: 'Save' }))
     expect(
       await within(panel()).findByText('Cannot be more than the entries per month'),
     ).toBeInTheDocument()
@@ -489,7 +484,7 @@ describe('the Moved to Finished notice', () => {
 })
 
 describe('save confirmation', () => {
-  it('says Changes saved (on the screen, not inside the long panel) after a change is saved', async () => {
+  it('says Changes saved (on the screen, not inside the long panel) after Enter saves', async () => {
     const user = userEvent.setup()
     const pass = await repo.createPass(multipass())
     renderApp()
@@ -497,35 +492,52 @@ describe('save confirmation', () => {
     expect(screen.queryByText('Changes saved')).not.toBeInTheDocument()
     await user.type(field(/^Comments/), 'note')
     await user.tab()
-    await user.click(within(panel()).getByRole('heading', { name: /^Details:/ }))
+    await user.click(document.body) // leaving the panel does not save
+    await new Promise((r) => setTimeout(r, 100))
+    expect(screen.queryByText('Changes saved')).not.toBeInTheDocument()
+    expect((await repo.getPass(pass.id))?.comments).toBeNull()
+    await user.type(field('Entries'), '{Enter}')
     expect(await screen.findByText('Changes saved')).toBeInTheDocument()
     await waitFor(async () => expect((await repo.getPass(pass.id))?.comments).toBe('note'))
   })
-})
 
-describe('save confirmation after a quick expiry button', () => {
-  it('saves and says Saved when the person taps away, even if focus never left', async () => {
+  it('says Changes saved when Save saves a change and closes the panel', async () => {
+    const user = userEvent.setup()
+    const pass = await repo.createPass(multipass())
+    renderApp()
+    await user.click(await screen.findByRole('button', { name: /show details/ }))
+    await user.type(field(/^Comments/), 'via save')
+    await user.click(within(panel()).getByRole('button', { name: 'Save' }))
+    expect(await screen.findByText('Changes saved')).toBeInTheDocument()
+    expect(screen.queryByRole('region', { name: /^Details:/ })).not.toBeInTheDocument()
+    await waitFor(async () => expect((await repo.getPass(pass.id))?.comments).toBe('via save'))
+  })
+
+  it('saves a quick expiry button change with Save', async () => {
     const user = userEvent.setup()
     const pass = await repo.createPass(multipass())
     renderApp()
     await user.click(await screen.findByRole('button', { name: /show details/ }))
     await user.click(within(panel()).getByRole('button', { name: '+12 months' }))
-    // A phone does not move focus to a tapped button, so no blur comes: only the press.
     fireEvent.pointerDown(screen.getByRole('heading', { name: 'Passes' }))
-    expect(await screen.findByText('Changes saved')).toBeInTheDocument()
+    await new Promise((r) => setTimeout(r, 100))
+    expect((await repo.getPass(pass.id))?.expiryDate).toBe(day(100)) // pressing outside saves nothing
+    await user.click(within(panel()).getByRole('button', { name: 'Save' }))
     await waitFor(async () => expect((await repo.getPass(pass.id))?.expiryDate).not.toBe(day(100)))
   })
 })
 
-describe('save confirmation with Done', () => {
-  it('says Changes saved when Done saves a change and closes the panel', async () => {
+describe('Cancel in the details panel', () => {
+  it('closes the panel and drops the edit', async () => {
     const user = userEvent.setup()
-    await repo.createPass(multipass())
+    const pass = await repo.createPass(multipass())
     renderApp()
     await user.click(await screen.findByRole('button', { name: /show details/ }))
-    await user.type(field(/^Comments/), 'via done')
-    await user.click(within(panel()).getByRole('button', { name: 'Done' }))
-    expect(await screen.findByText('Changes saved')).toBeInTheDocument()
+    await user.type(field(/^Comments/), 'dropped')
+    await user.click(within(panel()).getByRole('button', { name: 'Cancel changes' }))
     expect(screen.queryByRole('region', { name: /^Details:/ })).not.toBeInTheDocument()
+    await new Promise((r) => setTimeout(r, 100))
+    expect((await repo.getPass(pass.id))?.comments).toBeNull()
+    expect(screen.queryByText('Changes saved')).not.toBeInTheDocument()
   })
 })
