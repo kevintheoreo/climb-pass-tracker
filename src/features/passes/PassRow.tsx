@@ -15,12 +15,12 @@ import { Counter } from './Counter'
 import { EditPanel } from './EditPanel'
 import { WIDE_COLUMNS } from './fields'
 
-const muted = 'text-slate-600 dark:text-slate-400'
+const muted = 'text-stone-600 dark:text-stone-400'
 
 const toneClass: Record<BadgeTone, string> = {
   warn: 'bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-200',
   info: 'bg-sky-100 text-sky-900 dark:bg-sky-900/40 dark:text-sky-200',
-  muted: 'bg-slate-200 text-slate-800 dark:bg-slate-700 dark:text-slate-200',
+  muted: 'bg-stone-200 text-stone-800 dark:bg-stone-700 dark:text-stone-200',
 }
 
 export function PassRow({
@@ -69,7 +69,7 @@ export function PassRow({
     <li
       ref={item}
       className={[
-        open ? 'bg-slate-50 dark:bg-slate-950' : '',
+        open ? 'bg-stone-50 dark:bg-stone-950' : '',
         justAdded
           ? 'bg-emerald-50 ring-2 ring-inset ring-emerald-500 dark:bg-emerald-950/40 dark:ring-emerald-400'
           : highlighted

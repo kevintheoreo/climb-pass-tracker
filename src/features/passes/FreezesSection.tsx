@@ -61,7 +61,7 @@ function FreezeRow({ freeze, index }: { freeze: Freeze; index: number }) {
       aria-label={label}
       onBlur={onBlur}
       onKeyDown={onKeyDown}
-      className="rounded-lg border border-slate-300 p-3 dark:border-slate-700"
+      className="rounded-lg border border-stone-300 p-3 dark:border-stone-700"
     >
       <div className="grid grid-cols-2 gap-x-3 gap-y-3">
         <Cell label="Start" htmlFor={`${id}-start`} error={errors.start} className="min-w-0">
@@ -91,7 +91,7 @@ function FreezeRow({ freeze, index }: { freeze: Freeze; index: number }) {
           />
         </Cell>
       </div>
-      <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
+      <p className="mt-2 text-sm text-stone-600 dark:text-stone-400">
         {shown.start || shown.end
           ? 'Not saved yet'
           : `${formatDate(start)} to ${formatDate(end)}: ${days(start, end)}`}
@@ -155,7 +155,7 @@ function AddFreeze({
         e.preventDefault()
         void add()
       }}
-      className="rounded-lg border border-dashed border-slate-400 p-3 dark:border-slate-600"
+      className="rounded-lg border border-dashed border-stone-400 p-3 dark:border-stone-600"
     >
       <div className="grid grid-cols-2 gap-x-3 gap-y-3">
         <Cell label="Start" htmlFor={`${id}-start`} error={errors.start} className="min-w-0">
@@ -228,7 +228,7 @@ export function FreezesSection({
       <h4 id={`${passId}-freezes`} className="text-base font-semibold">
         Freezes
       </h4>
-      <p className="mb-3 text-sm text-slate-600 dark:text-slate-400">
+      <p className="mb-3 text-sm text-stone-600 dark:text-stone-400">
         Pause the membership and its end date moves back by the days frozen.
         {endsOn && freezes.length > 0 && ` It now ends on ${formatDate(endsOn)}.`}
       </p>

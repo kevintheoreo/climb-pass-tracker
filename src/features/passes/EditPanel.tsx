@@ -114,7 +114,7 @@ export function EditPanel({
     <section
       id={id}
       aria-labelledby={headingId}
-      className="col-span-full mt-3 rounded-lg border border-slate-300 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-950"
+      className="col-span-full mt-3 rounded-lg border border-stone-300 bg-stone-50 p-3 dark:border-stone-700 dark:bg-stone-950"
     >
       <h3 id={headingId} className="mb-3 text-base font-semibold">
         Details: {row.gymName}, {row.typeLabel}

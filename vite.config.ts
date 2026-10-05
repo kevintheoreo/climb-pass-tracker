@@ -20,8 +20,8 @@ export default defineConfig({
         name: 'Climb Pass Tracker',
         short_name: 'Climb Passes',
         description: 'Track your climbing gym passes: entries left and expiry dates.',
-        theme_color: '#0f766e',
-        background_color: '#f8fafc',
+        theme_color: '#e86533',
+        background_color: '#fff7e8',
         display: 'standalone',
         orientation: 'portrait',
         start_url: '/',
@@ -35,6 +35,9 @@ export default defineConfig({
       workbox: {
         navigateFallback: '/index.html',
         globPatterns: ['**/*.{js,css,html,svg,png,ico,webmanifest}'],
+        // The iPhone launch screens are fetched by iOS when the app is added to the home screen; they
+        // are not for the cache.
+        globIgnores: ['splash/**'],
       },
     }),
   ],

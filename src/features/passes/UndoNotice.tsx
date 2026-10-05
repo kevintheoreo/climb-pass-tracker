@@ -39,7 +39,7 @@ function NoticeBox({
     <div
       onFocus={() => setFocused(true)}
       onBlur={() => setFocused(false)}
-      className="pointer-events-auto flex max-w-md items-center gap-3 rounded-lg bg-slate-900 py-1 pl-4 pr-1 text-white shadow-lg dark:bg-slate-100 dark:text-slate-900"
+      className="pointer-events-auto flex max-w-md items-center gap-3 rounded-lg bg-stone-900 py-1 pl-4 pr-1 text-white shadow-lg dark:bg-stone-100 dark:text-stone-900"
     >
       {notice.kind === 'saved' ? (
         <p className="py-2.5 pr-3 text-base font-medium">Changes saved</p>

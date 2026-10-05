@@ -115,14 +115,14 @@ export function GymCombobox({
             onChange(cleanGymName(value))
         }}
         onKeyDown={onKeyDown}
-        className="block w-full min-h-11 rounded-lg border border-slate-300 bg-white px-3 py-2 text-base text-slate-900 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100"
+        className="block w-full min-h-11 rounded-lg border border-stone-300 bg-white px-3 py-2 text-base text-stone-900 dark:border-stone-600 dark:bg-stone-900 dark:text-stone-100"
       />
       <ul
         id={listId}
         role="listbox"
         aria-label="Matching gyms"
         hidden={!shown}
-        className="absolute left-0 right-0 top-full z-20 mt-1 overflow-hidden rounded-lg border border-slate-300 bg-white shadow-lg dark:border-slate-600 dark:bg-slate-900"
+        className="absolute left-0 right-0 top-full z-20 mt-1 overflow-hidden rounded-lg border border-stone-300 bg-white shadow-lg dark:border-stone-600 dark:bg-stone-900"
       >
         {options.map((option, i) => (
           <li
@@ -136,8 +136,8 @@ export function GymCombobox({
               pick(option)
             }}
             className={`flex min-h-11 cursor-pointer items-center px-3 py-2 text-base ${
-              i === active ? 'bg-teal-100 dark:bg-teal-900/50' : ''
-            } ${option.key === 'new' ? 'font-medium text-teal-800 dark:text-teal-300' : ''}`}
+              i === active ? 'bg-brand-100 dark:bg-brand-900/50' : ''
+            } ${option.key === 'new' ? 'font-medium text-brand-800 dark:text-brand-300' : ''}`}
           >
             {option.label}
           </li>

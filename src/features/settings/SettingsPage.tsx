@@ -22,13 +22,13 @@ export default function SettingsPage() {
           <Link
             key={link.to}
             to={link.to}
-            className="-ml-2 inline-flex min-h-11 items-center rounded-lg px-2 text-base font-medium text-teal-700 underline dark:text-teal-300"
+            className="-ml-2 inline-flex min-h-11 items-center rounded-lg px-2 text-base font-medium text-brand-700 underline dark:text-brand-400"
           >
             {link.label}
           </Link>
         ))}
       </nav>
-      <p className="pb-8 text-sm text-slate-600 dark:text-slate-400">
+      <p className="pb-8 text-sm text-stone-600 dark:text-stone-400">
         Climb Pass Tracker, version {__APP_VERSION__}
       </p>
     </Page>

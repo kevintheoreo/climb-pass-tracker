@@ -103,12 +103,12 @@ export function NewRow({
   return (
     <section
       aria-labelledby="new-row-heading"
-      className="mt-4 rounded-lg border border-dashed border-slate-400 bg-white p-4 dark:border-slate-600 dark:bg-slate-900"
+      className="mt-4 rounded-lg border border-dashed border-stone-400 bg-white p-4 dark:border-stone-600 dark:bg-stone-900"
     >
       <h2 id="new-row-heading" className="text-base font-semibold">
         Add a pass
       </h2>
-      <p className="mb-3 text-sm text-slate-600 dark:text-slate-400">
+      <p className="mb-3 text-sm text-stone-600 dark:text-stone-400">
         Fill in the row and tap Add pass. The price is optional.
       </p>
       <form

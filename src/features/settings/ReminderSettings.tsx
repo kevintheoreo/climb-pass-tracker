@@ -35,11 +35,11 @@ function Toggle({
           setPending(e.target.checked)
           onChange(e.target.checked).catch(() => setPending(null))
         }}
-        className="mt-1 size-6 shrink-0 accent-teal-700"
+        className="mt-1 size-6 shrink-0 accent-brand-500"
       />
       <span>
         <span className="block text-base font-medium">{label}</span>
-        {hint && <span className="block text-sm text-slate-600 dark:text-slate-400">{hint}</span>}
+        {hint && <span className="block text-sm text-stone-600 dark:text-stone-400">{hint}</span>}
       </span>
     </label>
   )
@@ -47,7 +47,7 @@ function Toggle({
 
 function Group({ children }: { children: ReactNode }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+    <div className="rounded-lg border border-stone-200 bg-white p-4 dark:border-stone-800 dark:bg-stone-900">
       {children}
     </div>
   )
@@ -109,7 +109,7 @@ export function ReminderSettings({ settings }: { settings: Settings }) {
       <h2 id="reminders-heading" className="mb-1 text-lg font-semibold">
         Reminders
       </h2>
-      <p className="mb-3 text-sm text-slate-600 dark:text-slate-400">
+      <p className="mb-3 text-sm text-stone-600 dark:text-stone-400">
         Reminders show as banners at the top of the list while the app is open. Nothing is sent to
         your phone.
       </p>

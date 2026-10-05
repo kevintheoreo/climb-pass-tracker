@@ -16,6 +16,6 @@ export function LegalSection({ title, children }: { title: string; children: Rea
 /** The line under a legal page's heading. */
 export function LegalUpdated() {
   return (
-    <p className="mb-6 text-sm text-slate-600 dark:text-slate-400">Last updated {LEGAL_UPDATED}</p>
+    <p className="mb-6 text-sm text-stone-600 dark:text-stone-400">Last updated {LEGAL_UPDATED}</p>
   )
 }

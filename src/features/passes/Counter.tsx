@@ -55,7 +55,7 @@ export function Counter({
               }),
             )
           }}
-          className={`${button} bg-teal-700 text-white hover:bg-teal-800 disabled:bg-slate-200 disabled:text-slate-400 disabled:hover:bg-slate-200 dark:disabled:bg-slate-800 dark:disabled:text-slate-600 dark:disabled:hover:bg-slate-800`}
+          className={`${button} bg-brand-500 text-ink hover:bg-brand-400 disabled:bg-stone-200 disabled:text-stone-400 disabled:hover:bg-stone-200 dark:disabled:bg-stone-800 dark:disabled:text-stone-600 dark:disabled:hover:bg-stone-800`}
         >
           <span aria-hidden="true">−</span>
         </button>
@@ -73,7 +73,7 @@ export function Counter({
             markTapped(pass.id)
             void ignoreMissing(repo.giveBackEntry(pass.id, today))
           }}
-          className={`${button} border border-slate-300 bg-white text-slate-900 hover:bg-slate-100 disabled:border-slate-200 disabled:text-slate-300 disabled:hover:bg-white dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800 dark:disabled:border-slate-800 dark:disabled:text-slate-700 dark:disabled:hover:bg-slate-900`}
+          className={`${button} border border-stone-300 bg-white text-stone-900 hover:bg-stone-100 disabled:border-stone-200 disabled:text-stone-300 disabled:hover:bg-white dark:border-stone-600 dark:bg-stone-900 dark:text-stone-100 dark:hover:bg-stone-800 dark:disabled:border-stone-800 dark:disabled:text-stone-700 dark:disabled:hover:bg-stone-900`}
         >
           <span aria-hidden="true">+</span>
         </button>

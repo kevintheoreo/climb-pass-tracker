@@ -23,7 +23,7 @@ export function Page({
       {back && (
         <Link
           to={back.to}
-          className="-ml-2 mb-2 inline-flex min-h-11 items-center rounded-lg px-2 text-sm font-medium text-teal-700 dark:text-teal-300"
+          className="-ml-2 mb-2 inline-flex min-h-11 items-center rounded-lg px-2 text-sm font-medium text-brand-700 dark:text-brand-400"
         >
           ‹ {back.label}
         </Link>

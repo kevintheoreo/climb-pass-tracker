@@ -39,7 +39,7 @@ export function InstallPrompt() {
   return (
     <section
       aria-labelledby="install-prompt-heading"
-      className="mb-4 rounded-lg border border-teal-700 bg-teal-50 p-4 dark:border-teal-500 dark:bg-teal-950"
+      className="mb-4 rounded-lg border border-brand-500 bg-brand-100 p-4 dark:border-brand-500 dark:bg-brand-950"
     >
       <h2 id="install-prompt-heading" className="text-base font-semibold">
         This app was designed to be installed on your home screen.
