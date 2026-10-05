@@ -35,7 +35,7 @@ export function Layout() {
             {/* Decorative for now: it has no action yet. Hidden on very narrow or very large-text screens, where the header needs the room. */}
             <span
               aria-hidden="true"
-              className="hidden min-h-11 min-w-11 items-center justify-center text-stone-600 min-[22rem]:inline-flex dark:text-stone-400"
+              className="hidden min-h-11 min-w-7 items-center justify-center text-stone-600 min-[22rem]:inline-flex dark:text-stone-400"
             >
               <MonkeyIcon />
             </span>
