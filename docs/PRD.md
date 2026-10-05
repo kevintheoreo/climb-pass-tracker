@@ -128,6 +128,7 @@ Status column: **Active**, **Updated** (still applies, reworded for v2.0) or **S
 | D53 | Retiring a built-in gym | Each built-in gym has an `isActive` flag in `src/data/gyms.ts`. A gym with `isActive: false` is no longer suggested in the gym box, but passes that already use it keep showing its name, and typing its exact name reuses it instead of creating a copy. Gyms are retired by editing the list in a new release; there is no screen for it. | New |
 | D54 | About screen | The monkey icon in the header, beside the gear, opens an **About** screen (a screen, not a popup, like Settings, with the same back link). It has a short bold orange top with the heading and a large cream monkey; a card "Developed by @crampingapey" (a link to the developer's Instagram); a warm card with a **Buy me a coffee** button (Buy Me a Coffee); and a footer with the version and links to the privacy policy and terms. Both open in a new tab so the app stays where it was. The monkey is hidden on very narrow or very large-text screens, so Settings also links to About. The app sends these sites nothing; the privacy policy says so. | New |
 | D55 | Header logo | On the main screen the header's left side is the app icon (a small rounded tile, the same `pwa-192.png` the home screen uses, so it is cached and needs no outside address) and the name in two tones: "Climb Pass" in the text colour and "Tracker" in the dark orange (`brand-700`; lighter orange in dark mode). Other screens keep the back link (D51). | New |
+| D56 | Unused gyms are not suggested | A gym a person typed is suggested in the gym box only while a pass (in the list or in Finished) uses it. Delete the pass, or change its gym, and the gym stops being suggested, so a typo does not stay in the dropdown for good. It is not deleted: it still names any pass that uses it, and typing its exact name reuses it instead of making a copy. Built-in gyms are not affected (they are retired with `isActive`, D53). Replaces the "stays in the list for good" behaviour of D24 for typed gyms. | New |
 
 ## 5. Pass types
 
@@ -236,6 +237,7 @@ Priority: **P0** = must have for launch, **P1** = should have for launch, **P2**
 - **FR-72 (P0)** **Saving is explicit:** a new pass, a Buy again row and an edit in the details panel are saved only by **Add pass** / **Save** or Enter, never by leaving the form; **Cancel** drops what was typed (D49). Replaces the saving-on-leaving rule of FR-18 and FR-54.
 - **FR-73 (P0)** **Retired gyms:** a built-in gym with `isActive: false` is left out of the gym box's suggestions (also when the box is empty) but still names the passes that use it (D53).
 - **FR-74 (P0)** **About:** the header's monkey icon (a 44px target) opens `/about` with the developer credit, the Instagram link and the Buy me a coffee link, each opening in a new tab; Settings also links to it (D54).
+- **FR-75 (P0)** **Unused typed gyms:** the gym box does not suggest a gym the person typed when no pass uses it, also with an empty box; it still matches by exact name (D56).
 
 ## 7. Data model (logical)
 

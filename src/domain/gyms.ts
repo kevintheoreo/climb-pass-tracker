@@ -19,15 +19,26 @@ export interface BuiltinGym {
 export interface GymEntry {
   ref: GymRef
   name: string
-  /** Whether the gym is suggested in the gym box; a retired gym still names its old passes. */
+  /**
+   * Whether the gym is suggested in the gym box. A retired built-in gym, or a gym a person typed
+   * that no pass uses any more, is not; it still names its old passes and is reused if typed.
+   */
   isActive: boolean
 }
 
 const byName = (a: GymEntry, b: GymEntry) =>
   a.name.localeCompare(b.name, 'en', { sensitivity: 'base' }) || (a.ref.id < b.ref.id ? -1 : 1)
 
-/** Every gym, built-in and user-added, sorted by name ignoring case. */
-export function buildGymList(builtin: BuiltinGym[], userGyms: UserGym[]): GymEntry[] {
+/**
+ * Every gym, built-in and user-added, sorted by name ignoring case. When `inUse` (the ids of the
+ * user gyms that a live pass points at) is given, a user gym no pass uses is not active, so it is
+ * left out of the suggestions (D56); without it every user gym is active.
+ */
+export function buildGymList(
+  builtin: BuiltinGym[],
+  userGyms: UserGym[],
+  inUse?: ReadonlySet<string>,
+): GymEntry[] {
   return [
     ...builtin.map((g): GymEntry => ({
       ref: { kind: 'builtin', id: g.id },
@@ -36,7 +47,11 @@ export function buildGymList(builtin: BuiltinGym[], userGyms: UserGym[]): GymEnt
     })),
     ...userGyms
       .filter((g) => g.deletedAt === null)
-      .map((g): GymEntry => ({ ref: { kind: 'user', id: g.id }, name: g.name, isActive: true })),
+      .map((g): GymEntry => ({
+        ref: { kind: 'user', id: g.id },
+        name: g.name,
+        isActive: inUse === undefined || inUse.has(g.id),
+      })),
   ].sort(byName)
 }
 
