@@ -144,7 +144,7 @@ export function GymCombobox({
         ))}
       </ul>
       {error && (
-        <p id={errorId} role="alert" className="mt-1 text-sm text-red-700 dark:text-red-400">
+        <p id={errorId} role="alert" className="mt-1 text-sm text-red-700 dark:text-red-300">
           {error}
         </p>
       )}

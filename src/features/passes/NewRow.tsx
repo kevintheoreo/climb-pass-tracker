@@ -147,7 +147,7 @@ export function NewRow({
       </form>
 
       {failed && (
-        <p role="alert" className="mt-3 text-sm text-red-700 dark:text-red-400">
+        <p role="alert" className="mt-3 text-sm text-red-700 dark:text-red-300">
           Couldn’t save this pass. Try again.
         </p>
       )}

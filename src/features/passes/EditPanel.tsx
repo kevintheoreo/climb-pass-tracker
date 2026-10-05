@@ -154,7 +154,7 @@ export function EditPanel({
       )}
 
       {failed && (
-        <p role="alert" className="mt-3 text-sm text-red-700 dark:text-red-400">
+        <p role="alert" className="mt-3 text-sm text-red-700 dark:text-red-300">
           Couldn’t save your changes. Try again.
         </p>
       )}

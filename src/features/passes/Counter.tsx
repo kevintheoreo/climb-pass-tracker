@@ -55,7 +55,7 @@ export function Counter({
               }),
             )
           }}
-          className={`${button} bg-brand-500 text-ink hover:bg-brand-400 disabled:bg-stone-200 disabled:text-stone-400 disabled:hover:bg-stone-200 dark:disabled:bg-stone-800 dark:disabled:text-stone-600 dark:disabled:hover:bg-stone-800`}
+          className={`${button} bg-brand-500 text-white hover:bg-brand-600 disabled:bg-stone-200 disabled:text-stone-400 disabled:hover:bg-stone-200 dark:disabled:bg-stone-800 dark:disabled:text-stone-600 dark:disabled:hover:bg-stone-800`}
         >
           <span aria-hidden="true">−</span>
         </button>

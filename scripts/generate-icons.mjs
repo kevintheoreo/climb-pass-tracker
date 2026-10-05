@@ -16,7 +16,7 @@ import sharp from 'sharp'
 
 const ORANGE = { r: 0xe8, g: 0x65, b: 0x33, alpha: 1 } // #E86533, the app's main colour
 const LIGHT_BG = { r: 0xff, g: 0xf7, b: 0xe8, alpha: 1 } // #FFF7E8, the app's light background
-const DARK_BG = { r: 0x0c, g: 0x0a, b: 0x09, alpha: 1 } // #0C0A09 (stone-950), the dark background
+const DARK_BG = { r: 0x2b, g: 0x2b, b: 0x2b, alpha: 1 } // #2B2B2B, the charcoal dark background
 
 // Where the artwork sits in design/icon-source.png (found by scanning for non-orange pixels).
 const ART = { left: 385, top: 270, width: 466, height: 721 }

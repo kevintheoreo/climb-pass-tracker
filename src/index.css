@@ -2,8 +2,9 @@
 
 /*
  * The brand colours. 500 is the main orange and 50 the main off-white (the icon's colours). White text
- * on 500 is too faint (3.3:1), so buttons on it use dark ink; 700 is the orange for text on a light
- * page (5.7:1 on 50) and 400 the one for text on a dark page.
+ * on 500 is only 3.3:1, enough for large text only, so the labels of buttons on it are large and bold
+ * (see `buttonClass`); 700 is the orange for text on a light page (5.7:1 on 50) and 400 the one for
+ * text on a dark page.
  */
 @theme {
   --color-brand-50: #fff7e8;
@@ -17,7 +18,12 @@
   --color-brand-800: #8a340c;
   --color-brand-900: #6b2808;
   --color-brand-950: #3a1606;
-  --color-ink: #1f1f1f;
+
+  /* Dark mode is charcoal grey, not black: the page, then cards, then borders, each a step lighter. */
+  --color-stone-950: #2b2b2b;
+  --color-stone-900: #363636;
+  --color-stone-800: #444444;
+  --color-stone-700: #555555;
 }
 
 /* Follow the system light/dark setting (Tailwind's `dark:` uses prefers-color-scheme). */

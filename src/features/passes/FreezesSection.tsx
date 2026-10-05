@@ -97,7 +97,7 @@ function FreezeRow({ freeze, index }: { freeze: Freeze; index: number }) {
           : `${formatDate(start)} to ${formatDate(end)}: ${days(start, end)}`}
       </p>
       {failed && (
-        <p role="alert" className="mt-2 text-sm text-red-700 dark:text-red-400">
+        <p role="alert" className="mt-2 text-sm text-red-700 dark:text-red-300">
           Couldn’t save this freeze. Try again.
         </p>
       )}
@@ -186,7 +186,7 @@ function AddFreeze({
         </Cell>
       </div>
       {failed && (
-        <p role="alert" className="mt-2 text-sm text-red-700 dark:text-red-400">
+        <p role="alert" className="mt-2 text-sm text-red-700 dark:text-red-300">
           Couldn’t save this freeze. Try again.
         </p>
       )}

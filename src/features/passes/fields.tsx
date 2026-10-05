@@ -36,7 +36,7 @@ export function Cell({
       {children}
       {hint && !error && <p className="mt-1 text-sm text-stone-600 dark:text-stone-400">{hint}</p>}
       {error && (
-        <p id={errorId} role="alert" className="mt-1 text-sm text-red-700 dark:text-red-400">
+        <p id={errorId} role="alert" className="mt-1 text-sm text-red-700 dark:text-red-300">
           {error}
         </p>
       )}
