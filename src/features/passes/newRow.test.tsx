@@ -236,7 +236,7 @@ describe('feedback when a pass is added (D46)', () => {
     expect(await screen.findByText('Zig Zag Wall, Multipass')).toBeVisible()
   })
 
-  it('the new row is marked, glows and is scrolled into view', async () => {
+  it('the new row is marked for screen readers, is not highlighted, and is scrolled into view', async () => {
     const user = userEvent.setup()
     renderApp()
     await addOne(user)
@@ -246,7 +246,7 @@ describe('feedback when a pass is added (D46)', () => {
       return rows
     })
     expect(row).toHaveTextContent('Just added.')
-    expect(row).toHaveClass('ring-amber-400')
+    expect(row?.className).not.toMatch(/amber|ring-/) // no glow: it slides in instead (D57)
     await waitFor(() => expect(scrolled).toHaveBeenCalledTimes(1))
     expect(scrolled.mock.contexts[0]).toBe(row)
   })

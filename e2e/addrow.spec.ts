@@ -210,19 +210,18 @@ test('adding a pass says so, and shows the new row even when the list is long', 
   // A notice at the bottom of the screen names the pass...
   const notice = page.getByRole('status').filter({ hasText: 'Brand New Wall, Multipass added' })
   await expect(notice).toBeVisible()
-  // ...the new row (first in the list) glows and has been scrolled into view...
+  // ...the new row (first in the list) has been scrolled into view, with no glow...
   const row = mainRows(page).first()
   await expect(row).toContainText('Brand New Wall')
-  await expect(row).toHaveClass(/ring-amber-400/)
+  await expect(row).not.toHaveClass(/ring-amber-400/)
   await expect
     .poll(async () => {
       const box = await row.boundingBox()
       return box !== null && box.y >= 0 && box.y + box.height <= 700
     })
     .toBe(true)
-  // ...and both go away by themselves.
+  // ...and the notice goes away by itself.
   await expect(notice).toHaveCount(0, { timeout: 8000 })
-  await expect(row).not.toHaveClass(/ring-amber-400/)
 })
 
 test('a real gym is found however its name is typed, and no copy of it is made (D22)', async ({
