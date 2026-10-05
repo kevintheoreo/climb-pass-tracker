@@ -2,7 +2,7 @@ import type { FreezeInput, PassInput, UseInput, UserGymInput } from './schemas'
 
 export type { FreezeInput, GymRef, PassInput, UseInput, UserGymInput } from './schemas'
 
-/** Fields on every user-owned record. Deletes are soft (`deletedAt` set) so they can sync. */
+/** Fields on every user-owned record. Removed uses, freezes and gyms are flagged (`deletedAt` set) so a backup can carry them; a deleted pass is removed for good. */
 export interface RecordMeta {
   id: string
   /** ISO timestamps. */

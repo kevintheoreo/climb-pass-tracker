@@ -211,7 +211,6 @@ export type SettingsOutcome = 'none' | 'added' | 'updated' | 'kept'
 export interface ImportSummary {
   passesAdded: number
   passesUpdated: number
-  passesRemoved: number
   usesAdded: number
   usesRemoved: number
   freezesChanged: number
@@ -286,8 +285,9 @@ const sameSettings = (a: Settings, b: Settings) =>
  * write and what that means, and the repository does the writing in one transaction.
  *
  * - Rows are matched by id. The newer edit (by `updatedAt`) wins; a tie keeps what is here.
- * - Nothing is ever deleted by importing, except a pass, use or freeze that the file has a *newer
- *   deletion* of. An older copy of something deleted here does not bring it back.
+ * - Nothing is ever deleted by importing, except a use or freeze that the file has a *newer
+ *   deletion* of. Passes are deleted for good, so a pass the file marks deleted (an old file) is
+ *   ignored and never removes one here. An older copy of a use deleted here does not bring it back.
  * - A gym in the file that has the same name (ignoring case and punctuation) as a gym already
  *   here, or as a built-in gym, is the same gym: its passes are pointed at the one here and no copy
  *   is made (the rule of D24 / FR-53).
@@ -339,12 +339,25 @@ export function planImport(
 
   const remapRef = (ref: GymRef): GymRef => (ref.kind === 'user' ? (remap.get(ref.id) ?? ref) : ref)
 
+  // A deleted pass is gone for good (it is removed, not flagged), so a file can only carry one from
+  // before that change. It is ignored, with its uses and freezes, and never removes a pass here.
+  const deletedPassIds = new Set(
+    incoming.passes.filter((p) => p.deletedAt !== null).map((p) => p.id),
+  )
   const passes = mergeRecords(
     local.passes,
-    incoming.passes.map((p): Pass => ({ ...p, gymRef: remapRef(p.gymRef) })),
+    incoming.passes
+      .filter((p) => p.deletedAt === null)
+      .map((p): Pass => ({ ...p, gymRef: remapRef(p.gymRef) })),
   )
-  const uses = mergeRecords(local.uses, incoming.uses)
-  const freezes = mergeRecords(local.freezes, incoming.freezes)
+  const uses = mergeRecords(
+    local.uses,
+    incoming.uses.filter((u) => !deletedPassIds.has(u.passId)),
+  )
+  const freezes = mergeRecords(
+    local.freezes,
+    incoming.freezes.filter((f) => !deletedPassIds.has(f.passId)),
+  )
 
   let settings: StoredSettings | undefined
   let settingsOutcome: SettingsOutcome = 'none'
@@ -367,7 +380,6 @@ export function planImport(
   const summary: ImportSummary = {
     passesAdded: passes.counts.added,
     passesUpdated: passes.counts.updated,
-    passesRemoved: passes.counts.removed,
     usesAdded: uses.counts.added,
     usesRemoved: uses.counts.removed,
     freezesChanged: freezes.counts.added + freezes.counts.updated + freezes.counts.removed,
@@ -379,7 +391,6 @@ export function planImport(
   summary.nothingNew =
     summary.passesAdded +
       summary.passesUpdated +
-      summary.passesRemoved +
       summary.usesAdded +
       summary.usesRemoved +
       summary.freezesChanged +

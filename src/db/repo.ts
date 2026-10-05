@@ -75,8 +75,9 @@ function startOfDay(date: LocalDate): string {
 /**
  * All reads and writes the app makes to the on-device database.
  *
- * - Writes validate their input, always set `createdAt` / `updatedAt`, and never hard-delete:
- *   deleting sets `deletedAt` (so deletions can sync later). Reads return live rows only.
+ * - Writes validate their input and always set `createdAt` / `updatedAt`. Deleting a pass removes it
+ *   for good; removing a use, a freeze or a user gym sets `deletedAt` (so a backup can carry it):
+ *   reads return live rows only.
  * - `−` and `+` (`useEntry`, `giveBackEntry`) check the rules from `src/domain/counter.ts` and
  *   change the data inside one transaction, so a double tap can never count twice.
  * - Reads are plain async functions, so they can be used directly inside `useLiveQuery`.
@@ -187,16 +188,16 @@ export function createRepo(db: ClimbDB, options: RepoOptions = {}) {
     })
   }
 
-  /** Deletes a pass together with its uses and freezes (FR-19). */
+  /**
+   * Deletes a pass for good, together with all of its uses and freezes (FR-19, D52). Nothing is
+   * kept: no flagged copy stays behind.
+   */
   async function deletePass(id: string): Promise<void> {
     await db.transaction('rw', db.passes, db.uses, db.freezes, async () => {
-      const pass = requireLive(await db.passes.get(id), 'Pass', id)
-      const t = now()
-      const uses = (await db.uses.where('passId').equals(id).toArray()).filter(isLive)
-      const freezes = (await db.freezes.where('passId').equals(id).toArray()).filter(isLive)
-      await db.passes.put(tombstone(pass, t))
-      await db.uses.bulkPut(uses.map((u) => tombstone(u, t)))
-      await db.freezes.bulkPut(freezes.map((f) => tombstone(f, t)))
+      requireLive(await db.passes.get(id), 'Pass', id)
+      await db.uses.where('passId').equals(id).delete()
+      await db.freezes.where('passId').equals(id).delete()
+      await db.passes.delete(id)
     })
   }
 

@@ -159,11 +159,6 @@ export function importLines(summary: ImportSummary): string[] {
       `${plural(summary.passesUpdated, 'pass', 'passes')} updated (the backup has a newer edit)`,
     )
   }
-  if (summary.passesRemoved) {
-    lines.push(
-      `${plural(summary.passesRemoved, 'pass', 'passes')} removed (deleted after the last change here)`,
-    )
-  }
   if (summary.usesAdded) {
     lines.push(`${plural(summary.usesAdded, 'recorded use', 'recorded uses')} added`)
   }

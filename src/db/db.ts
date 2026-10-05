@@ -13,8 +13,9 @@ export interface MetaRow {
 }
 
 /**
- * On-device IndexedDB database. Every user-owned table uses client-generated string ids and soft
- * deletes (`deletedAt`), so the same rows can be synced later. `null` is not a valid IndexedDB key,
+ * On-device IndexedDB database. Every user-owned table uses client-generated string ids. Deleting a
+ * pass removes it for good; removing a use (`+`), a freeze or a user gym only flags it
+ * (`deletedAt`) so a backup can carry the removal. `null` is not a valid IndexedDB key,
  * so `deletedAt` is deliberately not indexed: filter live rows in code (see the repository).
  */
 export class ClimbDB extends Dexie {
@@ -62,6 +63,34 @@ export class ClimbDB extends Dexie {
           tx.table('uses').clear(),
           tx.table('freezes').clear(),
         ])
+      })
+
+    // Version 3: deleting a pass now removes it for good. Passes that were only flagged deleted
+    // before are purged here, with every use and freeze that belonged to them (or to no pass).
+    this.version(3)
+      .stores({
+        passes: 'id, updatedAt, passType, gymRef.id',
+        uses: 'id, passId, usedAt, updatedAt',
+        freezes: 'id, passId, updatedAt',
+        userGyms: 'id, updatedAt',
+        settings: 'id',
+        meta: 'key',
+      })
+      .upgrade(async (tx) => {
+        const passes = await tx.table('passes').toArray()
+        const live = new Set(passes.filter((p) => p.deletedAt == null).map((p) => p.id))
+        await tx
+          .table('passes')
+          .filter((p) => p.deletedAt != null)
+          .delete()
+        await tx
+          .table('uses')
+          .filter((u) => !live.has(u.passId))
+          .delete()
+        await tx
+          .table('freezes')
+          .filter((f) => !live.has(f.passId))
+          .delete()
       })
   }
 }
