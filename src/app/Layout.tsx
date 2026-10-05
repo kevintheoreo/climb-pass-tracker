@@ -30,7 +30,12 @@ export function Layout() {
               {back.label}
             </Link>
           ) : (
-            <span className="py-2 text-lg font-semibold">Climb Pass Tracker</span>
+            <span className="flex items-center gap-2.5 py-2 text-lg font-bold leading-none">
+              <img src="/pwa-192.png" alt="" width="32" height="32" className="size-8 rounded-lg" />
+              <span>
+                Climb Pass <span className="text-brand-700 dark:text-brand-400">Tracker</span>
+              </span>
+            </span>
           )}
           <div className="flex items-center">
             {/* Hidden on very narrow or very large-text screens, where the header needs the room;

@@ -14,7 +14,7 @@ describe('App shell (D23)', () => {
   it('opens on the main screen with a gear icon for Settings and no tab bar', () => {
     renderAt()
     expect(screen.getByRole('heading', { level: 1, name: 'Passes' })).toBeInTheDocument()
-    expect(screen.getByText('Climb Pass Tracker')).toBeInTheDocument()
+    expect(screen.getByRole('banner')).toHaveTextContent('Climb Pass Tracker')
     expect(screen.getByRole('link', { name: 'Settings' })).toHaveAttribute('href', '/settings')
     expect(screen.queryByRole('navigation')).not.toBeInTheDocument()
     expect(document.title).toBe('Passes · Climb Pass Tracker')
