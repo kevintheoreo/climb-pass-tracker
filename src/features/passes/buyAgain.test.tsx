@@ -92,7 +92,7 @@ describe('Buy again (FR-21)', () => {
 })
 
 describe('Buy again, leaving the row', () => {
-  it('saves when focus leaves the row, like a normal new pass', async () => {
+  it('does not save when focus leaves or the person presses outside; Add pass saves', async () => {
     await repo.createPass(multipass())
     const user = userEvent.setup()
     renderApp()
@@ -100,24 +100,10 @@ describe('Buy again, leaving the row', () => {
     await user.click(screen.getByRole('button', { name: 'Buy again' }))
     await user.type(await screen.findByLabelText(/^Expiry/), addDays(today, 200))
     await user.click(screen.getByRole('heading', { name: 'Passes' }))
-    await waitFor(async () => expect(await repo.listBundles()).toHaveLength(2))
-  })
-})
-
-describe('Buy again, when focus never entered the row', () => {
-  it('still saves when the person taps elsewhere', async () => {
-    await repo.createPass(multipass())
-    const user = userEvent.setup()
-    renderApp()
-    await user.click(await screen.findByRole('button', { name: /show details/ }))
-    await user.click(screen.getByRole('button', { name: 'Buy again' }))
-    const form = await screen.findByRole('form', { name: 'New pass' })
-    // A phone may refuse the programmatic focus, and its buttons do not take focus when tapped.
-    ;(document.activeElement as HTMLElement | null)?.blur()
-    fireEvent.pointerDown(screen.getByRole('button', { name: '+12 months' }))
-    fireEvent.click(screen.getByRole('button', { name: '+12 months' }))
-    expect(form).toBeInTheDocument()
     fireEvent.pointerDown(screen.getByRole('heading', { name: 'Passes' }))
+    await new Promise((r) => setTimeout(r, 100))
+    expect(await repo.listBundles()).toHaveLength(1)
+    await user.click(screen.getByRole('button', { name: 'Add pass' }))
     await waitFor(async () => expect(await repo.listBundles()).toHaveLength(2))
   })
 })

@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type FocusEvent } from 'react'
+import { useId, useRef, useState } from 'react'
 import { ConfirmDelete } from '../../components/ConfirmDelete'
 import { buttonClass } from '../../components/formUtils'
 import { NotFoundError, repo } from '../../db'
@@ -30,7 +30,7 @@ function usedThisMonthOf(row: Row, today: LocalDate): number {
 /**
  * The details panel under a tapped row (FR-17, FR-18, FR-56): every field of the pass, the gym,
  * type, entries and expiry too. Like the blank row it saves itself when everything is valid and
- * focus leaves the panel, or on Enter; a half-finished edit is never saved, and Close drops it.
+ * the Save button is pressed or on Enter; a half-finished edit is never saved, and Cancel drops it. Leaving the panel saves nothing.
  * Delete asks first (FR-19).
  */
 export function EditPanel({
@@ -59,7 +59,6 @@ export function EditPanel({
   const [failed, setFailed] = useState(false)
   const saving = useRef(false)
   const headingId = useId()
-  const section = useRef<HTMLElement>(null)
 
   // The saved pass moved on (a `−` tap, or this panel's own save): boxes not being edited follow it.
   if (JSON.stringify(original) !== JSON.stringify(seen)) {
@@ -111,29 +110,10 @@ export function EditPanel({
     }
   }
 
-  // Pressing anywhere outside the panel also leaves it. Focus alone is not enough: a button that was
-  // tapped last (+6 / +12 months) may not hold the focus, so no blur would ever come.
-  useEffect(() => {
-    const away = (e: PointerEvent) => {
-      if (e.target instanceof Node && section.current?.contains(e.target)) return
-      void save()
-    }
-    document.addEventListener('pointerdown', away)
-    return () => document.removeEventListener('pointerdown', away)
-  })
-
-  const onBlur = (e: FocusEvent<HTMLElement>) => {
-    // Moving between the panel's own cells is not leaving it.
-    if (e.relatedTarget instanceof Node && e.currentTarget.contains(e.relatedTarget)) return
-    void save()
-  }
-
   return (
     <section
-      ref={section}
       id={id}
       aria-labelledby={headingId}
-      onBlur={onBlur}
       className="col-span-full mt-3 rounded-lg border border-slate-300 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-950"
     >
       <h3 id={headingId} className="mb-3 text-base font-semibold">
@@ -183,23 +163,26 @@ export function EditPanel({
         <button
           type="button"
           onClick={() => {
-            // Keep a valid edit. A half-finished one stays open, with what is wrong shown.
+            // Save and close. An edit that is not valid stays open, with what is wrong shown.
             void save().then((ok) => {
               if (ok) onClose()
             })
           }}
           className={buttonClass('primary')}
         >
-          Done
+          Save
         </button>
         <button
           type="button"
-          onClick={() => {
-            // Keep a valid edit, then start the new row from what this pass looks like now.
-            void save().then((saved) => {
-              if (saved) onBuyAgain(buyAgainDraft(row.pass, draft.gym.trim() || row.gymName))
-            })
-          }}
+          aria-label="Cancel changes"
+          onClick={onClose}
+          className={buttonClass('secondary')}
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          onClick={() => onBuyAgain(buyAgainDraft(row.pass, row.gymName))}
           className={buttonClass('secondary')}
         >
           Buy again

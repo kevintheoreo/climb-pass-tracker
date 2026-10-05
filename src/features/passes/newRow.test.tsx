@@ -279,7 +279,7 @@ describe('saving', () => {
     expect(screen.getByRole('button', { name: 'Add a pass' })).toHaveFocus()
   })
 
-  it('saves when focus leaves a complete row', async () => {
+  it('does not save when focus leaves a complete row', async () => {
     const user = userEvent.setup()
     renderApp()
     await user.type(await gymBox(), 'Zig Zag Wall')
@@ -291,7 +291,10 @@ describe('saving', () => {
     await user.tab()
     await user.tab() // the Add pass button: still the same row
     await user.tab() // out of the row
-    await waitFor(async () => expect(await repo.listPasses()).toHaveLength(1))
+    await user.click(document.body) // and a press outside it
+    await new Promise((r) => setTimeout(r, 100))
+    expect(await repo.listPasses()).toEqual([]) // nothing is saved by leaving
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
 
   it('moving between the cells does not save or complain', async () => {
@@ -304,11 +307,11 @@ describe('saving', () => {
     expect(await repo.listPasses()).toEqual([])
   })
 
-  it('leaving an unfinished row saves nothing and says what is missing, all at once', async () => {
+  it('Add pass on an unfinished row saves nothing and says what is missing, all at once', async () => {
     const user = userEvent.setup()
     renderApp()
     await user.type(await gymBox(), 'Zig Zag Wall')
-    await user.click(document.body)
+    await user.click(screen.getByRole('button', { name: 'Add pass' }))
     expect(await screen.findByText('Enter the number of entries')).toBeInTheDocument()
     expect(screen.getByText('Enter an expiry date')).toBeInTheDocument()
     expect(await repo.listPasses()).toEqual([])
@@ -328,7 +331,7 @@ describe('saving', () => {
     const user = userEvent.setup()
     renderApp()
     await user.type(await gymBox(), 'Zig Zag Wall')
-    await user.click(document.body)
+    await user.click(screen.getByRole('button', { name: 'Add pass' }))
     expect(await screen.findByText('Enter the number of entries')).toBeInTheDocument()
     await user.type(entriesBox(), '1')
     expect(screen.queryByText('Enter the number of entries')).not.toBeInTheDocument()
