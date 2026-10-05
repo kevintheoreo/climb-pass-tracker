@@ -8,7 +8,7 @@ test('opens on the main screen; the gear opens Settings and the back link return
   await expect(page.getByRole('navigation')).toHaveCount(0) // no tab bar
   await page.getByRole('link', { name: 'Settings' }).click()
   await expect(page.getByRole('heading', { level: 1, name: 'Settings' })).toBeVisible()
-  await page.getByRole('link', { name: '‹ Passes' }).click()
+  await page.getByRole('link', { name: 'Back to Passes' }).click()
   await expect(page.getByRole('heading', { level: 1, name: 'Passes' })).toBeVisible()
 })
 
@@ -70,6 +70,6 @@ test('works offline after the first visit, including deep links', async ({ page,
   await expect(page.getByRole('heading', { level: 1, name: 'Settings' })).toBeVisible()
   await page.reload()
   await expect(page.getByRole('heading', { level: 1, name: 'Settings' })).toBeVisible()
-  await page.getByRole('link', { name: '‹ Passes' }).click()
+  await page.getByRole('link', { name: 'Back to Passes' }).click()
   await expect(page.getByRole('heading', { level: 1, name: 'Passes' })).toBeVisible()
 })

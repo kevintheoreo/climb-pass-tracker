@@ -4,7 +4,7 @@ import { LegalSection, LegalUpdated } from './LegalText'
 /** The terms of use (FR-48). */
 export default function TermsPage() {
   return (
-    <Page title="Terms of use" back={{ to: '/settings', label: 'Settings' }}>
+    <Page title="Terms of use">
       <LegalUpdated />
 
       <LegalSection title="Using the app">

@@ -28,7 +28,7 @@ describe('App shell (D23)', () => {
     expect(screen.getByRole('link', { name: 'Settings' })).toHaveAttribute('aria-current', 'page')
     expect(document.title).toBe('Settings · Climb Pass Tracker')
 
-    await user.click(screen.getByRole('link', { name: '‹ Passes' }))
+    await user.click(screen.getByRole('link', { name: 'Back to Passes' }))
     expect(screen.getByRole('heading', { level: 1, name: 'Passes' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Settings' })).not.toHaveAttribute('aria-current')
   })
