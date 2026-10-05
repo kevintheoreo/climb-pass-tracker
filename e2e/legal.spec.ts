@@ -10,7 +10,7 @@ test('Settings links to the privacy policy and terms, which fit a phone', async 
   await link.tap()
   await expect(page.getByRole('heading', { level: 1, name: 'Privacy policy' })).toBeVisible()
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360)
-  await page.getByRole('link', { name: '‹ Settings' }).tap()
+  await page.getByRole('link', { name: 'Back to Settings' }).tap()
   await page.getByRole('link', { name: 'Terms of use' }).tap()
   await expect(page.getByRole('heading', { level: 1, name: 'Terms of use' })).toBeVisible()
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360)

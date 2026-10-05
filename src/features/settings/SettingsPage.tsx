@@ -10,7 +10,7 @@ export default function SettingsPage() {
   const settings = useLiveQuery(() => repo.getSettings(), [])
 
   return (
-    <Page title="Settings" back={{ to: '/', label: 'Passes' }}>
+    <Page title="Settings">
       {settings && <ReminderSettings settings={settings} />}
       <DataSettings />
       <InstallHelp />

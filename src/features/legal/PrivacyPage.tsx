@@ -4,7 +4,7 @@ import { LegalSection, LegalUpdated } from './LegalText'
 /** The privacy policy (FR-48). It must stay true to what the app does: it collects nothing. */
 export default function PrivacyPage() {
   return (
-    <Page title="Privacy policy" back={{ to: '/settings', label: 'Settings' }}>
+    <Page title="Privacy policy">
       <LegalUpdated />
 
       <LegalSection title="The short version">

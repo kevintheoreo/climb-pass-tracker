@@ -23,7 +23,7 @@ describe('privacy policy and terms (FR-48)', () => {
     await user.click(await screen.findByRole('link', { name: 'Privacy policy' }))
     expect(await screen.findByRole('heading', { level: 1, name: 'Privacy policy' })).toBeVisible()
     expect(document.title).toBe('Privacy policy · Climb Pass Tracker')
-    await user.click(screen.getByRole('link', { name: '‹ Settings' }))
+    await user.click(screen.getByRole('link', { name: 'Back to Settings' }))
     await user.click(await screen.findByRole('link', { name: 'Terms of use' }))
     expect(await screen.findByRole('heading', { level: 1, name: 'Terms of use' })).toBeVisible()
   })
@@ -31,7 +31,10 @@ describe('privacy policy and terms (FR-48)', () => {
   it('open from their own addresses, with a date and a way back', async () => {
     renderAt('/privacy')
     expect(await screen.findByText(/^Last updated /)).toBeVisible()
-    expect(screen.getByRole('link', { name: '‹ Settings' })).toHaveAttribute('href', '/settings')
+    expect(screen.getByRole('link', { name: 'Back to Settings' })).toHaveAttribute(
+      'href',
+      '/settings',
+    )
   })
 
   it('the privacy policy says nothing is collected and covers backups and deleting', async () => {
