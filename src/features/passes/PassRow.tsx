@@ -69,6 +69,9 @@ export function PassRow({
     <li
       ref={item}
       className={[
+        // A container for the row's own width: when text is enlarged the row is narrow in rem, and
+        // the cells stack in one column instead of running off the screen (WCAG 1.4.10).
+        '@container',
         open ? 'bg-stone-50 dark:bg-stone-950' : '',
         justAdded
           ? 'bg-emerald-50 ring-2 ring-inset ring-emerald-500 dark:bg-emerald-950/40 dark:ring-emerald-400'
@@ -85,7 +88,7 @@ export function PassRow({
             return
           onToggle()
         }}
-        className={`grid cursor-pointer grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-1 px-4 py-3 sm:items-center ${WIDE_COLUMNS}`}
+        className={`grid cursor-pointer grid-cols-[minmax(0,1fr)_auto] gap-x-3 gap-y-1 px-4 py-3 @max-[19rem]:grid-cols-[minmax(0,1fr)] sm:items-center ${WIDE_COLUMNS}`}
       >
         <p className="col-start-1 row-start-1 min-w-0 break-words font-medium">
           {justAdded && <span className="sr-only">Just added. </span>}
@@ -103,13 +106,13 @@ export function PassRow({
           </button>
         </p>
 
-        <div className="col-start-2 row-start-1 flex flex-col items-end sm:col-start-4 sm:items-start">
+        <div className="col-start-2 row-start-1 flex flex-col items-end @max-[19rem]:col-start-1 @max-[19rem]:row-start-2 @max-[19rem]:items-start sm:col-start-4 sm:items-start">
           <Counter row={row} today={today} onUsedLast={onUsedLast} />
           {reset && <p className={`text-sm ${muted}`}>{reset}</p>}
         </div>
 
         <p
-          className={`col-start-1 row-start-2 text-sm sm:col-start-2 sm:row-start-1 sm:text-base ${muted}`}
+          className={`col-start-1 row-start-2 text-sm @max-[19rem]:row-start-3 sm:col-start-2 sm:row-start-1 sm:text-base ${muted}`}
         >
           <span className="sr-only">Type: </span>
           {row.typeLabel}
@@ -122,7 +125,7 @@ export function PassRow({
         </p>
 
         <p
-          className={`col-start-2 row-start-2 text-right text-sm sm:col-start-3 sm:row-start-1 sm:text-left sm:text-base ${muted}`}
+          className={`col-start-2 row-start-2 text-right text-sm @max-[19rem]:col-start-1 @max-[19rem]:row-start-4 @max-[19rem]:text-left sm:col-start-3 sm:row-start-1 sm:text-left sm:text-base ${muted}`}
         >
           <span className="sr-only">Expiry: </span>
           {expiryLabel(row.expiry)}
@@ -132,7 +135,7 @@ export function PassRow({
         {badges.length > 0 && (
           <ul
             aria-label="Status"
-            className="col-span-2 row-start-3 flex flex-wrap gap-1.5 sm:col-span-4 sm:row-start-2"
+            className="col-span-2 row-start-3 flex flex-wrap gap-1.5 @max-[19rem]:col-span-1 @max-[19rem]:row-start-5 sm:col-span-4 sm:row-start-2"
           >
             {badges.map((badge) => (
               <li
