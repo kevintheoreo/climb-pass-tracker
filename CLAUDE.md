@@ -20,6 +20,8 @@ Where things live:
 - `src/app/` is the router and `Layout` (a header with the app name and a gear link to Settings; no tab bar). Each screen is a page under `src/features/<name>/` wrapped in `components/Page`, which sets the heading, `document.title` and an optional back link. Shared form pieces are in `src/components/` (`forms.tsx`, `formUtils.ts`, `ConfirmDelete.tsx`); forms must report all problems at once.
 - Light/dark follows the system setting through Tailwind's `dark:` classes (no manual toggle). `main.tsx` asks the browser for persistent storage via `src/db/persist.ts`. The Playwright suite includes an offline test (the service worker serves the app and deep links with the network off); if it fails, check `navigateFallback` in `vite.config.ts`.
 
+The icon is the owner's artwork (`design/icon-source.png`); `scripts/generate-icons.mjs` cuts it out and writes every icon, `public/splash/*.png` (iPhone launch screens, light and dark) and the splash links in `index.html` (between the `splash` markers); the splash images are not precached (`globIgnores` in `vite.config.ts`). Colours are the `brand-*` tokens and `ink` in `src/index.css` (D50): `brand-500` `#E86533` is the main orange, `brand-50` `#FFF7E8` the page; buttons on orange use `text-ink` (white on it fails contrast), and the greys are Tailwind's warm `stone-*`.
+
 Accessibility is checked in the browser tests: `e2e/a11y.spec.ts` runs axe (WCAG 2.1 A and AA) on every screen and state in light and dark, and a serious or critical finding fails it; `e2e/a11y-extras.spec.ts` covers 200% text at 320px wide (rows stack, banners wrap, via `@max-[19rem]:` container queries, which follow the text size), the gym autocomplete's roles and keys, visible focus, and the row buttons' names. New screens should be added to the axe tests.
 
 Never name a custom error `NotFoundError`: Dexie rewrites errors with that name.
@@ -36,7 +38,7 @@ npm test               # Vitest, run once
 npx vitest run src/path/file.test.ts      # a single test file
 npx vitest run -t "test name"             # tests matching a name
 npm run e2e            # Playwright; builds and serves the app on :4173 first
-node scripts/generate-icons.mjs           # regenerate placeholder PWA icons from public/*.svg
+node scripts/generate-icons.mjs           # regenerate the app icons and iPhone launch screens from design/icon-source.png
 ```
 
 In the cloud environment, run Playwright with `PW_CHROMIUM_PATH=/opt/pw-browsers/chromium` (the browser is pre-installed; do not run `playwright install`). CI (`.github/workflows/ci.yml`) runs lint, format check, typecheck, tests, build and the Playwright suite on every PR (it installs Playwright's own Chromium; a failed run keeps the HTML report as an artifact).
