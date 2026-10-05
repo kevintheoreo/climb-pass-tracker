@@ -1,13 +1,14 @@
-import { lazy, Suspense } from 'react'
+import { Suspense } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import PassesPage from '../features/passes/PassesPage'
 import { Layout } from './Layout'
+import { lazyRoute } from './lazyRoute'
 
 // Only the main screen is in the first download; the other screens load when they are opened
 // (the service worker has them cached, so this works offline too).
-const SettingsPage = lazy(() => import('../features/settings/SettingsPage'))
-const PrivacyPage = lazy(() => import('../features/legal/PrivacyPage'))
-const TermsPage = lazy(() => import('../features/legal/TermsPage'))
+const SettingsPage = lazyRoute(() => import('../features/settings/SettingsPage'))
+const PrivacyPage = lazyRoute(() => import('../features/legal/PrivacyPage'))
+const TermsPage = lazyRoute(() => import('../features/legal/TermsPage'))
 
 export default function App() {
   return (
