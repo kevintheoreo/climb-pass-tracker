@@ -5,6 +5,7 @@ test.use({ viewport: { width: 360, height: 740 } })
 
 for (const [path, label, to] of [
   ['/settings', 'Passes', '/'],
+  ['/about', 'Passes', '/'],
   ['/privacy', 'Settings', '/settings'],
   ['/terms', 'Settings', '/settings'],
 ] as const) {

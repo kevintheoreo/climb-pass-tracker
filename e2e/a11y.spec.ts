@@ -86,10 +86,13 @@ for (const scheme of ['light', 'dark'] as const) {
       await scan(page, 'Buy again row')
     })
 
-    test('Settings, the privacy policy and the terms', async ({ page }) => {
+    test('Settings, About, the privacy policy and the terms', async ({ page }) => {
       await page.goto('/settings')
       await expect(page.getByRole('heading', { level: 1, name: 'Settings' })).toBeVisible()
       await scan(page, 'Settings')
+      await page.goto('/about')
+      await expect(page.getByRole('heading', { level: 1, name: 'About' })).toBeVisible()
+      await scan(page, 'About')
       await page.goto('/privacy')
       await expect(page.getByRole('heading', { level: 1, name: 'Privacy policy' })).toBeVisible()
       await scan(page, 'privacy policy')

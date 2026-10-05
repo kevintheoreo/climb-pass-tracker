@@ -73,3 +73,27 @@ test('works offline after the first visit, including deep links', async ({ page,
   await page.getByRole('link', { name: 'Back to Passes' }).click()
   await expect(page.getByRole('heading', { level: 1, name: 'Passes' })).toBeVisible()
 })
+
+test('the monkey opens About, is a 44px target, and the links go to the developer', async ({
+  page,
+}) => {
+  await page.goto('/')
+  const monkey = page.getByRole('link', { name: 'About' })
+  const box = (await monkey.boundingBox())!
+  expect(box.height).toBeGreaterThanOrEqual(44)
+  expect(box.width).toBeGreaterThanOrEqual(44)
+  const gear = (await page.getByRole('link', { name: 'Settings' }).boundingBox())!
+  expect(box.x + box.width).toBeLessThanOrEqual(gear.x) // the two targets do not overlap
+  await monkey.click()
+  await expect(page.getByRole('heading', { level: 1, name: 'About' })).toBeVisible()
+  await expect(page.getByRole('link', { name: /@crampingapey/ })).toHaveAttribute(
+    'href',
+    'https://www.instagram.com/crampingapey',
+  )
+  await expect(page.getByRole('link', { name: /Buy me a coffee/ })).toHaveAttribute(
+    'href',
+    'https://buymeacoffee.com/Crampingapey',
+  )
+  await page.getByRole('link', { name: 'Back to Passes' }).click()
+  await expect(page.getByRole('heading', { level: 1, name: 'Passes' })).toBeVisible()
+})
