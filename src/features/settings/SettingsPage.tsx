@@ -14,8 +14,9 @@ export default function SettingsPage() {
       {settings && <ReminderSettings settings={settings} />}
       <DataSettings />
       <InstallHelp />
-      <nav aria-label="About" className="mb-4 flex flex-wrap gap-x-2">
+      <nav aria-label="About and legal" className="mb-4 flex flex-wrap gap-x-2">
         {[
+          { to: '/about', label: 'About' },
           { to: '/privacy', label: 'Privacy policy' },
           { to: '/terms', label: 'Terms of use' },
         ].map((link) => (

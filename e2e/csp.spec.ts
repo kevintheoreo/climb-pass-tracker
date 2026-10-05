@@ -69,6 +69,8 @@ test('the app works under the production Content-Security-Policy', async ({ page
   ).toBeVisible()
 
   // The other screens.
+  await page.goto('/about')
+  await expect(page.getByRole('heading', { level: 1, name: 'About' })).toBeVisible()
   await page.goto('/privacy')
   await expect(page.getByRole('heading', { level: 1, name: 'Privacy policy' })).toBeVisible()
   await page.goto('/terms')

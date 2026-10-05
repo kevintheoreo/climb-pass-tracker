@@ -38,7 +38,7 @@ test.describe('large text and a narrow screen (WCAG 1.4.4, 1.4.10)', () => {
       expect(box.x + box.width).toBeLessThanOrEqual(320 + 1)
     }
 
-    for (const path of ['/settings', '/privacy', '/terms']) {
+    for (const path of ['/settings', '/about', '/privacy', '/terms']) {
       await page.goto(path)
       await page.addStyleTag({ content: 'html { font-size: 200% !important; }' })
       await expect(page.getByRole('heading', { level: 1 })).toBeVisible()

@@ -126,6 +126,7 @@ Status column: **Active**, **Updated** (still applies, reworded for v2.0) or **S
 | D51 | Back link in the header | On every screen except the main one (Settings, the privacy policy, the terms) the left of the header is a **back link**, a chevron and the name of the screen it goes to (`‹ Passes`, `‹ Settings`), 16px, in place of the app name; the screen's name is its heading, right under the header. Replaces the small link that used to sit above the heading with a gap around it. The gear stays on the right. Its accessible name is `Back to Passes` / `Back to Settings`. | New |
 | D52 | Deleting a pass is for good | Deleting a pass removes it, with its recorded uses and freezes, from the device completely; nothing is kept. Passes that were only flagged deleted by earlier versions are purged when the app updates. Consequence: a backup made before a deletion still holds the pass, so opening that file brings it back. Giving back an entry (`+`), removing a freeze and removing a user-added gym are unchanged. | New |
 | D53 | Retiring a built-in gym | Each built-in gym has an `isActive` flag in `src/data/gyms.ts`. A gym with `isActive: false` is no longer suggested in the gym box, but passes that already use it keep showing its name, and typing its exact name reuses it instead of creating a copy. Gyms are retired by editing the list in a new release; there is no screen for it. | New |
+| D54 | About screen | The monkey icon in the header, beside the gear, opens an **About** screen (a screen, not a popup, like Settings, with the same back link). It says "Developed by @crampingapey" (a link to the developer's Instagram) and has a **Buy me a coffee** button (Buy Me a Coffee). Both open in a new tab so the app stays where it was. The monkey is hidden on very narrow or very large-text screens, so Settings also links to About. The app sends these sites nothing; the privacy policy says so. | New |
 
 ## 5. Pass types
 
@@ -233,6 +234,7 @@ Priority: **P0** = must have for launch, **P1** = should have for launch, **P2**
 - **FR-71 (P0)** **Visible buttons:** the new pass row has **Add pass** and, when it can be hidden, **Cancel**; the details panel shows a **Changes saved** notice after a saved change and has a **Done** button that stays open on an invalid edit (D48).
 - **FR-72 (P0)** **Saving is explicit:** a new pass, a Buy again row and an edit in the details panel are saved only by **Add pass** / **Save** or Enter, never by leaving the form; **Cancel** drops what was typed (D49). Replaces the saving-on-leaving rule of FR-18 and FR-54.
 - **FR-73 (P0)** **Retired gyms:** a built-in gym with `isActive: false` is left out of the gym box's suggestions (also when the box is empty) but still names the passes that use it (D53).
+- **FR-74 (P0)** **About:** the header's monkey icon (a 44px target) opens `/about` with the developer credit, the Instagram link and the Buy me a coffee link, each opening in a new tab; Settings also links to it (D54).
 
 ## 7. Data model (logical)
 

@@ -35,6 +35,14 @@ export default function PrivacyPage() {
         </p>
       </LegalSection>
 
+      <LegalSection title="Links to other sites">
+        <p>
+          The About screen links to the developer’s Instagram and Buy Me a Coffee pages. They open
+          only if you tap them, in a new tab, and are run by other companies under their own privacy
+          policies. The app sends them nothing about you or your passes.
+        </p>
+      </LegalSection>
+
       <LegalSection title="Backup files">
         <p>
           Settings lets you download a backup file and open one on another device. The file is made
