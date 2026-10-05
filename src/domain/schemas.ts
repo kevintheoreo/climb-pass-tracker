@@ -1,5 +1,10 @@
 import { z } from 'zod'
 
+// zod would otherwise test whether the page may compile code from text (a speed-up it can do without),
+// and a strict Content-Security-Policy (netlify.toml) reports that test as a violation. Must come before
+// the first schema is built.
+z.config({ jitless: true })
+
 /**
  * Input shapes for user-editable records. The row editor validates against these, and the record
  * types in `types.ts` are derived from them so the two can't drift apart.

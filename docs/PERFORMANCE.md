@@ -12,6 +12,8 @@ Measured on the production build (`npm run build`, then `npm run preview`), Octo
 
 Lighthouse scores (slow 4G): performance 98, accessibility 100, best practices 100, SEO 100. Blocking time 10 ms, no layout shift.
 
+Live site (https://climbpasstracker.netlify.app, Netlify's edge over HTTP/2): the main script is 160 KB with Brotli (166 KB with gzip), the page 1 KB, the stylesheet 6 KB, and the first byte of the page arrives in about 0.2 s from the build machine. Lighthouse could not be pointed at the live address from the build sandbox (its network proxy uses a certificate Chrome does not trust there), so the timings above are from the identical build served locally; the live site is no heavier than that.
+
 What is downloaded on a first visit: about 199 KB in all, of which 167 KB is JavaScript (compressed). Netlify compresses with Brotli, which is smaller still. Minified, the JavaScript is react-dom 204 KB, Dexie 93 KB, zod 89 KB, react-router 37 KB, and the app's own code about 75 KB. After the first visit nothing needs the network.
 
 ## What was done
