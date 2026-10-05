@@ -11,9 +11,15 @@ import { ReminderBanners } from './ReminderBanners'
 import { RowList } from './RowList'
 import { UndoNotice, type Notice } from './UndoNotice'
 import { usePassRows } from './usePassRows'
+import { useRowMotion } from './useRowMotion'
+
+const NO_ROWS: Row[] = []
 
 export default function PassesPage() {
   const rows = usePassRows()
+  // Rows that move between the main list and Finished slide (FR-61).
+  const mainMotion = useRowMotion(rows?.active ?? NO_ROWS, rows?.finished ?? NO_ROWS)
+  const finishedMotion = useRowMotion(rows?.finished ?? NO_ROWS, rows?.active ?? NO_ROWS)
   const [openId, setOpenId] = useState<string | null>(null)
   const [notice, setNotice] = useState<Notice | null>(null)
   const dismiss = useCallback(() => setNotice(null), [])
@@ -91,14 +97,18 @@ export default function PassesPage() {
     onSaved: saved,
   }
 
+  // A list stays on screen while its last row is still sliding out of it (FR-61).
+  const showMain = active.length > 0 || mainMotion.ghosts.length > 0
+  const showFinished = finished.length > 0 || finishedMotion.ghosts.length > 0
+
   return (
     <Page title="Passes">
-      {active.length === 0 && finished.length === 0 && (
+      {!showMain && finished.length === 0 && (
         <p className="mb-4 text-stone-600 dark:text-stone-400">
           No passes yet. Add your first one below.
         </p>
       )}
-      {active.length === 0 && finished.length > 0 && (
+      {!showMain && finished.length > 0 && (
         <p className="mb-4 text-stone-600 dark:text-stone-400">No active passes.</p>
       )}
 
@@ -110,7 +120,7 @@ export default function PassesPage() {
       />
       <InstallPrompt />
 
-      {active.length > 0 && <RowList rows={active} label="Passes" {...lists} />}
+      {showMain && <RowList rows={active} label="Passes" {...lists} {...mainMotion} />}
 
       {active.length === 0 ? (
         <NewRow
@@ -150,7 +160,7 @@ export default function PassesPage() {
         </button>
       )}
 
-      {finished.length > 0 && (
+      {showFinished && (
         <details className="group mt-6">
           <summary className="flex min-h-11 cursor-pointer items-center text-base font-medium">
             <span
@@ -162,7 +172,7 @@ export default function PassesPage() {
             Finished ({finished.length})
           </summary>
           <div className="mt-2">
-            <RowList rows={finished} label="Finished passes" {...lists} />
+            <RowList rows={finished} label="Finished passes" {...lists} {...finishedMotion} />
           </div>
         </details>
       )}

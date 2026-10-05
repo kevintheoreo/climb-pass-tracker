@@ -4,6 +4,7 @@ import type { PassDraft } from '../../domain/passForm'
 import type { Row } from '../../domain/rows'
 import { WIDE_COLUMNS } from './fields'
 import { PassRow } from './PassRow'
+import type { Ghost } from './useRowMotion'
 
 /** A bordered list of rows, with column headings on wide screens. */
 export function RowList({
@@ -19,6 +20,8 @@ export function RowList({
   onUsedLast,
   onBuyAgain,
   onSaved,
+  ghosts = [],
+  entering = new Set<string>(),
 }: {
   rows: Row[]
   label: string
@@ -35,7 +38,15 @@ export function RowList({
   onUsedLast?: ((row: Row) => void) | undefined
   onBuyAgain: (draft: PassDraft) => void
   onSaved: (row: Row) => void
+  /** Rows that just moved to the other list, shown sliding out (FR-61). */
+  ghosts?: Ghost[]
+  /** Ids of rows that just came from the other list, sliding in. */
+  entering?: ReadonlySet<string>
 }) {
+  // The live rows, with each ghost put back where it was.
+  const shown = rows.map((row) => ({ row, ghost: false }))
+  for (const g of [...ghosts].sort((a, b) => a.index - b.index))
+    shown.splice(Math.min(g.index, shown.length), 0, { row: g.row, ghost: true })
   return (
     <div className="overflow-hidden rounded-lg border border-stone-200 bg-white dark:border-stone-800 dark:bg-stone-900">
       <div
@@ -48,20 +59,22 @@ export function RowList({
         <span>Left</span>
       </div>
       <ul aria-label={label} className="divide-y divide-stone-200 dark:divide-stone-800">
-        {rows.map((row) => (
+        {shown.map(({ row, ghost }) => (
           <PassRow
-            key={row.pass.id}
+            key={ghost ? `leaving-${row.pass.id}` : row.pass.id}
             row={row}
             today={today}
             gyms={gyms}
-            open={openId === row.pass.id}
-            highlighted={reminded.has(row.pass.id)}
-            justAdded={addedId === row.pass.id}
+            open={!ghost && openId === row.pass.id}
+            highlighted={!ghost && reminded.has(row.pass.id)}
+            justAdded={!ghost && addedId === row.pass.id}
             onToggle={() => onToggle(row.pass.id)}
             onClose={onClose}
             onUsedLast={onUsedLast}
             onBuyAgain={onBuyAgain}
             onSaved={onSaved}
+            ghost={ghost}
+            motion={ghost ? 'leaving' : entering.has(row.pass.id) ? 'entering' : undefined}
           />
         ))}
       </ul>
