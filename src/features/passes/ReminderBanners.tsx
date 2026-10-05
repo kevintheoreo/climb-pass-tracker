@@ -25,9 +25,9 @@ export function ReminderBanners({ reminders, rows }: { reminders: Reminder[]; ro
         {shown.map(({ group, message }) => (
           <li
             key={group.passId}
-            className="flex items-center justify-between gap-3 rounded-lg border border-amber-300 bg-amber-50 py-1 pl-4 pr-1 text-amber-950 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100"
+            className="flex flex-wrap items-center justify-between gap-x-3 rounded-lg border border-amber-300 bg-amber-50 py-1 pl-4 pr-1 text-amber-950 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100"
           >
-            <p className="py-2 text-base">{message}</p>
+            <p className="min-w-0 flex-1 basis-48 py-2 text-base">{message}</p>
             <button
               type="button"
               aria-label={`Dismiss reminder: ${message}`}
