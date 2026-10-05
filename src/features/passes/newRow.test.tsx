@@ -223,7 +223,7 @@ describe('feedback when a pass is added (D46)', () => {
       return rows
     })
     expect(row).toHaveTextContent('Just added.')
-    expect(row).toHaveClass('ring-emerald-500')
+    expect(row).toHaveClass('ring-brand-500')
     await waitFor(() => expect(scrolled).toHaveBeenCalledTimes(1))
     expect(scrolled.mock.contexts[0]).toBe(row)
   })

@@ -42,7 +42,7 @@ export function PassRow({
   open: boolean
   /** A reminder banner is about this row (FR-55). */
   highlighted: boolean
-  /** The pass was just added: it glows green and is scrolled into view (D46). */
+  /** The pass was just added: it glows orange and is scrolled into view (D46). */
   justAdded: boolean
   onToggle: () => void
   onClose: () => void
@@ -74,7 +74,7 @@ export function PassRow({
         '@container',
         open ? 'bg-stone-50 dark:bg-stone-950' : '',
         justAdded
-          ? 'bg-emerald-50 ring-2 ring-inset ring-emerald-500 dark:bg-emerald-950/40 dark:ring-emerald-400'
+          ? 'bg-brand-100 ring-2 ring-inset ring-brand-500 dark:bg-brand-500/15 dark:ring-brand-400'
           : highlighted
             ? 'bg-amber-50 ring-2 ring-inset ring-amber-400 dark:bg-amber-950/40 dark:ring-amber-500'
             : '',
