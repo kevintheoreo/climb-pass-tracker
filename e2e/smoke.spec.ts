@@ -90,6 +90,18 @@ test('the monkey opens About, is a 44px target, and the links go to the develope
     'href',
     'https://www.instagram.com/crampingapey',
   )
+  await expect(page.getByRole('link', { name: /What type of climber are you/ })).toHaveAttribute(
+    'href',
+    'https://climbertype.vercel.app/',
+  )
+  // The quiz logo is a file of the app itself (the strict policy allows no outside images).
+  await expect
+    .poll(() =>
+      page
+        .locator('img[src="/climbertype.png"]')
+        .evaluate((el: HTMLImageElement) => el.naturalWidth),
+    )
+    .toBeGreaterThan(0)
   await expect(page.getByRole('link', { name: /Buy me a coffee/ })).toHaveAttribute(
     'href',
     'https://buymeacoffee.com/Crampingapey',

@@ -27,14 +27,17 @@ describe('About (D54, FR-74)', () => {
     expect(await screen.findByRole('heading', { level: 1, name: 'Passes' })).toBeVisible()
   })
 
-  it('names the developer and links to Instagram and Buy Me a Coffee, each in a new tab', async () => {
+  it('names the developer and links to Instagram, the climber quiz and Buy Me a Coffee, each in a new tab', async () => {
     renderAt('/about')
     await screen.findByRole('heading', { level: 1, name: 'About' })
     const instagram = screen.getByRole('link', { name: /@crampingapey/ })
     expect(instagram).toHaveAttribute('href', 'https://www.instagram.com/crampingapey')
+    const quiz = screen.getByRole('link', { name: /What type of climber are you\?/ })
+    expect(quiz).toHaveAttribute('href', 'https://climbertype.vercel.app/')
+    expect(within(quiz).queryByRole('img')).not.toBeInTheDocument() // the logo is decoration
     const coffee = screen.getByRole('link', { name: /Buy me a coffee/ })
     expect(coffee).toHaveAttribute('href', 'https://buymeacoffee.com/Crampingapey')
-    for (const link of [instagram, coffee]) {
+    for (const link of [instagram, quiz, coffee]) {
       expect(link).toHaveAttribute('target', '_blank')
       expect(link.getAttribute('rel')).toContain('noopener')
       expect(within(link).getByText(/opens in a new tab/)).toBeInTheDocument()

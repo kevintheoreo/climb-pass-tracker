@@ -37,9 +37,10 @@ export default function PrivacyPage() {
 
       <LegalSection title="Links to other sites">
         <p>
-          The About screen links to the developer’s Instagram and Buy Me a Coffee pages. They open
-          only if you tap them, in a new tab, and are run by other companies under their own privacy
-          policies. The app sends them nothing about you or your passes.
+          The About screen links to the developer’s Instagram page, a climber quiz website and Buy
+          Me a Coffee. They open only if you tap them, in a new tab. They are separate websites with
+          their own privacy policies, not part of this app. The app sends them nothing about you or
+          your passes.
         </p>
       </LegalSection>
 
