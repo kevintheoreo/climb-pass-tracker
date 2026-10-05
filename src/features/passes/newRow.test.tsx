@@ -35,6 +35,29 @@ beforeEach(async () => {
   await repo.clearAllData()
 })
 
+/**
+ * A gym the person typed earlier, that a pass still uses (D56): one expired pass, which sits in
+ * Finished, so the blank row stays on screen. A gym no pass uses is not suggested.
+ */
+async function usedGym(name: string) {
+  return (await usedGymWithPass(name)).ref
+}
+
+async function usedGymWithPass(name: string) {
+  const { ref } = await repo.findOrCreateGym(name)
+  const pass = await repo.createPass({
+    gymRef: ref,
+    passType: 'multipass',
+    priceCents: null,
+    comments: null,
+    purchaseDate: addDays(today, -60),
+    expiryDate: addDays(today, -10),
+    totalEntries: 10,
+    initialUsed: 3,
+  })
+  return { ref, pass }
+}
+
 describe('the blank row', () => {
   it('is on screen with no passes, and says to add one', async () => {
     renderApp()
@@ -397,7 +420,7 @@ describe('+6 / +12 months', () => {
 describe('the gym cell', () => {
   it('suggests matching gyms, ignoring case and punctuation, and fills the cell when one is chosen', async () => {
     const user = userEvent.setup()
-    await repo.findOrCreateGym('Boulder+ Clementi')
+    await usedGym('Boulder+ Clementi')
     renderApp()
     const box = await gymBox()
     await user.type(box, 'boulder+')
@@ -447,8 +470,8 @@ describe('the gym cell', () => {
 
   it('works by keyboard: arrows choose, Enter picks without saving, Escape closes', async () => {
     const user = userEvent.setup()
-    await repo.findOrCreateGym('Zig Zag Wall')
-    await repo.findOrCreateGym('Zig Zag Annex')
+    await usedGym('Zig Zag Wall')
+    await usedGym('Zig Zag Annex')
     renderApp()
     const box = await gymBox()
     await user.type(entriesBox(), '5') // the rest of the row is complete
@@ -460,9 +483,9 @@ describe('the gym cell', () => {
     await user.keyboard('{Enter}')
     expect(box).toHaveValue('Zig Zag Wall')
     expect(box).toHaveAttribute('aria-expanded', 'false')
-    expect(await repo.listPasses()).toEqual([]) // choosing is not "finish the row"
+    expect(await repo.listPasses()).toHaveLength(2) // choosing is not "finish the row"
     await user.keyboard('{Enter}') // now Enter finishes the row, with the chosen gym
-    await waitFor(async () => expect(await repo.listPasses()).toHaveLength(1))
+    await waitFor(async () => expect(await repo.listPasses()).toHaveLength(3))
     expect(await repo.listUserGyms()).toHaveLength(2) // no stray "zig" gym
 
     await user.click(await screen.findByRole('button', { name: 'Add a pass' }))
@@ -473,9 +496,40 @@ describe('the gym cell', () => {
     expect(again).toHaveAttribute('aria-expanded', 'false')
   })
 
+  it('does not suggest a gym no pass uses any more, but typing its name reuses it (D56)', async () => {
+    const user = userEvent.setup()
+    const { ref } = await repo.findOrCreateGym('Old Typo Wall') // no pass uses it
+    renderApp()
+    const box = await gymBox()
+    await user.type(box, 'typo')
+    expect(screen.queryByRole('option', { name: 'Old Typo Wall' })).not.toBeInTheDocument()
+    await user.clear(box)
+    await user.type(box, 'old typo wall')
+    expect(screen.queryByRole('option', { name: /as a new gym/ })).not.toBeInTheDocument()
+    await user.type(entriesBox(), '5')
+    await user.type(expiryBox(), inMonths(6))
+    await user.keyboard('{Enter}')
+    await waitFor(async () => expect(await repo.listPasses()).toHaveLength(1))
+    expect((await repo.listPasses())[0]?.gymRef).toEqual(ref)
+    expect(await repo.listUserGyms()).toHaveLength(1)
+  })
+
+  it('stops suggesting a gym right away when its last pass is deleted (D56)', async () => {
+    const user = userEvent.setup()
+    const { pass } = await usedGymWithPass('Zig Zag Wall')
+    renderApp()
+    const box = await gymBox()
+    await user.type(box, 'zig')
+    expect(screen.getByRole('option', { name: 'Zig Zag Wall' })).toBeInTheDocument()
+    await repo.deletePass(pass.id)
+    await waitFor(() =>
+      expect(screen.queryByRole('option', { name: 'Zig Zag Wall' })).not.toBeInTheDocument(),
+    )
+  })
+
   it('has options at least 44px tall', async () => {
     const user = userEvent.setup()
-    await repo.findOrCreateGym('Zig Zag Wall')
+    await usedGym('Zig Zag Wall')
     renderApp()
     await user.type(await gymBox(), 'zig')
     expect(screen.getByRole('option', { name: 'Zig Zag Wall' }).className).toContain('min-h-11')

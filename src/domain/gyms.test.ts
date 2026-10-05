@@ -175,3 +175,26 @@ describe('retired gyms (isActive: false)', () => {
     })
   })
 })
+
+describe('gyms a person typed that no pass uses (D56)', () => {
+  const mine = [userGym('u1', 'Used Wall'), userGym('u2', 'Typo Wall')]
+
+  it('are not suggested; gyms a live pass points at are', () => {
+    const list = buildGymList([], mine, new Set(['u1']))
+    expect(names(searchGyms(list, ''))).toEqual(['Used Wall'])
+    expect(names(searchGyms(list, 'wall'))).toEqual(['Used Wall'])
+  })
+
+  it('still name their old passes and are reused when typed', () => {
+    const list = buildGymList([], mine, new Set(['u1']))
+    expect(findGym(list, { kind: 'user', id: 'u2' })?.name).toBe('Typo Wall')
+    expect(resolveGymInput('typo  WALL', list)).toMatchObject({
+      kind: 'existing',
+      gym: { ref: { id: 'u2' } },
+    })
+  })
+
+  it('are all active when no usage is given', () => {
+    expect(buildGymList([], mine).every((g) => g.isActive)).toBe(true)
+  })
+})

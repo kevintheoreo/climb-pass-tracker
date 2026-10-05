@@ -287,9 +287,16 @@ export function createRepo(db: ClimbDB, options: RepoOptions = {}) {
     return (await db.userGyms.toArray()).filter(isLive)
   }
 
-  /** Built-in and user-added gyms together, sorted by name: the autocomplete's source. */
+  /**
+   * Built-in and user-added gyms together, sorted by name: the autocomplete's source. A gym a person
+   * added that no pass uses any more is marked inactive, so it stops being suggested (D56).
+   */
   async function listGyms(): Promise<GymEntry[]> {
-    return buildGymList(builtinGyms, await listUserGyms())
+    const [userGyms, passes] = await Promise.all([listUserGyms(), db.passes.toArray()])
+    const inUse = new Set(
+      passes.filter(isLive).flatMap((p) => (p.gymRef.kind === 'user' ? [p.gymRef.id] : [])),
+    )
+    return buildGymList(builtinGyms, userGyms, inUse)
   }
 
   /**

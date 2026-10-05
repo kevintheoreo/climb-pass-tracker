@@ -388,6 +388,33 @@ describe('gyms', () => {
     ])
   })
 
+  it('a gym someone added is suggested only while a pass uses it (D56)', async () => {
+    const { repo } = makeTestRepo()
+    const { ref } = await repo.findOrCreateGym('Zig Zag Wall')
+    const active = async () => (await repo.listGyms()).find((g) => g.name === 'Zig Zag Wall')
+    expect((await active())?.isActive).toBe(false) // added, but no pass yet
+
+    const pass = await repo.createPass(multipass({ gymRef: ref }))
+    expect((await active())?.isActive).toBe(true)
+
+    await repo.deletePass(pass.id)
+    expect((await active())?.isActive).toBe(false) // the name stays known, it is just not suggested
+    expect(await repo.findOrCreateGym('zig zag WALL')).toEqual({ ref, created: false })
+  })
+
+  it('moving the only pass to another gym stops suggesting the old one', async () => {
+    const { repo } = makeTestRepo()
+    const { ref } = await repo.findOrCreateGym('Typo Wal')
+    const pass = await repo.createPass(multipass({ gymRef: ref }))
+    await repo.updatePass(pass.id, multipass({ gymRef }))
+    expect((await repo.listGyms()).find((g) => g.name === 'Typo Wal')?.isActive).toBe(false)
+  })
+
+  it('built-in gyms are not affected by whether a pass uses them', async () => {
+    const { repo } = makeTestRepo()
+    expect((await repo.listGyms()).every((g) => g.isActive)).toBe(true)
+  })
+
   it('creates a gym for a name that matches none, tidying the text (D24, FR-25)', async () => {
     const { repo } = makeTestRepo()
     const result = await repo.findOrCreateGym('  Zig   Zag Wall ')
