@@ -94,12 +94,12 @@ export default function PassesPage() {
   return (
     <Page title="Passes">
       {active.length === 0 && finished.length === 0 && (
-        <p className="mb-4 text-slate-600 dark:text-slate-400">
+        <p className="mb-4 text-stone-600 dark:text-stone-400">
           No passes yet. Add your first one below.
         </p>
       )}
       {active.length === 0 && finished.length > 0 && (
-        <p className="mb-4 text-slate-600 dark:text-slate-400">No active passes.</p>
+        <p className="mb-4 text-stone-600 dark:text-stone-400">No active passes.</p>
       )}
 
       <ReminderBanners reminders={reminders} rows={active} />

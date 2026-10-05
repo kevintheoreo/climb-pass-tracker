@@ -34,7 +34,7 @@ export function DataSettings() {
           }}
         />
       </div>
-      <p role="status" className="mt-3 text-sm text-slate-600 dark:text-slate-400">
+      <p role="status" className="mt-3 text-sm text-stone-600 dark:text-stone-400">
         {message}
       </p>
     </section>

@@ -34,21 +34,21 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, State> {
           <button
             type="button"
             onClick={() => this.setState({ error: null })}
-            className="inline-flex min-h-11 items-center rounded-lg bg-teal-700 px-4 py-2 text-base font-medium text-white hover:bg-teal-800"
+            className="inline-flex min-h-11 items-center rounded-lg bg-brand-button px-4 py-2 text-base font-medium text-white hover:bg-brand-700"
           >
             Try again
           </button>
           <button
             type="button"
             onClick={() => window.location.reload()}
-            className="inline-flex min-h-11 items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-base font-medium text-slate-900 hover:bg-slate-100 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:hover:bg-slate-800"
+            className="inline-flex min-h-11 items-center rounded-lg border border-stone-300 bg-white px-4 py-2 text-base font-medium text-stone-900 hover:bg-stone-100 dark:border-stone-600 dark:bg-stone-900 dark:text-stone-100 dark:hover:bg-stone-800"
           >
             Reload the app
           </button>
         </div>
-        <details className="text-sm text-slate-600 dark:text-slate-400">
+        <details className="text-sm text-stone-600 dark:text-stone-400">
           <summary className="min-h-11 cursor-pointer py-2">Technical details</summary>
-          <pre className="mt-2 overflow-x-auto whitespace-pre-wrap break-words rounded-lg bg-slate-100 p-3 dark:bg-slate-800">
+          <pre className="mt-2 overflow-x-auto whitespace-pre-wrap break-words rounded-lg bg-stone-100 p-3 dark:bg-stone-800">
             {error.name}: {error.message}
             {error.stack ? `\n\n${error.stack.split('\n').slice(1, 6).join('\n')}` : ''}
           </pre>

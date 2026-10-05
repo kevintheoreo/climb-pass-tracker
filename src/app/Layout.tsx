@@ -5,7 +5,7 @@ import { SettingsIcon } from './icons'
 export function Layout() {
   return (
     <div className="min-h-dvh pb-[env(safe-area-inset-bottom)]">
-      <header className="sticky top-0 z-10 border-b border-slate-200 bg-white/95 pt-[env(safe-area-inset-top)] backdrop-blur dark:border-slate-800 dark:bg-slate-900/95">
+      <header className="sticky top-0 z-10 border-b border-stone-200 bg-brand-50/95 pt-[env(safe-area-inset-top)] backdrop-blur dark:border-stone-800 dark:bg-stone-900/95">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-4">
           <span className="py-2 text-lg font-semibold">Climb Pass Tracker</span>
           <NavLink
@@ -13,7 +13,9 @@ export function Layout() {
             aria-label="Settings"
             className={({ isActive }) =>
               `-mr-2 inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg ${
-                isActive ? 'text-teal-700 dark:text-teal-300' : 'text-slate-600 dark:text-slate-400'
+                isActive
+                  ? 'text-brand-700 dark:text-brand-400'
+                  : 'text-stone-600 dark:text-stone-400'
               }`
             }
           >

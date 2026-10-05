@@ -106,7 +106,7 @@ export function BackupControls() {
           Download backup file
         </button>
         <label
-          className={`${buttonClass('secondary')} cursor-pointer focus-within:ring-2 focus-within:ring-teal-600`}
+          className={`${buttonClass('secondary')} cursor-pointer focus-within:ring-2 focus-within:ring-brand-700`}
         >
           Open a backup file
           <input
@@ -124,7 +124,7 @@ export function BackupControls() {
         </label>
       </div>
       {lastBackupAt !== undefined && (
-        <p className="mt-3 text-sm text-slate-600 dark:text-slate-400">
+        <p className="mt-3 text-sm text-stone-600 dark:text-stone-400">
           {lastBackupAt === null
             ? 'No backup file downloaded yet.'
             : `Last backup file: ${formatDate(localDateOfTimestamp(lastBackupAt))}.`}
@@ -132,7 +132,7 @@ export function BackupControls() {
       )}
 
       <div className="mt-3" aria-live="polite">
-        {message && <p className="text-sm text-slate-600 dark:text-slate-400">{message}</p>}
+        {message && <p className="text-sm text-stone-600 dark:text-stone-400">{message}</p>}
 
         {stage.kind === 'error' && (
           <p
@@ -146,7 +146,7 @@ export function BackupControls() {
         {stage.kind === 'preview' && (
           <section
             aria-label="Backup preview"
-            className="rounded-lg border border-slate-300 bg-white p-3 dark:border-slate-700 dark:bg-slate-900"
+            className="rounded-lg border border-stone-300 bg-white p-3 dark:border-stone-700 dark:bg-stone-900"
           >
             <p className="text-base font-medium">{stage.fileName}</p>
             {stage.summary.nothingNew ? (
@@ -157,7 +157,7 @@ export function BackupControls() {
               <>
                 <p className="mt-1 text-base">Adding it to this device will give you:</p>
                 <Lines lines={importLines(stage.summary)} />
-                <p className="mb-2 text-sm text-slate-600 dark:text-slate-400">
+                <p className="mb-2 text-sm text-stone-600 dark:text-stone-400">
                   Passes on this phone stay. If a pass is on both phones, the version edited most
                   recently is kept, and recorded uses from both phones are counted.
                 </p>
@@ -188,7 +188,7 @@ export function BackupControls() {
         {stage.kind === 'done' && (
           <div
             role="status"
-            className="rounded-lg border border-teal-300 p-3 text-base dark:border-teal-800"
+            className="rounded-lg border border-brand-300 p-3 text-base dark:border-brand-800"
           >
             <p className="font-medium">Done. This device now has:</p>
             {importLines(stage.summary).length > 0 ? (

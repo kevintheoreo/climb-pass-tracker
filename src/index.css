@@ -1,10 +1,36 @@
 @import 'tailwindcss';
 
+/*
+ * The brand colours. 500 is the main orange and 50 the main off-white (the icon's colours). White text
+ * on 500 is only 3.3:1, so button fills use `brand-button`, a little darker (4.8:1 with white); 700 is
+ * the orange for text on a light page (5.7:1 on 50) and 400 the one for text on a dark page.
+ */
+@theme {
+  --color-brand-50: #fff7e8;
+  --color-brand-100: #fdebd9;
+  --color-brand-200: #f9d8cc;
+  --color-brand-300: #f4b29a;
+  --color-brand-400: #ee8b66;
+  --color-brand-500: #e86533;
+  --color-brand-button: #c44c1b;
+  --color-brand-600: #cf5524;
+  --color-brand-700: #a8420f;
+  --color-brand-800: #8a340c;
+  --color-brand-900: #6b2808;
+  --color-brand-950: #3a1606;
+
+  /* Dark mode is charcoal grey, not black: the page, then cards, then borders, each a step lighter. */
+  --color-stone-950: #2b2b2b;
+  --color-stone-900: #363636;
+  --color-stone-800: #444444;
+  --color-stone-700: #555555;
+}
+
 /* Follow the system light/dark setting (Tailwind's `dark:` uses prefers-color-scheme). */
 :root {
   color-scheme: light dark;
 }
 
 body {
-  @apply bg-slate-50 text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100;
+  @apply bg-brand-50 text-stone-900 antialiased dark:bg-stone-950 dark:text-stone-100;
 }

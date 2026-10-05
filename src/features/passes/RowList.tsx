@@ -37,17 +37,17 @@ export function RowList({
   onSaved: (row: Row) => void
 }) {
   return (
-    <div className="overflow-hidden rounded-lg border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+    <div className="overflow-hidden rounded-lg border border-stone-200 bg-white dark:border-stone-800 dark:bg-stone-900">
       <div
         aria-hidden="true"
-        className={`hidden border-b border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 dark:border-slate-800 dark:text-slate-400 sm:grid sm:gap-x-3 ${WIDE_COLUMNS}`}
+        className={`hidden border-b border-stone-200 px-4 py-2 text-sm font-medium text-stone-600 dark:border-stone-800 dark:text-stone-400 sm:grid sm:gap-x-3 ${WIDE_COLUMNS}`}
       >
         <span>Gym</span>
         <span>Type</span>
         <span>Expiry</span>
         <span>Left</span>
       </div>
-      <ul aria-label={label} className="divide-y divide-slate-200 dark:divide-slate-800">
+      <ul aria-label={label} className="divide-y divide-stone-200 dark:divide-stone-800">
         {rows.map((row) => (
           <PassRow
             key={row.pass.id}

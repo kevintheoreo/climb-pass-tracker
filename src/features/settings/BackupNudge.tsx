@@ -31,7 +31,7 @@ export function BackupNudge({
   return (
     <section
       aria-labelledby="backup-nudge-heading"
-      className="mb-4 rounded-lg border border-slate-400 bg-white p-4 dark:border-slate-600 dark:bg-slate-900"
+      className="mb-4 rounded-lg border border-stone-400 bg-white p-4 dark:border-stone-600 dark:bg-stone-900"
     >
       <h2 id="backup-nudge-heading" className="text-base font-semibold">
         Back up your passes
@@ -57,7 +57,7 @@ export function BackupNudge({
         </button>
       </div>
       {failed && (
-        <p role="alert" className="mt-3 text-sm text-red-700 dark:text-red-400">
+        <p role="alert" className="mt-3 text-sm text-red-700 dark:text-red-300">
           Could not make the backup file. Try again.
         </p>
       )}

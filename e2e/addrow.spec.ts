@@ -213,7 +213,7 @@ test('adding a pass says so, and shows the new row even when the list is long', 
   // ...the new row (first in the list) glows and has been scrolled into view...
   const row = mainRows(page).first()
   await expect(row).toContainText('Brand New Wall')
-  await expect(row).toHaveClass(/ring-emerald-500/)
+  await expect(row).toHaveClass(/ring-amber-400/)
   await expect
     .poll(async () => {
       const box = await row.boundingBox()
@@ -222,7 +222,7 @@ test('adding a pass says so, and shows the new row even when the list is long', 
     .toBe(true)
   // ...and both go away by themselves.
   await expect(notice).toHaveCount(0, { timeout: 8000 })
-  await expect(row).not.toHaveClass(/ring-emerald-500/)
+  await expect(row).not.toHaveClass(/ring-amber-400/)
 })
 
 test('a real gym is found however its name is typed, and no copy of it is made (D22)', async ({

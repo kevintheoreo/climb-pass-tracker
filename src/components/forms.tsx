@@ -7,7 +7,7 @@ import {
 } from 'react'
 
 const controlClass =
-  'block w-full min-h-11 rounded-lg border border-slate-300 bg-white px-3 py-2 text-base text-slate-900 dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100'
+  'block w-full min-h-11 rounded-lg border border-stone-300 bg-white px-3 py-2 text-base text-stone-900 dark:border-stone-600 dark:bg-stone-900 dark:text-stone-100'
 
 interface FieldProps {
   label: string
@@ -29,12 +29,12 @@ function FieldFrame({
       </label>
       {children}
       {hint && !error && (
-        <p id={`${id}-hint`} className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+        <p id={`${id}-hint`} className="mt-1 text-sm text-stone-600 dark:text-stone-400">
           {hint}
         </p>
       )}
       {error && (
-        <p id={`${id}-error`} role="alert" className="mt-1 text-sm text-red-700 dark:text-red-400">
+        <p id={`${id}-error`} role="alert" className="mt-1 text-sm text-red-700 dark:text-red-300">
           {error}
         </p>
       )}
