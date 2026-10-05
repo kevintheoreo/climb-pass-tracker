@@ -1,5 +1,5 @@
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom'
-import { ChevronLeftIcon, SettingsIcon } from './icons'
+import { ChevronLeftIcon, MonkeyIcon, SettingsIcon } from './icons'
 
 /** Where the back link in the header goes, for the screens that are not the main one. */
 const BACK: Record<string, { to: string; label: string }> = {
@@ -31,19 +31,28 @@ export function Layout() {
           ) : (
             <span className="py-2 text-lg font-semibold">Climb Pass Tracker</span>
           )}
-          <NavLink
-            to="/settings"
-            aria-label="Settings"
-            className={({ isActive }) =>
-              `-mr-2 inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg ${
-                isActive
-                  ? 'text-brand-700 dark:text-brand-400'
-                  : 'text-stone-600 dark:text-stone-400'
-              }`
-            }
-          >
-            <SettingsIcon />
-          </NavLink>
+          <div className="flex items-center">
+            {/* Decorative for now: it has no action yet. Hidden on very narrow or very large-text screens, where the header needs the room. */}
+            <span
+              aria-hidden="true"
+              className="hidden min-h-11 min-w-7 items-center justify-center text-stone-600 min-[22rem]:inline-flex dark:text-stone-400"
+            >
+              <MonkeyIcon />
+            </span>
+            <NavLink
+              to="/settings"
+              aria-label="Settings"
+              className={({ isActive }) =>
+                `-mr-2 inline-flex min-h-11 min-w-11 items-center justify-center rounded-lg ${
+                  isActive
+                    ? 'text-brand-700 dark:text-brand-400'
+                    : 'text-stone-600 dark:text-stone-400'
+                }`
+              }
+            >
+              <SettingsIcon />
+            </NavLink>
+          </div>
         </div>
       </header>
       <main>
