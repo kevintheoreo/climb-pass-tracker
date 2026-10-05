@@ -46,11 +46,11 @@ Climbers in Singapore usually buy **shareable multipasses** (for example, 10 ent
 
 ### Non-goals (v1)
 - Tracking *who* used each entry (friends' names are deliberately not recorded).
-- Showing or editing a history of individual uses (taps are recorded silently, D26).
+- Showing or editing a history of individual uses (taps are recorded silently, D26). A usage history is a future enhancement (section 14).
 - A separate screen for managing gyms, pass templates or built-in "pass options".
 - Currencies other than SGD.
 - Suggested prices or validity periods for gyms (users enter their own).
-- Shared or collaborative passes between multiple people.
+- Shared or collaborative passes between multiple people. Friends who can see each other's passes are a future enhancement (section 14).
 - Accounts, sign-in, or syncing between devices (D37). A backup file moves data by hand.
 - Booking, payments, or any integration with gym systems.
 - Native iOS or Android store apps.
@@ -361,12 +361,21 @@ There are no analytics in v1, so success is judged by:
 - **Push notifications** for expiry and low-entry reminders.
 - **Manage my gyms** (rename a gym everywhere, merge duplicates, forget a gym) from Settings. In v1 a gym is fixed by whatever was typed into a row.
 - **Gym suggestions:** users submit gyms they added to be considered for the built-in list.
-- **Use history and stats:** the silently recorded uses (D26) can drive cost per climb, total spent, visits per gym or month, and entries wasted to expiry, with backdating and editing of past uses.
+- **Pass usage history.** An expandable section below Finished that lists every entry used, one line each: gym, pass type and the date of the entry, newest first. It is kept up to date by each `−` (and `+` removes the latest line), and the **date of each entry can be edited**, to fix a forgotten tap or a visit that was logged on the wrong day. It builds on the silently recorded uses (D26), which carry a timestamp but today no screen shows. Things to settle when it is built:
+  - Changing a use's date changes what `+` takes back ("the latest use") and, for a monthly membership, which monthly period the use counts in (so entries left can change); the rules need deciding and testing (`src/domain/counter.ts`, `src/domain/cycle.ts`).
+  - Uses of a pass that was deleted are gone with it (D52), so the history only covers passes still on the device.
+  - A use stays a timestamp only: no names and no notes (D3, D4); editing the date is the only edit.
+  - It reverses the v1 non-goal "showing or editing a history of individual uses" and the "per-use history and backdating" listed as removed in v2.0, so those lines are revised then. Also see the statistics below.
+- **Use statistics:** the same records can drive cost per climb, total spent, visits per gym or month, and entries wasted to expiry.
 - **Type a number straight into the counter** to set entries left.
 - **Roll-over of unused monthly entries**, and a record of entries lost at each reset, if gyms offer it.
 - **Multiple currencies**, including conversion of existing amounts when the currency changes.
 - **Suggested prices and validity periods** for built-in gyms.
-- **Sharing with friends:** a read-only link, or sharing a pass with a friend's app.
+- **Friends.** A person can add friends and see their passes, which makes it possible to **search for a multipass among the added friends** (for example "who has a multipass with entries left at this gym?"), so passes can be shared or lent. Earlier ideas were a read-only link or sharing a pass with a friend's app. This is the biggest change on the list, because it needs what v1 deliberately leaves out:
+  - **A server and accounts.** v1 is local-only with no accounts and no server (D37), so friends need a way to identify people, to add and accept a friend, and to hold shared passes somewhere both phones can reach (the free Netlify hosting is static today, and the security policy allows no outside addresses).
+  - **Privacy and consent.** Passes would leave the device for the first time. Each person decides who sees what (for example only chosen passes, and only to accepted friends), can remove a friend, and can delete their data. The privacy policy ("collects nothing") and the terms must change first.
+  - **Names.** Seeing a friend's passes means showing who they are, which today the app never records (D4 says who used an entry is not tracked; that stays true for entries).
+  - It reverses the v1 non-goals "shared or collaborative passes" and "accounts, sign-in, or syncing between devices", and would likely be built together with the accounts and sync idea below.
 - **Accounts and automatic sync between devices** (for example Google sign-in), if people ask for more than a backup file. v1 does not have them (D37).
 - **Languages** other than English.
 - **App store release** by wrapping the PWA with Capacitor.
