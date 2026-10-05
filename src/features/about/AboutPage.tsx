@@ -5,6 +5,7 @@ import { usePageTitle } from '../../components/usePageTitle'
 import { buttonClass } from '../../components/formUtils'
 
 const INSTAGRAM = 'https://www.instagram.com/crampingapey'
+const QUIZ = 'https://climbertype.vercel.app/'
 const COFFEE = 'https://buymeacoffee.com/Crampingapey'
 
 /** A link to another website: opens in its own tab so the app stays where it was (D54). */
@@ -29,8 +30,8 @@ const cardClass =
   'rounded-2xl border border-stone-200 bg-white shadow-sm dark:border-stone-700 dark:bg-stone-900'
 
 /**
- * Who made the app (D54, FR-74): a bold orange top with the monkey, the developer's Instagram as a
- * tappable card, and a warm card for Buy me a coffee. White on the main orange is 3.3:1, so only
+ * Who made the app (D54, FR-74): a bold orange top with the monkey, the developer's Instagram and
+ * climber-quiz site as tappable cards, and a warm card for Buy me a coffee. White on the main orange is 3.3:1, so only
  * large bold text sits on the orange band (3:1 is enough for that).
  */
 export default function AboutPage() {
@@ -57,6 +58,28 @@ export default function AboutPage() {
           <span className="min-w-0 flex-1 basis-32">
             <span className="block text-sm text-stone-600 dark:text-stone-400">Developed by</span>
             <span className="block break-all text-lg font-bold">@crampingapey</span>
+          </span>
+          <span className="text-stone-500 dark:text-stone-400">
+            <ArrowUpRightIcon />
+          </span>
+        </OutsideLink>
+
+        <OutsideLink
+          href={QUIZ}
+          className={`${cardClass} flex min-h-16 flex-wrap items-center gap-x-4 gap-y-2 p-4`}
+        >
+          <img
+            src="/climbertype.png"
+            alt=""
+            width="48"
+            height="48"
+            className="size-12 shrink-0 rounded-xl"
+          />
+          <span className="min-w-0 flex-1 basis-32">
+            <span className="block text-lg font-bold">Climber type quiz</span>
+            <span className="block text-sm text-stone-600 dark:text-stone-400">
+              What type of climber are you?
+            </span>
           </span>
           <span className="text-stone-500 dark:text-stone-400">
             <ArrowUpRightIcon />
