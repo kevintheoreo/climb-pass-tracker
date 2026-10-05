@@ -97,14 +97,18 @@ export default function PassesPage() {
     onSaved: saved,
   }
 
+  // A list stays on screen while its last row is still sliding out of it (FR-61).
+  const showMain = active.length > 0 || mainMotion.ghosts.length > 0
+  const showFinished = finished.length > 0 || finishedMotion.ghosts.length > 0
+
   return (
     <Page title="Passes">
-      {active.length === 0 && finished.length === 0 && (
+      {!showMain && finished.length === 0 && (
         <p className="mb-4 text-stone-600 dark:text-stone-400">
           No passes yet. Add your first one below.
         </p>
       )}
-      {active.length === 0 && finished.length > 0 && (
+      {!showMain && finished.length > 0 && (
         <p className="mb-4 text-stone-600 dark:text-stone-400">No active passes.</p>
       )}
 
@@ -116,7 +120,7 @@ export default function PassesPage() {
       />
       <InstallPrompt />
 
-      {active.length > 0 && <RowList rows={active} label="Passes" {...lists} {...mainMotion} />}
+      {showMain && <RowList rows={active} label="Passes" {...lists} {...mainMotion} />}
 
       {active.length === 0 ? (
         <NewRow
@@ -156,7 +160,7 @@ export default function PassesPage() {
         </button>
       )}
 
-      {finished.length > 0 && (
+      {showFinished && (
         <details className="group mt-6">
           <summary className="flex min-h-11 cursor-pointer items-center text-base font-medium">
             <span
