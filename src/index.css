@@ -34,3 +34,77 @@
 body {
   @apply bg-brand-50 text-stone-900 antialiased dark:bg-stone-950 dark:text-stone-100;
 }
+
+/*
+ * Row motion (FR-61): a row moving between the main list and Finished slides out to the side while
+ * the rows below close up, and slides in the same way. The grid-rows change closes the gap exactly,
+ * whatever the row's height. `overflow` is hidden only while moving, so a row's panel (and the gym
+ * list that drops down from it) is never clipped. Skipped when the device asks for reduced motion
+ * (the app also then keeps the row out of the list at once).
+ */
+@keyframes row-collapse {
+  from {
+    grid-template-rows: 1fr;
+  }
+  to {
+    grid-template-rows: 0fr;
+  }
+}
+@keyframes row-expand {
+  from {
+    grid-template-rows: 0fr;
+  }
+  to {
+    grid-template-rows: 1fr;
+  }
+}
+@keyframes row-slide-out {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(60%);
+  }
+}
+@keyframes row-slide-in {
+  from {
+    opacity: 0;
+    transform: translateX(-60%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+.row-leaving,
+.row-entering {
+  display: grid;
+  grid-template-rows: 1fr;
+}
+.row-leaving > .row-body,
+.row-entering > .row-body {
+  min-height: 0;
+  overflow: hidden;
+}
+.row-leaving {
+  animation: row-collapse 200ms ease-in 100ms forwards;
+}
+.row-leaving > .row-body {
+  animation: row-slide-out 240ms ease-in forwards;
+}
+.row-entering {
+  animation: row-expand 200ms ease-out;
+}
+.row-entering > .row-body {
+  animation: row-slide-in 280ms ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .row-leaving,
+  .row-entering,
+  .row-leaving > .row-body,
+  .row-entering > .row-body {
+    animation: none;
+  }
+}

@@ -11,6 +11,8 @@ export default defineConfig({
   reporter: ci ? [['list'], ['html', { open: 'never' }]] : 'list',
   use: {
     baseURL: 'http://localhost:4173',
+    // Row motion is off in the tests (they would have to wait for it); the motion test turns it on.
+    reducedMotion: 'reduce',
     // Pre-installed Chromium in the cloud environment; falls back to Playwright's own elsewhere.
     launchOptions: process.env.PW_CHROMIUM_PATH
       ? { executablePath: process.env.PW_CHROMIUM_PATH }

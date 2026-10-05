@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import App from '../../app/App'
@@ -22,7 +22,7 @@ describe('privacy policy and terms (FR-48)', () => {
     renderAt('/settings')
     await user.click(await screen.findByRole('link', { name: 'Privacy policy' }))
     expect(await screen.findByRole('heading', { level: 1, name: 'Privacy policy' })).toBeVisible()
-    expect(document.title).toBe('Privacy policy · Climb Pass Tracker')
+    await waitFor(() => expect(document.title).toBe('Privacy policy · Climb Pass Tracker'))
     await user.click(screen.getByRole('link', { name: 'Back to Settings' }))
     await user.click(await screen.findByRole('link', { name: 'Terms of use' }))
     expect(await screen.findByRole('heading', { level: 1, name: 'Terms of use' })).toBeVisible()

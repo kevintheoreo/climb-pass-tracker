@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import App from './App'
@@ -26,7 +26,8 @@ describe('App shell (D23)', () => {
     await user.click(screen.getByRole('link', { name: 'Settings' }))
     expect(await screen.findByRole('heading', { level: 1, name: 'Settings' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Settings' })).toHaveAttribute('aria-current', 'page')
-    expect(document.title).toBe('Settings · Climb Pass Tracker')
+    // The title is set just after the heading is drawn (and Settings loads on demand).
+    await waitFor(() => expect(document.title).toBe('Settings · Climb Pass Tracker'))
 
     await user.click(screen.getByRole('link', { name: 'Back to Passes' }))
     expect(screen.getByRole('heading', { level: 1, name: 'Passes' })).toBeInTheDocument()
