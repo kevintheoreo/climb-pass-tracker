@@ -34,7 +34,7 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, State> {
           <button
             type="button"
             onClick={() => this.setState({ error: null })}
-            className="inline-flex min-h-11 items-center rounded-lg bg-brand-500 px-4 py-2 text-[1.2rem] font-bold text-white hover:bg-brand-600"
+            className="inline-flex min-h-11 items-center rounded-lg bg-brand-button px-4 py-2 text-base font-medium text-white hover:bg-brand-700"
           >
             Try again
           </button>

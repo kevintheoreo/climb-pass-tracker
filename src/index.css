@@ -2,9 +2,8 @@
 
 /*
  * The brand colours. 500 is the main orange and 50 the main off-white (the icon's colours). White text
- * on 500 is only 3.3:1, enough for large text only, so the labels of buttons on it are large and bold
- * (see `buttonClass`); 700 is the orange for text on a light page (5.7:1 on 50) and 400 the one for
- * text on a dark page.
+ * on 500 is only 3.3:1, so button fills use `brand-button`, a little darker (4.8:1 with white); 700 is
+ * the orange for text on a light page (5.7:1 on 50) and 400 the one for text on a dark page.
  */
 @theme {
   --color-brand-50: #fff7e8;
@@ -13,6 +12,7 @@
   --color-brand-300: #f4b29a;
   --color-brand-400: #ee8b66;
   --color-brand-500: #e86533;
+  --color-brand-button: #c44c1b;
   --color-brand-600: #cf5524;
   --color-brand-700: #a8420f;
   --color-brand-800: #8a340c;
