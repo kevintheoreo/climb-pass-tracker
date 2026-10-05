@@ -24,7 +24,7 @@ describe('App shell (D23)', () => {
     const user = userEvent.setup()
     renderAt()
     await user.click(screen.getByRole('link', { name: 'Settings' }))
-    expect(screen.getByRole('heading', { level: 1, name: 'Settings' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: 'Settings' })).toBeInTheDocument()
     expect(screen.getByRole('link', { name: 'Settings' })).toHaveAttribute('aria-current', 'page')
     expect(document.title).toBe('Settings · Climb Pass Tracker')
 
@@ -33,9 +33,9 @@ describe('App shell (D23)', () => {
     expect(screen.getByRole('link', { name: 'Settings' })).not.toHaveAttribute('aria-current')
   })
 
-  it('opens Settings directly', () => {
+  it('opens Settings directly', async () => {
     renderAt('/settings')
-    expect(screen.getByRole('heading', { level: 1, name: 'Settings' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: 'Settings' })).toBeInTheDocument()
   })
 
   it('has no Gyms or History screens: those paths go to the main screen', () => {
