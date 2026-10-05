@@ -96,6 +96,9 @@ export function PassRow({
         // A container for the row's own width: when text is enlarged the row is narrow in rem, and
         // the cells stack in one column instead of running off the screen (WCAG 1.4.10).
         '@container',
+        // The list's frame (`rounded-lg`, 1px border in `RowList`) rounds its corners and clips what is inside it, so the first and last row
+        // take the frame's inner curve: otherwise a reminder's ring is cut off at the corner.
+        'first:rounded-t-[calc(0.5rem_-_1px)] last:rounded-b-[calc(0.5rem_-_1px)]',
         motion === 'leaving'
           ? 'row-leaving'
           : motion === 'entering' || slidingIn
