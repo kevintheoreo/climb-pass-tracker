@@ -136,19 +136,17 @@ describe('passes', () => {
     await expect(repo.updatePass('nope', multipass())).rejects.toBeInstanceOf(NotFoundError)
   })
 
-  it('soft-deletes: hidden from reads but kept in the table with deletedAt set', async () => {
+  it('deleting a pass removes it for good: nothing is left in the table', async () => {
     const { repo, db } = makeTestRepo()
     const pass = await repo.createPass(multipass())
     await repo.deletePass(pass.id)
     expect(await repo.getPass(pass.id)).toBeUndefined()
     expect(await repo.listPasses()).toEqual([])
-    const raw = await db.passes.get(pass.id)
-    expect(raw?.deletedAt).not.toBeNull()
-    expect(raw?.updatedAt).toBe(raw?.deletedAt)
+    expect(await db.passes.get(pass.id)).toBeUndefined()
     await expect(repo.deletePass(pass.id)).rejects.toBeInstanceOf(NotFoundError)
   })
 
-  it('deleting a pass also soft-deletes its uses and freezes, but not other passes (FR-19)', async () => {
+  it('deleting a pass also removes its uses and freezes for good, but not other passes (FR-19)', async () => {
     const { repo, db } = makeTestRepo()
     const target = await repo.createPass(membership({ monthlyEntries: 8 }))
     const other = await repo.createPass(multipass())
@@ -163,8 +161,9 @@ describe('passes', () => {
     await repo.deletePass(target.id)
 
     expect(await repo.listUses(target.id)).toEqual([])
-    expect((await db.uses.get((used as { use: { id: string } }).use.id))?.deletedAt).not.toBeNull()
-    expect((await db.freezes.get(freeze.id))?.deletedAt).not.toBeNull()
+    expect(await db.uses.get((used as { use: { id: string } }).use.id)).toBeUndefined()
+    expect(await db.freezes.get(freeze.id)).toBeUndefined()
+    expect(await db.uses.where('passId').equals(target.id).count()).toBe(0)
     expect(await repo.listUses(other.id)).toHaveLength(1)
     expect(keptUse.ok).toBe(true)
     expect(await repo.getPass(other.id)).toBeDefined()
@@ -761,13 +760,13 @@ describe('backup and import', () => {
     return parsed.backup
   }
 
-  it('a snapshot has every row, deleted ones too, and settings only once they were saved', async () => {
+  it('a snapshot has every row, removed uses too, and settings only once they were saved', async () => {
     const { repo } = makeTestRepo()
     expect((await repo.readSnapshot()).settings).toBeUndefined()
     const { gone } = await populate(repo)
     const snap = await repo.readSnapshot()
-    expect(snap.passes).toHaveLength(3)
-    expect(snap.passes.find((p) => p.id === gone.id)?.deletedAt).not.toBeNull()
+    expect(snap.passes).toHaveLength(2)
+    expect(snap.passes.find((p) => p.id === gone.id)).toBeUndefined()
     expect(snap.uses.some((u) => u.deletedAt !== null)).toBe(true)
     expect(snap.freezes).toHaveLength(1)
     expect(snap.userGyms).toHaveLength(1)
@@ -849,14 +848,33 @@ describe('backup and import', () => {
     )
   })
 
-  it('a pass deleted on one device is deleted on the other after the import', async () => {
+  it('a pass deleted on one device stays on the other after the import (deletions are not carried)', async () => {
     const a = makeTestRepo({ idPrefix: 'a' })
     const { pack } = await populate(a.repo)
     const b = makeTestRepo({ idPrefix: 'b', startSecond: 100 })
     await b.repo.importBackup(await fileFrom(a.repo))
     await b.repo.deletePass(pack.id)
     await a.repo.importBackup(await fileFrom(b.repo))
-    expect(await a.repo.getPass(pack.id)).toBeUndefined()
+    expect(await a.repo.getPass(pack.id)).toBeDefined()
+  })
+
+  it('a retired built-in gym is listed as inactive and reused when its name is typed', async () => {
+    const repo = createRepo(new ClimbDB('retired-gym-test'), {
+      builtinGyms: [
+        { id: 'b-old', name: 'Old Wall', isActive: false },
+        { id: 'b-new', name: 'New Wall', isActive: true },
+      ],
+    })
+    const listed = await repo.listGyms()
+    expect(listed.map((g) => [g.name, g.isActive])).toEqual([
+      ['New Wall', true],
+      ['Old Wall', false],
+    ])
+    expect(await repo.findOrCreateGym('old wall')).toEqual({
+      ref: { kind: 'builtin', id: 'b-old' },
+      created: false,
+    })
+    expect(await repo.listUserGyms()).toEqual([])
   })
 
   it('a gym with the same name is the same gym: no second copy, and the pass points at the one here', async () => {

@@ -6,8 +6,8 @@ import { createRepo } from './repo'
 let dbCounter = 0
 
 export const TEST_BUILTIN_GYMS: BuiltinGym[] = [
-  { id: 'b-fitbloc', name: 'Fit Bloc' },
-  { id: 'b-plus', name: 'Boulder+' },
+  { id: 'b-fitbloc', name: 'Fit Bloc', isActive: true },
+  { id: 'b-plus', name: 'Boulder+', isActive: true },
 ]
 
 /**

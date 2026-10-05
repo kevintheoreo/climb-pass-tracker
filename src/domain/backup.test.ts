@@ -21,7 +21,7 @@ import {
 } from './testFactories'
 import type { Freeze, RecordMeta, UserGym } from './types'
 
-const BUILTIN: BuiltinGym[] = [{ id: 'b-boulder', name: 'Boulder+' }]
+const BUILTIN: BuiltinGym[] = [{ id: 'b-boulder', name: 'Boulder+', isActive: true }]
 const T0 = '2026-01-01T00:00:00.000Z'
 const T1 = '2026-02-01T00:00:00.000Z'
 const T2 = '2026-03-01T00:00:00.000Z'
@@ -228,7 +228,6 @@ describe('adding a backup to a device', () => {
     expect(plan.summary).toMatchObject({
       passesAdded: 4,
       passesUpdated: 0,
-      passesRemoved: 0,
       usesAdded: 2,
       freezesChanged: 1,
       gymsAdded: 1,
@@ -301,40 +300,48 @@ describe('adding a backup to a device', () => {
     const live = (updatedAt: string) => makeCounted({ id: 'p', updatedAt })
     const gone = (updatedAt: string) => makeCounted({ id: 'p', updatedAt, deletedAt: updatedAt })
 
-    it('a newer deletion in the file removes the pass here', () => {
+    it('a pass the file marks deleted is ignored and never removes the pass here', () => {
       const plan = planImport(
         snapshot({ passes: [live(T1)] }),
         backup({ passes: [gone(T2)] }),
         BUILTIN,
       )
-      expect(plan.summary.passesRemoved).toBe(1)
-      expect(apply(snapshot({ passes: [live(T1)] }), plan).passes[0]!.deletedAt).toBe(T2)
+      expect(plan.put.passes).toEqual([])
+      expect(plan.summary.nothingNew).toBe(true)
+      expect(apply(snapshot({ passes: [live(T1)] }), plan).passes[0]!.deletedAt).toBeNull()
     })
 
-    it('an older copy of something deleted here does not bring it back', () => {
+    it('the uses and freezes of a deleted pass in the file are ignored too', () => {
       const plan = planImport(
-        snapshot({ passes: [gone(T2)] }),
-        backup({ passes: [live(T1)] }),
+        snapshot(),
+        backup({
+          passes: [gone(T2)],
+          uses: [makeUse('p', { id: 'u' })],
+          freezes: [
+            {
+              id: 'f',
+              passId: 'p',
+              startDate: '2026-10-01',
+              endDate: '2026-10-02',
+              createdAt: T0,
+              updatedAt: T0,
+              deletedAt: null,
+            },
+          ],
+        }),
         BUILTIN,
       )
       expect(plan.put.passes).toEqual([])
-      expect(plan.summary.passesAdded).toBe(0)
+      expect(plan.put.uses).toEqual([])
+      expect(plan.put.freezes).toEqual([])
+      expect(plan.summary.nothingNew).toBe(true)
     })
 
-    it('a newer live copy of something deleted here brings it back', () => {
-      const plan = planImport(
-        snapshot({ passes: [gone(T1)] }),
-        backup({ passes: [live(T2)] }),
-        BUILTIN,
-      )
-      expect(plan.summary.passesAdded).toBe(1)
-    })
-
-    it('a deletion of something this device never had is kept quietly and not counted as new', () => {
+    it('a deletion of something this device never had is ignored and not counted as new', () => {
       const plan = planImport(snapshot(), backup({ passes: [gone(T1)] }), BUILTIN)
       expect(plan.summary.passesAdded).toBe(0)
       expect(plan.summary.nothingNew).toBe(true)
-      expect(plan.put.passes).toHaveLength(1)
+      expect(plan.put.passes).toEqual([])
     })
 
     it('a recorded use that was undone elsewhere is removed here', () => {

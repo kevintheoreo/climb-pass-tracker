@@ -15,9 +15,9 @@ const meta = {
   deletedAt: null,
 }
 const builtin: BuiltinGym[] = [
-  { id: 'b-planet', name: 'Boulder Planet' },
-  { id: 'b-plus', name: 'Boulder+' },
-  { id: 'b-fit', name: 'fit bloc' },
+  { id: 'b-planet', name: 'Boulder Planet', isActive: true },
+  { id: 'b-plus', name: 'Boulder+', isActive: true },
+  { id: 'b-fit', name: 'fit bloc', isActive: true },
 ]
 const userGym = (id: string, name: string, overrides: Partial<UserGym> = {}): UserGym => ({
   id,
@@ -92,7 +92,7 @@ describe('searchGyms', () => {
   })
 
   it('finds a gym whether or not the spaces and dots are typed', () => {
-    const real = buildGymList([{ id: 'x', name: 'fit·bloc' }], [])
+    const real = buildGymList([{ id: 'x', name: 'fit·bloc', isActive: true }], [])
     for (const typed of ['fitbloc', 'fit bloc', 'Fit·Bloc', 'fit', 'bloc']) {
       expect(names(searchGyms(real, typed))).toEqual(['fit·bloc'])
     }
@@ -141,6 +141,37 @@ describe('resolveGymInput (D24, FR-25, FR-53)', () => {
     expect(resolveGymInput('boulder planet', both)).toMatchObject({
       kind: 'existing',
       gym: { ref: { kind: 'builtin' } },
+    })
+  })
+})
+
+describe('retired gyms (isActive: false)', () => {
+  const retired: BuiltinGym[] = [
+    { id: 'b-old', name: 'Old Wall', isActive: false },
+    { id: 'b-new', name: 'New Wall', isActive: true },
+  ]
+  const list = buildGymList(retired, [userGym('u1', 'Old Wall Annex')])
+
+  it('are not suggested, whether or not anything is typed', () => {
+    expect(names(searchGyms(list, ''))).toEqual(['New Wall', 'Old Wall Annex'])
+    expect(names(searchGyms(list, 'wall'))).toEqual(['New Wall', 'Old Wall Annex'])
+    expect(names(searchGyms(list, 'old wall'))).toEqual(['Old Wall Annex'])
+  })
+
+  it('still name the passes that already use them', () => {
+    expect(findGym(list, { kind: 'builtin', id: 'b-old' })?.name).toBe('Old Wall')
+  })
+
+  it('are reused when their exact name is typed, so no duplicate is created', () => {
+    const choice = resolveGymInput('old  wall', list)
+    expect(choice).toMatchObject({ kind: 'existing', gym: { ref: { id: 'b-old' } } })
+  })
+
+  it('lose an exact-name tie to an active gym', () => {
+    const tied = buildGymList(retired, [userGym('u2', 'old wall')])
+    expect(resolveGymInput('Old Wall', tied)).toMatchObject({
+      kind: 'existing',
+      gym: { ref: { kind: 'user', id: 'u2' } },
     })
   })
 })

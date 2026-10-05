@@ -16,8 +16,11 @@ describe('built-in gym data', () => {
     expect(new Set(names.map((n) => n.toLowerCase())).size).toBe(names.length)
   })
 
-  it('holds names only: no pass options, prices or validity periods (D11)', () => {
-    for (const gym of BUILTIN_GYMS) expect(Object.keys(gym).sort()).toEqual(['id', 'name'])
+  it('holds a name and an active flag only: no pass options, prices or validity periods (D11)', () => {
+    for (const gym of BUILTIN_GYMS) {
+      expect(Object.keys(gym).sort()).toEqual(['id', 'isActive', 'name'])
+      expect(typeof gym.isActive).toBe('boolean')
+    }
   })
 
   it("is the owner's checked list: 20 gyms, spelled as given (D22, plan step 3.1)", () => {
