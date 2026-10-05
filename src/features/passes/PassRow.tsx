@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { LocalDate } from '../../domain/dates'
 import {
   badgesFor,
@@ -14,6 +14,7 @@ import type { PassDraft } from '../../domain/passForm'
 import { Counter } from './Counter'
 import { EditPanel } from './EditPanel'
 import { WIDE_COLUMNS } from './fields'
+import { motionAllowed, ROW_MOTION_MS } from './useRowMotion'
 
 const muted = 'text-stone-600 dark:text-stone-400'
 
@@ -21,6 +22,21 @@ const toneClass: Record<BadgeTone, string> = {
   warn: 'bg-amber-100 text-amber-900 dark:bg-amber-900/40 dark:text-amber-200',
   info: 'bg-sky-100 text-sky-900 dark:bg-sky-900/40 dark:text-sky-200',
   muted: 'bg-stone-200 text-stone-800 dark:bg-stone-700 dark:text-stone-200',
+}
+
+/**
+ * True while a just-added row slides in (D57): from the moment it appears for as long as the slide
+ * takes. The class is then taken off, so the row's details panel is never clipped. False when the
+ * device asks for reduced motion.
+ */
+function useSlidingIn(justAdded: boolean): boolean {
+  const [done, setDone] = useState(false)
+  useEffect(() => {
+    if (!justAdded) return
+    const timer = setTimeout(() => setDone(true), ROW_MOTION_MS)
+    return () => clearTimeout(timer)
+  }, [justAdded])
+  return justAdded && !done && motionAllowed()
 }
 
 export function PassRow({
@@ -44,7 +60,7 @@ export function PassRow({
   open: boolean
   /** A reminder banner is about this row (FR-55). */
   highlighted: boolean
-  /** The pass was just added: it glows amber and is scrolled into view (D46). */
+  /** The pass was just added: it slides in and is scrolled into view (D46, D57). */
   justAdded: boolean
   onToggle: () => void
   onClose: () => void
@@ -63,6 +79,7 @@ export function PassRow({
   const days = row.status.isActive ? row.status.daysLeft : null
   const panelId = `details-${row.pass.id}`
   const item = useRef<HTMLLIElement>(null)
+  const slidingIn = useSlidingIn(justAdded)
 
   useEffect(() => {
     if (!justAdded) return
@@ -79,15 +96,16 @@ export function PassRow({
         // A container for the row's own width: when text is enlarged the row is narrow in rem, and
         // the cells stack in one column instead of running off the screen (WCAG 1.4.10).
         '@container',
-        motion === 'leaving' ? 'row-leaving' : motion === 'entering' ? 'row-entering' : '',
-        open ? 'bg-stone-50 dark:bg-stone-950' : '',
-        // Just added: bright amber. A reminder (low or expiring soon): the redder brand orange, like
-        // its banner.
-        justAdded
-          ? 'bg-amber-50 ring-2 ring-inset ring-amber-400 dark:bg-amber-950/40 dark:ring-amber-500'
-          : highlighted
-            ? 'bg-brand-100 ring-2 ring-inset ring-brand-500 dark:bg-brand-950/70 dark:ring-brand-400'
+        motion === 'leaving'
+          ? 'row-leaving'
+          : motion === 'entering' || slidingIn
+            ? 'row-entering'
             : '',
+        open ? 'bg-stone-50 dark:bg-stone-950' : '',
+        // A reminder (low or expiring soon): the redder brand orange, like its banner.
+        highlighted
+          ? 'bg-brand-100 ring-2 ring-inset ring-brand-500 dark:bg-brand-950/70 dark:ring-brand-400'
+          : '',
       ].join(' ')}
     >
       <div className="row-body">

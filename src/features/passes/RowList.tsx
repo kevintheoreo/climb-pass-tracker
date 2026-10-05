@@ -31,7 +31,7 @@ export function RowList({
   openId: string | null
   /** Ids of the passes a reminder banner is about. */
   reminded: Set<string>
-  /** The pass that was just added, if it is in this list: it glows for a moment. */
+  /** The pass that was just added, if it is in this list: it slides in (D57). */
   addedId: string | null
   onToggle: (passId: string) => void
   onClose: () => void

@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
-import { seedSamples } from './seed'
+import { openAddRow, seedSamples } from './seed'
 
 // Row motion (FR-61): a row moving between the main list and Finished slides. The other browser
 // tests run with the phone's reduced-motion setting on (see playwright.config.ts); here it is off.
@@ -94,7 +94,27 @@ test.describe('motion allowed', () => {
     await expect(mainRows(page)).toHaveCount(1)
   })
 
-  test('deleting a row or adding one does not slide', async ({ page }) => {
+  test('a new pass slides in, with no glow, and the slide class is gone once it has finished', async ({
+    page,
+  }) => {
+    await seedSamples(page)
+    await expect(mainRows(page)).toHaveCount(7)
+    await openAddRow(page)
+    await page.getByRole('combobox', { name: 'Gym' }).fill('Brand New Wall')
+    await page.getByLabel('Entries', { exact: true }).fill('5')
+    await page.getByRole('button', { name: '+6 months' }).click()
+    await page.keyboard.press('Enter')
+
+    const entering = page.locator('li.row-entering')
+    await expect(entering).toHaveCount(1)
+    await expect(entering).toContainText('Brand New Wall')
+    await expect(entering).not.toHaveClass(/ring-amber/) // slides in; it does not glow (D57)
+    await expect(entering).toHaveCount(0) // the class goes once it has slid in
+    await expect(mainRows(page)).toHaveCount(8)
+    await expect(mainRows(page).first()).toContainText('Brand New Wall')
+  })
+
+  test('deleting a row does not slide', async ({ page }) => {
     await seedSamples(page)
     await mainRows(page)
       .filter({ hasText: '1 / 1' })
