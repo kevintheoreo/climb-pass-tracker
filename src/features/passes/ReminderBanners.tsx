@@ -25,7 +25,7 @@ export function ReminderBanners({ reminders, rows }: { reminders: Reminder[]; ro
         {shown.map(({ group, message }) => (
           <li
             key={group.passId}
-            className="flex flex-wrap items-center justify-between gap-x-3 rounded-lg border border-amber-300 bg-amber-50 py-1 pl-4 pr-1 text-amber-950 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100"
+            className="flex flex-wrap items-center justify-between gap-x-3 rounded-lg border border-brand-500 bg-brand-100 py-1 pl-4 pr-1 text-brand-950 dark:border-brand-500 dark:bg-brand-500/15 dark:text-brand-100"
           >
             <p className="min-w-0 flex-1 basis-48 py-2 text-base">{message}</p>
             <button
@@ -36,7 +36,7 @@ export function ReminderBanners({ reminders, rows }: { reminders: Reminder[]; ro
                   group.all.map((r) => ({ key: r.key, value: dismissalValue(r) })),
                 )
               }
-              className="inline-flex min-h-11 shrink-0 items-center rounded-lg px-3 text-base font-medium text-amber-900 hover:bg-amber-100 dark:text-amber-200 dark:hover:bg-amber-900/50"
+              className="inline-flex min-h-11 shrink-0 items-center rounded-lg px-3 text-base font-medium text-brand-800 hover:bg-brand-200 dark:text-brand-200 dark:hover:bg-brand-900/50"
             >
               Dismiss
             </button>

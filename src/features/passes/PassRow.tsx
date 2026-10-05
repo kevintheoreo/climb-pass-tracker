@@ -42,7 +42,7 @@ export function PassRow({
   open: boolean
   /** A reminder banner is about this row (FR-55). */
   highlighted: boolean
-  /** The pass was just added: it glows orange and is scrolled into view (D46). */
+  /** The pass was just added: it glows amber and is scrolled into view (D46). */
   justAdded: boolean
   onToggle: () => void
   onClose: () => void
@@ -73,10 +73,12 @@ export function PassRow({
         // the cells stack in one column instead of running off the screen (WCAG 1.4.10).
         '@container',
         open ? 'bg-stone-50 dark:bg-stone-950' : '',
+        // Just added: bright amber. A reminder (low or expiring soon): the redder brand orange, like
+        // its banner.
         justAdded
-          ? 'bg-brand-100 ring-2 ring-inset ring-brand-500 dark:bg-brand-500/15 dark:ring-brand-400'
+          ? 'bg-amber-50 ring-2 ring-inset ring-amber-400 dark:bg-amber-950/40 dark:ring-amber-500'
           : highlighted
-            ? 'bg-amber-50 ring-2 ring-inset ring-amber-400 dark:bg-amber-950/40 dark:ring-amber-500'
+            ? 'bg-brand-100 ring-2 ring-inset ring-brand-500 dark:bg-brand-950/70 dark:ring-brand-400'
             : '',
       ].join(' ')}
     >
