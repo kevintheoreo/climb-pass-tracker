@@ -22,6 +22,8 @@ Where things live:
 
 The icon is the owner's artwork (`design/icon-source.png`); `scripts/generate-icons.mjs` cuts it out and writes every icon, `public/splash/*.png` (iPhone launch screens, light and dark) and the splash links in `index.html` (between the `splash` markers); the splash images are not precached (`globIgnores` in `vite.config.ts`). Colours are the `brand-*` tokens and `ink` in `src/index.css` (D50): `brand-500` `#E86533` is the main orange, `brand-50` `#FFF7E8` the page; primary buttons are white on `brand-button` `#C44C1B`, a little darker than the main orange because white on `#E86533` is only 3.3:1 and fails contrast at normal text size (`buttonClass`; keep it so). The greys are Tailwind's warm `stone-*`, with the darkest steps redefined as charcoal for dark mode.
 
+Speed: `docs/PERFORMANCE.md` has the Lighthouse numbers against the 2 s / 1 s targets and how to measure again. Only the main screen is in the first download: Settings, privacy and terms are `React.lazy` routes in `src/app/App.tsx` (keep new screens lazy), and `public/robots.txt` must stay a real file (the SPA fallback would otherwise answer for it).
+
 Accessibility is checked in the browser tests: `e2e/a11y.spec.ts` runs axe (WCAG 2.1 A and AA) on every screen and state in light and dark, and a serious or critical finding fails it; `e2e/a11y-extras.spec.ts` covers 200% text at 320px wide (rows stack, banners wrap, via `@max-[19rem]:` container queries, which follow the text size), the gym autocomplete's roles and keys, visible focus, and the row buttons' names. New screens should be added to the axe tests.
 
 Never name a custom error `NotFoundError`: Dexie rewrites errors with that name.
