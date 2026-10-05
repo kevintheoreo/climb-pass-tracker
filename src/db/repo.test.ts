@@ -317,6 +317,159 @@ describe('giveBackEntry (+)', () => {
   })
 })
 
+describe('updateUseDate (changing the date of a recorded use, D58)', () => {
+  const spendOn = async (
+    repo: ReturnType<typeof makeTestRepo>['repo'],
+    passId: string,
+    date: string,
+    hour = 12,
+  ) => {
+    const result = await repo.useEntry(passId, today, at(date, hour))
+    if (!result.ok) throw new Error('could not use an entry')
+    return result.use
+  }
+
+  it('moves the use to the new date, keeps its time of day and marks it as changed', async () => {
+    const { repo } = makeTestRepo()
+    const pass = await repo.createPass(multipass())
+    const use = await spendOn(repo, pass.id, '2026-10-12', 18)
+    const result = await repo.updateUseDate(use.id, '2026-10-03', today)
+    expect(result.ok).toBe(true)
+    const [stored] = await repo.listUses(pass.id)
+    expect(stored!.usedAt).toBe(at('2026-10-03', 18))
+    expect(stored!.updatedAt > use.updatedAt).toBe(true)
+    expect(stored!.createdAt).toBe(use.createdAt)
+    expect(stored!.deletedAt).toBeNull()
+  })
+
+  it('writes nothing when the date is refused, and says why', async () => {
+    const { repo, db } = makeTestRepo()
+    const pass = await repo.createPass(multipass({ purchaseDate: '2026-10-01' }))
+    const use = await spendOn(repo, pass.id, '2026-10-12')
+    const before = await db.uses.get(use.id)
+    expect(await repo.updateUseDate(use.id, '2026-09-30', today)).toMatchObject({
+      ok: false,
+      reason: 'before_purchase',
+    })
+    expect(await repo.updateUseDate(use.id, '2026-10-16', today)).toMatchObject({
+      ok: false,
+      reason: 'in_future',
+    })
+    expect(await repo.updateUseDate(use.id, '2026-02-30', today)).toMatchObject({
+      ok: false,
+      reason: 'invalid_date',
+    })
+    expect(await db.uses.get(use.id)).toEqual(before)
+  })
+
+  it('giving the date it already has changes nothing', async () => {
+    const { repo, db } = makeTestRepo()
+    const pass = await repo.createPass(multipass())
+    const use = await spendOn(repo, pass.id, '2026-10-12')
+    const before = await db.uses.get(use.id)
+    expect((await repo.updateUseDate(use.id, '2026-10-12', today)).ok).toBe(true)
+    expect(await db.uses.get(use.id)).toEqual(before)
+  })
+
+  it('does not change how many entries a counted pass has left', async () => {
+    const { repo } = makeTestRepo()
+    const pass = await repo.createPass(multipass({ totalEntries: 5 }))
+    const use = await spendOn(repo, pass.id, '2026-10-12')
+    await repo.updateUseDate(use.id, '2026-10-02', today)
+    const status = getPassStatus(
+      (await repo.getPass(pass.id))!,
+      await repo.listUses(pass.id),
+      [],
+      today,
+      DEFAULT_SETTINGS,
+    )
+    expect(status).toMatchObject({ entriesLeft: 4 })
+  })
+
+  it('+ takes back the use with the latest date, not the one tapped last', async () => {
+    const { repo } = makeTestRepo()
+    const pass = await repo.createPass(multipass())
+    const earlier = await spendOn(repo, pass.id, '2026-10-05')
+    const tappedLast = await spendOn(repo, pass.id, '2026-10-08')
+    await repo.updateUseDate(tappedLast.id, '2026-10-02', today) // now the oldest
+    await repo.giveBackEntry(pass.id, today)
+    const left = await repo.listUses(pass.id)
+    expect(left.map((u) => u.id)).toEqual([tappedLast.id])
+    expect(left[0]!.id).not.toBe(earlier.id)
+  })
+
+  describe('for a monthly membership', () => {
+    // 3 a month, bought 10 Oct 2026, resets on the 10th; today is 15 Oct, so October is the current month.
+    const monthly = () => membership({ monthlyEntries: 3, purchaseDate: '2026-09-10' })
+    const left = async (repo: ReturnType<typeof makeTestRepo>['repo'], id: string) => {
+      const status = getPassStatus(
+        (await repo.getPass(id))!,
+        await repo.listUses(id),
+        [],
+        today,
+        DEFAULT_SETTINGS,
+      )
+      return 'entriesLeft' in status ? status.entriesLeft : null
+    }
+
+    it('moving a use out of this month gives an entry back this month', async () => {
+      const { repo } = makeTestRepo()
+      const pass = await repo.createPass(monthly())
+      const use = await spendOn(repo, pass.id, '2026-10-12')
+      await spendOn(repo, pass.id, '2026-10-13')
+      expect(await left(repo, pass.id)).toBe(1)
+      expect((await repo.updateUseDate(use.id, '2026-09-20', today)).ok).toBe(true)
+      expect(await left(repo, pass.id)).toBe(2)
+    })
+
+    it('refuses to move a use into a month that is already full, and changes nothing', async () => {
+      const { repo, db } = makeTestRepo()
+      const pass = await repo.createPass(monthly())
+      for (const d of ['2026-09-12', '2026-09-13', '2026-09-14']) await spendOn(repo, pass.id, d)
+      const october = await spendOn(repo, pass.id, '2026-10-12')
+      const before = await db.uses.get(october.id)
+      expect(await repo.updateUseDate(october.id, '2026-09-20', today)).toMatchObject({
+        ok: false,
+        reason: 'month_full',
+        allowance: 3,
+        periodStart: '2026-09-10',
+        nextReset: '2026-10-10',
+      })
+      expect(await db.uses.get(october.id)).toEqual(before)
+      expect(await left(repo, pass.id)).toBe(2)
+    })
+  })
+
+  it('refuses an unknown use, and the use of a pass that was deleted', async () => {
+    const { repo } = makeTestRepo()
+    await expect(repo.updateUseDate('nope', today, today)).rejects.toBeInstanceOf(NotFoundError)
+    const pass = await repo.createPass(multipass())
+    const use = await spendOn(repo, pass.id, '2026-10-12')
+    await repo.deletePass(pass.id)
+    await expect(repo.updateUseDate(use.id, '2026-10-03', today)).rejects.toBeInstanceOf(
+      NotFoundError,
+    )
+  })
+
+  it('a changed date reaches another device through a backup, and the newer edit wins', async () => {
+    const a = makeTestRepo({ idPrefix: 'a' })
+    const b = makeTestRepo({ idPrefix: 'b', startSecond: 100 })
+    const fileFrom = async (r: typeof a.repo) => {
+      const parsed = parseBackup(backupToText(await r.exportBackup()))
+      if (!parsed.ok) throw new Error(parsed.error)
+      return parsed.backup
+    }
+    const pass = await a.repo.createPass(multipass())
+    const use = await spendOn(a.repo, pass.id, '2026-10-12')
+    await b.repo.importBackup(await fileFrom(a.repo))
+    expect((await b.repo.listUses(pass.id))[0]!.usedAt).toBe(use.usedAt)
+
+    await a.repo.updateUseDate(use.id, '2026-10-02', today)
+    await b.repo.importBackup(await fileFrom(a.repo))
+    expect((await b.repo.listUses(pass.id)).map((u) => u.usedAt)).toEqual([at('2026-10-02')])
+  })
+})
+
 describe('freezes', () => {
   it('adds, edits and deletes freezes on memberships only', async () => {
     const { repo } = makeTestRepo()

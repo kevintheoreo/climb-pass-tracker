@@ -27,6 +27,23 @@ export function localDateOfTimestamp(timestamp: string): LocalDate {
   return toLocalDate(new Date(timestamp))
 }
 
+/**
+ * The same time of day as `timestamp` (in the device's time zone), on the local date `date`. Used
+ * when the date of a recorded use is edited: the time stays, so uses on one day keep their order.
+ */
+export function moveTimestampToDate(timestamp: string, date: LocalDate): string {
+  const time = new Date(timestamp)
+  return new Date(
+    Number(date.slice(0, 4)),
+    Number(date.slice(5, 7)) - 1,
+    Number(date.slice(8, 10)),
+    time.getHours(),
+    time.getMinutes(),
+    time.getSeconds(),
+    time.getMilliseconds(),
+  ).toISOString()
+}
+
 /** Days from `from` to `to`. Positive when `to` is later, 0 when equal, negative when earlier. */
 export function daysBetween(from: LocalDate, to: LocalDate): number {
   return dayNumber(to) - dayNumber(from)
