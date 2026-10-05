@@ -31,6 +31,26 @@ test('banners say what needs attention, and the row they are about is highlighte
   ).toHaveCount(0)
 })
 
+test("the first and last rows follow the list's rounded corners, so a highlight's ring is not cut off", async ({
+  page,
+}) => {
+  await seeded(page)
+  // The frame of the list is rounded and clips what is inside it; its inner curve is 0.5rem less its
+  // 1px border. The first row rounds its top corners to that, the last its bottom corners.
+  const radius = (row: ReturnType<typeof mainRows>, corner: 'TopLeft' | 'BottomRight') =>
+    row.evaluate(
+      (el, c) => getComputedStyle(el)[`border${c}Radius` as 'borderTopLeftRadius'],
+      corner,
+    )
+  const rows = mainRows(page)
+  const count = await rows.count()
+  expect(count).toBeGreaterThan(2)
+  expect(await radius(rows.first(), 'TopLeft')).toBe('7px')
+  expect(await radius(rows.last(), 'BottomRight')).toBe('7px')
+  expect(await radius(rows.nth(1), 'TopLeft')).toBe('0px') // a middle row stays square
+  expect(await radius(rows.first(), 'BottomRight')).toBe('0px')
+})
+
 test('dismissing a banner hides it, and it stays hidden after a reload', async ({ page }) => {
   await seeded(page)
   const lowBanner = banners(page).getByText(/Multipass: 2 entries left/)
