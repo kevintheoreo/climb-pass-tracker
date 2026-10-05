@@ -37,13 +37,12 @@ export default function AboutPage() {
   usePageTitle('About')
   return (
     <div className="pb-10">
-      <section className="rounded-b-[2.5rem] bg-brand-500 px-4 pb-10 pt-5 text-center text-white">
+      <section className="rounded-b-[2.5rem] bg-brand-500 px-4 pb-8 pt-5 text-center text-white">
         <div className="mx-auto max-w-3xl">
           <h1 className="text-left text-2xl font-bold">About</h1>
-          <div className="mx-auto mt-6 flex size-32 items-center justify-center rounded-[2rem] bg-brand-950/20 text-brand-50">
-            <MonkeyIcon size={92} />
+          <div className="mt-4 flex justify-center text-brand-50">
+            <MonkeyIcon size={104} />
           </div>
-          <p className="mt-5 text-2xl font-bold">Climb Pass Tracker</p>
         </div>
       </section>
 
