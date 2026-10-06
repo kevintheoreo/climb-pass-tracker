@@ -73,6 +73,25 @@ for (const scheme of ['light', 'dark'] as const) {
       await scan(page, 'details panel (monthly membership)')
     })
 
+    test('the History section, closed, open and with the date editor', async ({ page }) => {
+      await seedSamples(page)
+      await scan(page, 'main screen with a History section')
+      await page.getByText(/History \(\d+\)/).click()
+      const history = page.getByRole('list', { name: 'Usage history' })
+      await expect(history).toBeVisible()
+      await scan(page, 'History open')
+      await history
+        .getByRole('button', { name: /^Change date/ })
+        .first()
+        .click()
+      await expect(page.getByLabel('Date of this entry')).toBeVisible()
+      await scan(page, 'History with the date editor')
+      await page.getByLabel('Date of this entry').fill('2099-01-01')
+      await page.getByRole('button', { name: 'Save' }).click()
+      await expect(page.getByRole('alert').filter({ hasText: 'after today' })).toBeVisible()
+      await scan(page, 'History with a refused date')
+    })
+
     test('the notices, and the Buy again row', async ({ page }) => {
       await seedSamples(page)
       await toggle(mainRows(page).filter({ hasText: '7 / 10' })).click()

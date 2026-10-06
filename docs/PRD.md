@@ -46,7 +46,7 @@ Climbers in Singapore usually buy **shareable multipasses** (for example, 10 ent
 
 ### Non-goals (v1)
 - Tracking *who* used each entry (friends' names are deliberately not recorded).
-- Showing or editing a history of individual uses (taps are recorded silently, D26). A usage history is a future enhancement (section 14).
+- Names or notes on individual uses: a use is a timestamp only (D3, D4, D26). The History section (D58) shows dates, not people.
 - A separate screen for managing gyms, pass templates or built-in "pass options".
 - Currencies other than SGD.
 - Suggested prices or validity periods for gyms (users enter their own).
@@ -98,7 +98,7 @@ Status column: **Active**, **Updated** (still applies, reworded for v2.0) or **S
 | D23 | Layout | **One main screen** of rows, `Gym \| Type \| Expiry \| Left`, not grouped by gym. Settings is reached from a **gear icon in the header**. No bottom tab bar (a two-item bar would waste space on a data-dense screen), no Gyms screen, no History screen. | New |
 | D24 | Entering a gym | The first column is a text box with an autocomplete dropdown of existing gyms (built-in and the user's own). Typing a name that matches no gym saves it as a new gym. | New |
 | D25 | Counter | `−` uses one entry. `+` gives one back. The counter stays between 0 and the total entered when the row was created (for a monthly membership, between 0 and the monthly allowance). | New |
-| D26 | Use records | Each `−` is recorded silently with its timestamp, which keeps `+` (undo) working and leaves room for stats later. No screen shows these records in v1. | New |
+| D26 | Use records | Each `−` is recorded silently with its timestamp, which keeps `+` (undo) working and leaves room for stats later. They are listed, with their dates, in the History section (D58). | New |
 | D27 | Finished passes | Used-up and expired passes move to a collapsed **Finished** section at the bottom, where they can be deleted. | New |
 | D28 | Membership and single entry | A membership shows "Unlimited" unless it has a monthly allowance (D32). A single entry is a 1-entry pass. | New |
 | D29 | Adding a row | A blank row at the bottom (hidden behind a button once there is a pass, D39). It saves itself once every required cell is valid and the user leaves the row (or presses Enter). | New |
@@ -130,7 +130,7 @@ Status column: **Active**, **Updated** (still applies, reworded for v2.0) or **S
 | D55 | Header logo | On the main screen the header's left side is the app icon (a small rounded tile, the same `pwa-192.png` the home screen uses, so it is cached and needs no outside address) and the name in two tones: "Climb Pass" in the text colour and "Tracker" in the dark orange (`brand-700`; lighter orange in dark mode). Other screens keep the back link (D51). | New |
 | D56 | Unused gyms are not suggested | A gym a person typed is suggested in the gym box only while a pass (in the list or in Finished) uses it. Delete the pass, or change its gym, and the gym stops being suggested, so a typo does not stay in the dropdown for good. It is not deleted: it still names any pass that uses it, and typing its exact name reuses it instead of making a copy. Built-in gyms are not affected (they are retired with `isActive`, D53). Replaces the "stays in the list for good" behaviour of D24 for typed gyms. | New |
 | D57 | A new pass slides in | A pass that was just added slides in from the left (the same slide as a row coming up from Finished, FR-61) instead of glowing amber; the notice at the bottom (D46) and the scroll into view stay, and a screen reader still hears "Just added.". Nothing slides when the device asks for reduced motion. Replaces the glow part of D46 and FR-69. A reminder's orange ring (FR-55) is unchanged. | New |
-| D58 | Usage history and editing a use's date | Every recorded use (D26) will be listed in a collapsed **History** section below Finished: date, gym and pass type, newest first. The **date** of a use can be changed, and nothing else about it (no names, no notes, D3/D4); the time of day is kept. A new date must be a real date from the pass's purchase date to today and not after the last day the pass is valid (a membership's end date includes its freezes). For a monthly membership the month the use moves into must not end up with more uses than the monthly allowance, so entries left never go below 0. `+` still takes back the use with the **latest date**, so after an edit that may not be the one tapped last. Entries counted as "already used" when a pass was added have no date and are not listed; uses go with a deleted pass (D52). A forgotten visit is added with `−` and then dated. The rules are built first (`src/domain/history.ts`, `repo.updateUseDate`), the screen after. | New |
+| D58 | Usage history and editing a use's date | Every recorded use (D26) are listed in a collapsed **History (n)** section below Finished (hidden while nothing has been used): date, gym and pass type, newest first, the latest 30 first and 30 more each time **Show more** is pressed. The **date** of a use can be changed (**Change date**, then **Save** or Enter; **Cancel** or Escape drops it, D49), and nothing else about it (no names, no notes, D3/D4); the time of day is kept. A refused date shows the reason under the date box. A new date must be a real date from the pass's purchase date to today and not after the last day the pass is valid (a membership's end date includes its freezes). For a monthly membership the month the use moves into must not end up with more uses than the monthly allowance, so entries left never go below 0. `+` still takes back the use with the **latest date**, so after an edit that may not be the one tapped last. Entries counted as "already used" when a pass was added have no date and are not listed; uses go with a deleted pass (D52). A forgotten visit is added with `−` and then dated. The rules are in `src/domain/history.ts` and `repo.updateUseDate`, the screen is `HistorySection.tsx`. | New |
 
 ## 5. Pass types
 
@@ -241,6 +241,7 @@ Priority: **P0** = must have for launch, **P1** = should have for launch, **P2**
 - **FR-74 (P0)** **About:** the header's monkey icon (a 44px target) opens `/about` with the developer credit, the Instagram link, the climber quiz link and the Buy me a coffee link, each opening in a new tab; Settings also links to it (D54).
 - **FR-75 (P0)** **Unused typed gyms:** the gym box does not suggest a gym the person typed when no pass uses it, also with an empty box; it still matches by exact name (D56).
 - **FR-76 (P1)** **Changing the date of a recorded use:** refused, with the reason and nothing written, for an invalid date, a date before the purchase date, a date after today, a date after the pass's last valid day, and (monthly membership) a move into a month that is already full; otherwise the date changes and the use counts as edited, so a backup carries it by the newer-edit-wins rule (D58).
+- **FR-77 (P1)** **History section:** below Finished, a collapsed "History (n)" lists every recorded use (date, gym, pass type), newest first, 30 at first and 30 more with **Show more**; it follows each `−` and `+` at once and is hidden while there are no uses. **Change date** opens a date box with **Save** and **Cancel** (FR-76 decides what is allowed and says why when it is not); a saved change shows "Changes saved". A short line says that entries counted as already used when a pass was added have no date and are not listed (D58).
 
 ## 7. Data model (logical)
 
@@ -363,12 +364,7 @@ There are no analytics in v1, so success is judged by:
 - **Push notifications** for expiry and low-entry reminders.
 - **Manage my gyms** (rename a gym everywhere, merge duplicates, forget a gym) from Settings. In v1 a gym is fixed by whatever was typed into a row.
 - **Gym suggestions:** users submit gyms they added to be considered for the built-in list.
-- **Pass usage history.** An expandable section below Finished that lists every entry used, one line each: gym, pass type and the date of the entry, newest first. It is kept up to date by each `−` (and `+` removes the latest line), and the **date of each entry can be edited**, to fix a forgotten tap or a visit that was logged on the wrong day. It builds on the silently recorded uses (D26), which carry a timestamp but today no screen shows. Things to settle when it is built:
-  - Changing a use's date changes what `+` takes back ("the latest use") and, for a monthly membership, which monthly period the use counts in (so entries left can change); the rules need deciding and testing (`src/domain/counter.ts`, `src/domain/cycle.ts`).
-  - Uses of a pass that was deleted are gone with it (D52), so the history only covers passes still on the device.
-  - A use stays a timestamp only: no names and no notes (D3, D4); editing the date is the only edit.
-  - It reverses the v1 non-goal "showing or editing a history of individual uses" and the "per-use history and backdating" listed as removed in v2.0, so those lines are revised then. Also see the statistics below.
-- **Use statistics:** the same records can drive cost per climb, total spent, visits per gym or month, and entries wasted to expiry.
+- **Use statistics:** the usage history (D58) already lists the records; they could also drive cost per climb, total spent, visits per gym or month, and entries wasted to expiry.
 - **Type a number straight into the counter** to set entries left.
 - **Roll-over of unused monthly entries**, and a record of entries lost at each reset, if gyms offer it.
 - **Multiple currencies**, including conversion of existing amounts when the currency changes.

@@ -38,6 +38,18 @@ test.describe('large text and a narrow screen (WCAG 1.4.4, 1.4.10)', () => {
       expect(box.x + box.width).toBeLessThanOrEqual(320 + 1)
     }
 
+    // The History section, with its date editor open, reflows too.
+    await page.goto('/')
+    await page.addStyleTag({ content: 'html { font-size: 200% !important; }' })
+    await page.getByText(/History \(\d+\)/).click()
+    await page
+      .getByRole('list', { name: 'Usage history' })
+      .getByRole('button', { name: /^Change date/ })
+      .first()
+      .click()
+    await expect(page.getByLabel('Date of this entry')).toBeVisible()
+    await noSideScroll(page, 320)
+
     for (const path of ['/settings', '/about', '/privacy', '/terms']) {
       await page.goto(path)
       await page.addStyleTag({ content: 'html { font-size: 200% !important; }' })
