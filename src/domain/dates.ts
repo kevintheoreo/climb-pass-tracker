@@ -68,6 +68,16 @@ export function formatDate(date: LocalDate): string {
   return format(parseISO(date), 'd MMM yyyy')
 }
 
+/** `2026-10-06` → `Tue 6 Oct`: a line of the usage history, under its month's heading. */
+export function formatWeekdayDayMonth(date: LocalDate): string {
+  return format(parseISO(date), 'EEE d MMM')
+}
+
+/** `2026-10-06` → `October 2026`: the heading of a month in the usage history. */
+export function formatMonthYear(date: LocalDate): string {
+  return format(parseISO(date), 'MMMM yyyy')
+}
+
 /** `2026-11-15` → `15 Nov` */
 export function formatDayMonth(date: LocalDate): string {
   return format(parseISO(date), 'd MMM')

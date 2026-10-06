@@ -5,7 +5,7 @@ import App from '../../app/App'
 import { BUILTIN_GYMS } from '../../data/gyms'
 import { repo } from '../../db'
 import { currentPeriod } from '../../domain/cycle'
-import { addDays, todayLocal } from '../../domain/dates'
+import { addDays, formatMonthYear, formatWeekdayDayMonth, todayLocal } from '../../domain/dates'
 import { at } from '../../domain/testFactories'
 import type { MembershipPass, PassInput } from '../../domain/types'
 
@@ -44,7 +44,7 @@ const spend = async (passId: string, date: string, hour = 12) => {
 /** The History section, opened. */
 async function openHistory(user: ReturnType<typeof userEvent.setup>) {
   await user.click(await screen.findByText(/History \(\d+\)/))
-  return screen.getByRole('list', { name: 'Usage history' })
+  return screen.getByRole('group', { name: 'Usage history' })
 }
 const lines = (list: HTMLElement) => within(list).getAllByRole('listitem')
 
@@ -72,7 +72,7 @@ describe('the History section (D58, FR-77)', () => {
     expect(rows).toHaveLength(3)
     expect(rows[0]).toHaveTextContent(`${BUILTIN_GYMS[0]!.name} · Multipass`)
     const dates = rows.map((row) => row.querySelector('p')!.textContent)
-    expect(dates).toEqual([day(-2), day(-5), day(-9)].map(formatLong))
+    expect(dates).toEqual([day(-2), day(-5), day(-9)].map(formatWeekdayDayMonth))
   })
 
   it('also lists the uses of a pass that has moved to Finished', async () => {
@@ -124,6 +124,58 @@ describe('the History section (D58, FR-77)', () => {
   })
 })
 
+describe('the lines of the History section (D58)', () => {
+  it('groups the lines by month, newest month first, under a heading', async () => {
+    const user = userEvent.setup()
+    const pass = await repo.createPass(multipass())
+    await spend(pass.id, day(-1))
+    await spend(pass.id, day(-45))
+    await spend(pass.id, day(-2))
+    renderApp()
+    const group = await openHistory(user)
+    const headings = within(group).getAllByRole('heading', { level: 3 })
+    const months = [day(-1), day(-45)].map(formatMonthYear)
+    const expected = [...new Set([formatMonthYear(day(-1)), formatMonthYear(day(-2)), months[1]!])]
+    expect(headings.map((h) => h.textContent)).toEqual(expected)
+    // Each heading names its own list of lines.
+    for (const heading of headings) {
+      expect(within(group).getByRole('region', { name: heading.textContent! })).toBeInTheDocument()
+    }
+    expect(lines(group)).toHaveLength(3)
+  })
+
+  it('writes a line as weekday, day and month (the year is in the heading)', async () => {
+    const user = userEvent.setup()
+    const pass = await repo.createPass(multipass())
+    await spend(pass.id, day(-3))
+    renderApp()
+    const [line] = lines(await openHistory(user))
+    expect(line!.querySelector('p')!.textContent).toBe(formatWeekdayDayMonth(day(-3)))
+    expect(line!.querySelector('p')!.textContent).not.toMatch(/\d{4}/)
+  })
+
+  it('opens the date box when the line itself is tapped, not only its button', async () => {
+    const user = userEvent.setup()
+    const pass = await repo.createPass(multipass())
+    await spend(pass.id, day(-3))
+    renderApp()
+    const [line] = lines(await openHistory(user))
+    await user.click(within(line!).getByText(BUILTIN_GYMS[0]!.name, { exact: false }))
+    expect(screen.getByLabelText('Date of this entry')).toHaveValue(day(-3))
+  })
+
+  it('tells how to add a forgotten visit', async () => {
+    const user = userEvent.setup()
+    const pass = await repo.createPass(multipass())
+    await spend(pass.id, day(-3))
+    renderApp()
+    await openHistory(user)
+    expect(
+      screen.getByText('Forgot to tap? Tap − on the pass, then change that entry’s date here.'),
+    ).toBeInTheDocument()
+  })
+})
+
 describe('changing the date of a use', () => {
   async function twoUses(user: ReturnType<typeof userEvent.setup>) {
     const pass = await repo.createPass(multipass())
@@ -138,7 +190,7 @@ describe('changing the date of a use', () => {
   it('saves only when Save is pressed, then re-sorts the list and says "Changes saved"', async () => {
     const user = userEvent.setup()
     const { first, list } = await twoUses(user)
-    expect(lines(list)[0]).toHaveTextContent(formatLong(day(-4)))
+    expect(lines(list)[0]).toHaveTextContent(formatWeekdayDayMonth(day(-4)))
     await user.click(within(lines(list)[0]!).getByRole('button', { name: /^Change date/ }))
     expect(dateBox()).toHaveValue(day(-4))
     fireEvent.change(dateBox(), { target: { value: day(-20) } })
@@ -147,8 +199,8 @@ describe('changing the date of a use', () => {
     ) // not saved yet
 
     await user.click(screen.getByRole('button', { name: 'Save' }))
-    await waitFor(() => expect(lines(list)[0]).toHaveTextContent(formatLong(day(-10))))
-    expect(lines(list)[1]).toHaveTextContent(formatLong(day(-20)))
+    await waitFor(() => expect(lines(list)[0]).toHaveTextContent(formatWeekdayDayMonth(day(-10))))
+    expect(lines(list)[1]).toHaveTextContent(formatWeekdayDayMonth(day(-20)))
     expect(screen.queryByLabelText('Date of this entry')).not.toBeInTheDocument()
     expect(await screen.findByText('Changes saved')).toBeInTheDocument()
     const stored = (await repo.listUses(first.passId)).find((u) => u.id === first.id)!
@@ -211,6 +263,24 @@ describe('changing the date of a use', () => {
     expect((await repo.listUses(first.passId)).find((u) => u.id === first.id)!.usedAt).toBe(
       first.usedAt,
     )
+  })
+
+  it('keeps the changed line in view and focused, with all lines shown, when it moves past line 30', async () => {
+    const user = userEvent.setup()
+    const pass = await repo.createPass(multipass({ totalEntries: 80, purchaseDate: day(-100) }))
+    for (let i = 0; i < 35; i++) await spend(pass.id, day(-1 - i), 8 + (i % 10))
+    renderApp()
+    const list = await openHistory(user)
+    expect(lines(list)).toHaveLength(30)
+    await user.click(within(lines(list)[0]!).getByRole('button', { name: /^Change date/ }))
+    fireEvent.change(dateBox(), { target: { value: day(-100) } }) // older than all the others
+    await user.click(screen.getByRole('button', { name: 'Save' }))
+
+    await waitFor(() => expect(lines(list)).toHaveLength(35))
+    const last = lines(list)[34]!
+    expect(last).toHaveTextContent(formatWeekdayDayMonth(day(-100)))
+    expect(within(last).getByRole('button', { name: /^Change date/ })).toHaveFocus()
+    expect(screen.queryByRole('button', { name: /^Show more/ })).not.toBeInTheDocument()
   })
 
   it('tells a monthly membership that the month it would move into is full', async () => {

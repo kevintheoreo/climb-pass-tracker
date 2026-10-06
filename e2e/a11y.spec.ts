@@ -77,7 +77,7 @@ for (const scheme of ['light', 'dark'] as const) {
       await seedSamples(page)
       await scan(page, 'main screen with a History section')
       await page.getByText(/History \(\d+\)/).click()
-      const history = page.getByRole('list', { name: 'Usage history' })
+      const history = page.getByRole('group', { name: 'Usage history' })
       await expect(history).toBeVisible()
       await scan(page, 'History open')
       await history
