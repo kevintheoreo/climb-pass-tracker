@@ -4,6 +4,7 @@ import {
   dateToNumber,
   daysBetween,
   localDateOfTimestamp,
+  moveTimestampToDate,
   todayLocal,
   toLocalDate,
 } from './dates'
@@ -63,5 +64,31 @@ describe('dateToNumber', () => {
   it('turns a date into a number that sorts like the date', () => {
     expect(dateToNumber('2026-11-15')).toBe(20261115)
     expect(dateToNumber('2026-11-15')).toBeLessThan(dateToNumber('2027-01-02'))
+  })
+})
+
+describe('moveTimestampToDate', () => {
+  it('puts the same local time of day on another local date', () => {
+    const before = new Date(2026, 9, 10, 18, 45, 12, 345)
+    const moved = new Date(moveTimestampToDate(before.toISOString(), '2026-09-28'))
+    expect(localDateOfTimestamp(moved.toISOString())).toBe('2026-09-28')
+    expect([
+      moved.getHours(),
+      moved.getMinutes(),
+      moved.getSeconds(),
+      moved.getMilliseconds(),
+    ]).toEqual([18, 45, 12, 345])
+  })
+
+  it('returns a full ISO timestamp, as a use needs', () => {
+    expect(moveTimestampToDate('2026-10-10T04:00:00.000Z', '2026-10-01')).toMatch(
+      /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/,
+    )
+  })
+
+  it('handles a move across a month or year end', () => {
+    const t = new Date(2026, 0, 31, 23, 30).toISOString()
+    expect(localDateOfTimestamp(moveTimestampToDate(t, '2025-12-31'))).toBe('2025-12-31')
+    expect(localDateOfTimestamp(moveTimestampToDate(t, '2026-02-28'))).toBe('2026-02-28')
   })
 })

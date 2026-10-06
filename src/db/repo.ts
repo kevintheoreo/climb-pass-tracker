@@ -13,7 +13,8 @@ import {
   type Snapshot,
 } from '../domain/backup'
 import { currentPeriod, usesInPeriod } from '../domain/cycle'
-import type { LocalDate } from '../domain/dates'
+import { localDateOfTimestamp, moveTimestampToDate, type LocalDate } from '../domain/dates'
+import { checkUseDate, type UseDateProblem } from '../domain/history'
 import { buildGymList, resolveGymInput, type BuiltinGym, type GymEntry } from '../domain/gyms'
 import {
   freezeInputSchema,
@@ -54,6 +55,7 @@ export interface RepoOptions {
   builtinGyms?: BuiltinGym[]
 }
 
+export type UpdateUseDateResult = { ok: true; use: Use } | ({ ok: false } & UseDateProblem)
 export type UseEntryResult = { ok: true; use: Use } | { ok: false; reason: UseBlockReason }
 export type GiveBackResult =
   Extract<GiveBackPlan, { ok: true }> | Extract<GiveBackPlan, { ok: false }>
@@ -242,6 +244,34 @@ export function createRepo(db: ClimbDB, options: RepoOptions = {}) {
         await db.passes.put({ ...pass, initialUsed: pass.initialUsed - 1, updatedAt: t } as Pass)
       }
       return plan
+    })
+  }
+
+  /**
+   * Changes the date of a recorded use (D58): the time of day stays, so uses on one day keep their
+   * order. Refused (nothing is written) when the date breaks the rules in `checkUseDate`. Giving the
+   * date it already has changes nothing. The check and the write are one transaction.
+   */
+  async function updateUseDate(
+    useId: string,
+    date: LocalDate,
+    today: LocalDate,
+  ): Promise<UpdateUseDateResult> {
+    return db.transaction('rw', db.passes, db.uses, db.freezes, async () => {
+      const use = requireLive(await db.uses.get(useId), 'Use', useId)
+      const pass = requireLive(await db.passes.get(use.passId), 'Pass', use.passId)
+      const uses = (await db.uses.where('passId').equals(pass.id).toArray()).filter(isLive)
+      const freezes = (await db.freezes.where('passId').equals(pass.id).toArray()).filter(isLive)
+      const check = checkUseDate(pass, use, uses, freezes, date, today)
+      if (!check.ok) return check
+      if (localDateOfTimestamp(use.usedAt) === date) return { ok: true, use }
+      const updated: Use = {
+        ...use,
+        usedAt: moveTimestampToDate(use.usedAt, date),
+        updatedAt: now(),
+      }
+      await db.uses.put(updated)
+      return { ok: true, use: updated }
     })
   }
 
@@ -537,6 +567,7 @@ export function createRepo(db: ClimbDB, options: RepoOptions = {}) {
     useEntry,
     giveBackEntry,
     listUses,
+    updateUseDate,
     addFreeze,
     updateFreeze,
     deleteFreeze,
