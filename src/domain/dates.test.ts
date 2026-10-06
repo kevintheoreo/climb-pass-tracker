@@ -3,6 +3,8 @@ import {
   addMonthsToDate,
   dateToNumber,
   daysBetween,
+  formatMonthYear,
+  formatWeekdayDayMonth,
   localDateOfTimestamp,
   moveTimestampToDate,
   todayLocal,
@@ -90,5 +92,14 @@ describe('moveTimestampToDate', () => {
     const t = new Date(2026, 0, 31, 23, 30).toISOString()
     expect(localDateOfTimestamp(moveTimestampToDate(t, '2025-12-31'))).toBe('2025-12-31')
     expect(localDateOfTimestamp(moveTimestampToDate(t, '2026-02-28'))).toBe('2026-02-28')
+  })
+})
+
+describe('the usage history wording', () => {
+  it('writes a line as weekday, day and month, and a heading as month and year', () => {
+    expect(formatWeekdayDayMonth('2026-10-06')).toBe('Tue 6 Oct')
+    expect(formatWeekdayDayMonth('2027-01-01')).toBe('Fri 1 Jan')
+    expect(formatMonthYear('2026-10-06')).toBe('October 2026')
+    expect(formatMonthYear('2027-01-31')).toBe('January 2027')
   })
 })

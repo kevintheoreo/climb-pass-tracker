@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test'
+import { addDays, formatWeekdayDayMonth, todayLocal } from '../src/domain/dates'
 import { openAddRow, seedSamples } from './seed'
 
 // Row motion (FR-61): a row moving between the main list and Finished slides. The other browser
@@ -112,6 +113,27 @@ test.describe('motion allowed', () => {
     await expect(entering).toHaveCount(0) // the class goes once it has slid in
     await expect(mainRows(page)).toHaveCount(8)
     await expect(mainRows(page).first()).toContainText('Brand New Wall')
+  })
+
+  test('a line of the History whose date was changed slides in at its new place (D58)', async ({
+    page,
+  }) => {
+    await seedSamples(page)
+    await page.getByText(/History \(\d+\)/).click()
+    const group = page.getByRole('group', { name: 'Usage history' })
+    await group
+      .getByRole('button', { name: /^Change date/ })
+      .first()
+      .click()
+    const older = addDays(todayLocal(), -10)
+    await page.getByLabel('Date of this entry').fill(older)
+    await page.getByRole('button', { name: 'Save' }).click()
+
+    const sliding = group.locator('li.row-entering')
+    await expect(sliding).toHaveCount(1)
+    await expect(sliding).toContainText(formatWeekdayDayMonth(older))
+    await expect(sliding.getByRole('button', { name: /^Change date/ })).toBeFocused()
+    await expect(sliding).toHaveCount(0) // the class is gone once it has slid in
   })
 
   test('deleting a row does not slide', async ({ page }) => {

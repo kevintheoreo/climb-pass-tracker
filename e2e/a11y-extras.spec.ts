@@ -43,7 +43,7 @@ test.describe('large text and a narrow screen (WCAG 1.4.4, 1.4.10)', () => {
     await page.addStyleTag({ content: 'html { font-size: 200% !important; }' })
     await page.getByText(/History \(\d+\)/).click()
     await page
-      .getByRole('list', { name: 'Usage history' })
+      .getByRole('group', { name: 'Usage history' })
       .getByRole('button', { name: /^Change date/ })
       .first()
       .click()
