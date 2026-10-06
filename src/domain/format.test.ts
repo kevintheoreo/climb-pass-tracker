@@ -9,6 +9,7 @@ import {
   relativeTime,
   resetLabel,
   reminderMessage,
+  refusedDateMessage,
 } from './format'
 import { formatDate, formatDayMonth } from './dates'
 import {
@@ -273,5 +274,29 @@ describe('backupNudgeText', () => {
     expect(backupNudgeText({ daysSince: 40, never: true }, today)).toBe(
       'Your passes are saved only on this phone. You have not downloaded a backup file yet.',
     )
+  })
+})
+
+describe('refusedDateMessage (D58)', () => {
+  it('says why in words, with the dates that matter', () => {
+    expect(refusedDateMessage({ reason: 'invalid_date' })).toBe('Enter a valid date.')
+    expect(refusedDateMessage({ reason: 'in_future' })).toBe('The date cannot be after today.')
+    expect(refusedDateMessage({ reason: 'before_purchase', purchaseDate: '2026-10-01' })).toBe(
+      'This pass was bought on 1 Oct 2026, so the date cannot be earlier.',
+    )
+    expect(refusedDateMessage({ reason: 'after_end', lastDate: '2026-12-31' })).toBe(
+      'This pass ended on 31 Dec 2026, so the date cannot be later.',
+    )
+  })
+
+  it('names the month by its first and its last day', () => {
+    expect(
+      refusedDateMessage({
+        reason: 'month_full',
+        allowance: 8,
+        periodStart: '2026-10-10',
+        nextReset: '2026-11-10',
+      }),
+    ).toBe('All 8 entries are already used in the month of 10 Oct to 9 Nov. Pick another date.')
   })
 })

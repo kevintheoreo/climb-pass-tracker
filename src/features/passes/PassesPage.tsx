@@ -6,6 +6,7 @@ import type { PassDraft } from '../../domain/passForm'
 import type { Row } from '../../domain/rows'
 import { InstallPrompt } from '../install/InstallPrompt'
 import { BackupNudge } from '../settings/BackupNudge'
+import { HistorySection } from './HistorySection'
 import { NewRow } from './NewRow'
 import { ReminderBanners } from './ReminderBanners'
 import { RowList } from './RowList'
@@ -176,6 +177,17 @@ export default function PassesPage() {
           </div>
         </details>
       )}
+
+      <HistorySection
+        active={active}
+        finished={finished}
+        gyms={gyms}
+        today={today}
+        className={showFinished ? 'mt-1' : 'mt-6'}
+        onSaved={(entry) =>
+          setNotice({ key: Date.now(), kind: 'saved', passId: entry.pass.id, what: '' })
+        }
+      />
 
       {/* Room to scroll the last rows above the notice, which sits at the bottom of the screen. */}
       {shownNotice && <div aria-hidden="true" className="h-28" />}

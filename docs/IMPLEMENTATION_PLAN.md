@@ -190,5 +190,5 @@ These are not part of milestones 1 to 3. The full descriptions, and what each on
 
 | Idea | Depends on | Notes |
 |---|---|---|
-| **Pass usage history:** an expandable section below Finished listing every entry (gym, type, date), with each date editable. | Nothing new: the uses are already recorded (D26). | Do it before friends. Decide how an edited date affects `+` and a monthly membership's current period first. |
+| ~~**Pass usage history**~~ | | **Built** (D58, FR-76, FR-77): the History section below Finished, with editable dates. Done in two steps: the rules first, then the screen. |
 | **Friends:** add friends, see their passes, search friends' multipasses. | Accounts and a server (reversing D37), a new privacy policy and terms, consent controls. | A separate milestone, not a feature: it changes the hosting, the data model and what the privacy policy says. |

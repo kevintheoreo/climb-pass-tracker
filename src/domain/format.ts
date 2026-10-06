@@ -6,6 +6,7 @@ import {
   formatDayMonth,
   type LocalDate,
 } from './dates'
+import type { UseDateProblem } from './history'
 import type { PassStatus } from './passStatus'
 import type { ImportSummary } from './backup'
 import { formatSgd } from './money'
@@ -173,4 +174,20 @@ export function importLines(summary: ImportSummary): string[] {
     lines.push('Reminder settings from the backup')
   }
   return lines
+}
+
+/** Why a new date for a recorded use was refused, in words for the person (D58, FR-76). */
+export function refusedDateMessage(problem: UseDateProblem): string {
+  switch (problem.reason) {
+    case 'invalid_date':
+      return 'Enter a valid date.'
+    case 'before_purchase':
+      return `This pass was bought on ${formatDate(problem.purchaseDate)}, so the date cannot be earlier.`
+    case 'in_future':
+      return 'The date cannot be after today.'
+    case 'after_end':
+      return `This pass ended on ${formatDate(problem.lastDate)}, so the date cannot be later.`
+    case 'month_full':
+      return `All ${problem.allowance} entries are already used in the month of ${formatDayMonth(problem.periodStart)} to ${formatDayMonth(addDays(problem.nextReset, -1))}. Pick another date.`
+  }
 }
