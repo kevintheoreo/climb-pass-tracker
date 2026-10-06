@@ -164,15 +164,19 @@ describe('the lines of the History section (D58)', () => {
     expect(screen.getByLabelText('Date of this entry')).toHaveValue(day(-3))
   })
 
-  it('tells how to add a forgotten visit', async () => {
+  it('tells how to add a forgotten climb, above the list so it is seen without scrolling', async () => {
     const user = userEvent.setup()
-    const pass = await repo.createPass(multipass())
-    await spend(pass.id, day(-3))
+    const pass = await repo.createPass(multipass({ totalEntries: 80 }))
+    for (let i = 0; i < 40; i++) await spend(pass.id, day(-1 - i), 8 + (i % 10))
     renderApp()
-    await openHistory(user)
-    expect(
-      screen.getByText('Forgot to tap? Tap − on the pass, then change that entry’s date here.'),
-    ).toBeInTheDocument()
+    const group = await openHistory(user)
+    const hint = screen.getByText(
+      'Forgot to log a climb? Tap − on the pass, then change that entry’s date here.',
+    )
+    expect(hint).toBeInTheDocument()
+    // It comes before the first line of the list in the page, not after the last.
+    expect(hint.compareDocumentPosition(group) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+    expect(screen.queryByText(/Forgot to tap/)).not.toBeInTheDocument()
   })
 })
 
