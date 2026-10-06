@@ -8,14 +8,14 @@ export interface Notice {
    * `finished`: a pass moved to Finished (with Undo). `added`: a pass was just added. `saved`: a
    * change in the details panel was saved.
    */
-  kind: 'finished' | 'added' | 'saved'
+  kind: 'finished' | 'added' | 'saved' | 'deleted'
   passId: string
   /** The pass, e.g. "Fitbloc, Multipass". */
   what: string
 }
 
 /** How long each kind stays: the one with a button to press stays longer. */
-const SHOW_MS = { finished: 8000, added: 4000, saved: 2500 } as const
+const SHOW_MS = { finished: 8000, added: 4000, saved: 2500, deleted: 2500 } as const
 
 /** One notice on screen. A new notice is a new box, so nothing carries over from the last one. */
 function NoticeBox({
@@ -43,6 +43,8 @@ function NoticeBox({
     >
       {notice.kind === 'saved' ? (
         <p className="py-2.5 pr-3 text-base font-medium">Changes saved</p>
+      ) : notice.kind === 'deleted' ? (
+        <p className="py-2.5 pr-3 text-base font-medium">Entry deleted</p>
       ) : notice.kind === 'added' ? (
         <p className="py-2.5 pr-3 text-base">
           <span className="font-medium">{notice.what}</span> added

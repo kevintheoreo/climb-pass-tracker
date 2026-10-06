@@ -275,6 +275,18 @@ export function createRepo(db: ClimbDB, options: RepoOptions = {}) {
     })
   }
 
+  /**
+   * Removes one recorded use from the history (D58). Like `+`, it only flags the use as deleted, so
+   * a backup can carry the deletion; the entries left go up by one because they are derived.
+   */
+  async function deleteUse(useId: string): Promise<void> {
+    await db.transaction('rw', db.passes, db.uses, async () => {
+      const use = requireLive(await db.uses.get(useId), 'Use', useId)
+      requireLive(await db.passes.get(use.passId), 'Pass', use.passId)
+      await db.uses.put(tombstone(use, now()))
+    })
+  }
+
   async function listUses(passId: string): Promise<Use[]> {
     return (await db.uses.where('passId').equals(passId).toArray()).filter(isLive)
   }
@@ -568,6 +580,7 @@ export function createRepo(db: ClimbDB, options: RepoOptions = {}) {
     giveBackEntry,
     listUses,
     updateUseDate,
+    deleteUse,
     addFreeze,
     updateFreeze,
     deleteFreeze,

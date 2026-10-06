@@ -48,6 +48,8 @@ test.describe('large text and a narrow screen (WCAG 1.4.4, 1.4.10)', () => {
       .first()
       .click()
     await expect(page.getByLabel('Date of this entry')).toBeVisible()
+    await page.getByRole('button', { name: 'Delete this entry' }).click()
+    await expect(page.getByRole('alertdialog', { name: 'Delete this entry' })).toBeVisible()
     await noSideScroll(page, 320)
 
     for (const path of ['/settings', '/about', '/privacy', '/terms']) {

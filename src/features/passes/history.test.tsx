@@ -243,6 +243,46 @@ describe('changing the date of a use', () => {
     expect(screen.queryByLabelText('Date of this entry')).not.toBeInTheDocument()
   })
 
+  it('deletes an entry only after the person confirms, says so, and gives the entry back', async () => {
+    const user = userEvent.setup()
+    const { pass, first, list } = await twoUses(user)
+    await user.click(within(lines(list)[0]!).getByRole('button', { name: /^Change date/ }))
+    await user.click(screen.getByRole('button', { name: 'Delete this entry' }))
+    // Asked first: nothing is deleted yet, and Cancel backs out.
+    expect(screen.getByRole('alertdialog', { name: 'Delete this entry' })).toBeInTheDocument()
+    expect(await repo.listUses(pass.id)).toHaveLength(2)
+    await user.click(
+      within(screen.getByRole('alertdialog')).getByRole('button', { name: 'Cancel' }),
+    )
+    expect(await repo.listUses(pass.id)).toHaveLength(2)
+
+    await user.click(screen.getByRole('button', { name: 'Delete this entry' }))
+    await user.click(screen.getByRole('button', { name: 'Yes, delete' }))
+    await waitFor(async () => expect(await repo.listUses(pass.id)).toHaveLength(1))
+    expect((await repo.listUses(pass.id))[0]!.id).not.toBe(first.id)
+    expect(await screen.findByText('Entry deleted')).toBeInTheDocument()
+    await waitFor(() => expect(lines(list)).toHaveLength(1))
+    expect(screen.getByText(/History \(1\)/)).toBeInTheDocument()
+    // The focus moves to the line that is left.
+    await waitFor(() =>
+      expect(within(lines(list)[0]!).getByRole('button', { name: /^Change date/ })).toHaveFocus(),
+    )
+  })
+
+  it('brings a used-up pass back to the main list when one of its entries is deleted', async () => {
+    const user = userEvent.setup()
+    const pass = await repo.createPass(multipass({ totalEntries: 1 }))
+    await spend(pass.id, day(-2))
+    renderApp()
+    await screen.findByText(/Finished \(1\)/)
+    const list = await openHistory(user)
+    await user.click(within(lines(list)[0]!).getByRole('button', { name: /^Change date/ }))
+    await user.click(screen.getByRole('button', { name: 'Delete this entry' }))
+    await user.click(screen.getByRole('button', { name: 'Yes, delete' }))
+    await waitFor(() => expect(screen.queryByText(/Finished \(/)).not.toBeInTheDocument())
+    expect(screen.queryByText(/History \(/)).not.toBeInTheDocument()
+  })
+
   it('refuses a bad date with the reason, keeps the editor open and saves nothing', async () => {
     const user = userEvent.setup()
     const { first, list } = await twoUses(user)
