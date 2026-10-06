@@ -2,6 +2,7 @@ import { useCallback, useRef, useState } from 'react'
 import { Page } from '../../components/Page'
 import { buttonClass } from '../../components/formUtils'
 import { repo } from '../../db'
+import { groupByPass } from '../../domain/reminders'
 import type { PassDraft } from '../../domain/passForm'
 import type { Row } from '../../domain/rows'
 import { InstallPrompt } from '../install/InstallPrompt'
@@ -11,6 +12,7 @@ import { NewRow } from './NewRow'
 import { ReminderBanners } from './ReminderBanners'
 import { RowList } from './RowList'
 import { UndoNotice, type Notice } from './UndoNotice'
+import { useAppBadge } from './useAppBadge'
 import { usePassRows } from './usePassRows'
 import { useRowMotion } from './useRowMotion'
 
@@ -18,6 +20,8 @@ const NO_ROWS: Row[] = []
 
 export default function PassesPage() {
   const rows = usePassRows()
+  // The icon badge counts the banners on screen (FR-35).
+  useAppBadge(rows ? groupByPass(rows.reminders).length : null)
   // Rows that move between the main list and Finished slide (FR-61).
   const mainMotion = useRowMotion(rows?.active ?? NO_ROWS, rows?.finished ?? NO_ROWS)
   const finishedMotion = useRowMotion(rows?.finished ?? NO_ROWS, rows?.active ?? NO_ROWS)

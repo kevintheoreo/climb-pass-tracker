@@ -146,7 +146,7 @@ Two devices that both count while apart are merged row by row (each tap is its o
 | **3.5 Privacy policy and terms** ✅ | Static pages linked from Settings. Short, because the app collects nothing: no accounts, no server, no analytics. You'll need to review or supply the wording. | FR-48, §9 PDPA |
 | **3.6 Accessibility and quality** (A: axe and large-text checks ✅; B: icons, launch screens and the orange colours ✅; C: Lighthouse ✅, see `docs/PERFORMANCE.md`) | Automated accessibility checks (axe) in Playwright, large-text and screen-reader check of the row controls and the autocomplete, real icons and splash screens, Lighthouse PWA and performance check against the 2 s / 1 s targets. | §9 |
 | **3.6a Row motion** (FR-61) ✅ | When a row moves to or from Finished, it slides out to the side while the rows below move up (and the reverse when it comes back). Needs the row to stay on screen briefly after the data changes; skipped when the phone's reduced-motion setting is on; must not break the double-tap guard or the tests (turn motion off in tests). | polish |
-| **3.7 Nice-to-have** | App icon badge with reminder count, where supported. | FR-35 |
+| **3.7 Nice-to-have** ✅ | App icon badge with reminder count, where supported. | FR-35 |
 | **3.8 Production deploy** ✅ | Production Netlify site on the free `.netlify.app` address, final run of the full test suite. | D21 |
 
 ### 4.1 Gym seed data format

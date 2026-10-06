@@ -238,3 +238,29 @@ describe('reminder banners', () => {
     expect(button.className).toContain('min-h-11')
   })
 })
+
+describe('the icon badge (FR-35)', () => {
+  const nav = navigator as unknown as { setAppBadge?: unknown; clearAppBadge?: unknown }
+  afterEach(() => {
+    delete nav.setAppBadge
+    delete nav.clearAppBadge
+  })
+
+  it('shows how many banners there are, and clears when the last one is dismissed', async () => {
+    const set = vi.fn().mockResolvedValue(undefined)
+    const clear = vi.fn().mockResolvedValue(undefined)
+    nav.setAppBadge = set
+    nav.clearAppBadge = clear
+    await repo.createPass(multipass({ expiryDate: day(10) }))
+    await afterAMoment()
+    await repo.createPass(multipass({ expiryDate: day(2) }))
+    const user = userEvent.setup()
+    renderApp()
+    await waitFor(() => expect(set).toHaveBeenLastCalledWith(2))
+    const region = await screen.findByRole('region', { name: 'Reminders' })
+    for (const button of within(region).getAllByRole('button', { name: /^Dismiss reminder/ })) {
+      await user.click(button)
+    }
+    await waitFor(() => expect(clear).toHaveBeenCalled())
+  })
+})
