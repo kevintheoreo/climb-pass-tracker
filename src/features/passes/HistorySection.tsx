@@ -245,6 +245,10 @@ export function HistorySection({
         History ({entries.length})
       </summary>
       <div className="mt-2">
+        {/* Above the list, so it is seen without scrolling to the end of a long history. */}
+        <p className={`mb-3 text-sm ${muted}`}>
+          Forgot to log a climb? Tap − on the pass, then change that entry’s date here.
+        </p>
         <div
           role="group"
           aria-label="Usage history"
@@ -301,9 +305,6 @@ export function HistorySection({
             Show more ({entries.length - visible.length} more)
           </button>
         )}
-        <p className={`mt-3 text-sm ${muted}`}>
-          Forgot to tap? Tap − on the pass, then change that entry’s date here.
-        </p>
         {hasUndated && (
           <p className={`mt-2 text-sm ${muted}`}>
             Entries counted as already used when a pass was added have no date, so they are not
