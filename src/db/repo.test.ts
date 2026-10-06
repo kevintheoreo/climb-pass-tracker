@@ -470,6 +470,30 @@ describe('updateUseDate (changing the date of a recorded use, D58)', () => {
   })
 })
 
+describe('deleteUse (removing an entry from the history, D58)', () => {
+  it('flags the use as deleted, so the entries left go up by one and the use stays for backups', async () => {
+    const { repo, db } = makeTestRepo()
+    const pass = await repo.createPass(multipass())
+    const result = await repo.useEntry(pass.id, today, at('2026-10-12', 18))
+    if (!result.ok) throw new Error('could not use an entry')
+    await repo.deleteUse(result.use.id)
+    expect(await repo.listUses(pass.id)).toEqual([])
+    const stored = await db.uses.get(result.use.id)
+    expect(stored?.deletedAt).not.toBeNull()
+    expect(stored?.updatedAt).toBe(stored?.deletedAt)
+  })
+
+  it('refuses a use that is already deleted, and a use of a deleted pass', async () => {
+    const { repo } = makeTestRepo()
+    const pass = await repo.createPass(multipass())
+    const result = await repo.useEntry(pass.id, today, at('2026-10-12'))
+    if (!result.ok) throw new Error('could not use an entry')
+    await repo.deleteUse(result.use.id)
+    await expect(repo.deleteUse(result.use.id)).rejects.toThrow()
+    await expect(repo.deleteUse('missing')).rejects.toThrow()
+  })
+})
+
 describe('freezes', () => {
   it('adds, edits and deletes freezes on memberships only', async () => {
     const { repo } = makeTestRepo()

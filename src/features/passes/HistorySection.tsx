@@ -9,6 +9,7 @@ import {
 } from 'react'
 import { TextField } from '../../components/forms'
 import { buttonClass } from '../../components/formUtils'
+import { ConfirmDelete } from '../../components/ConfirmDelete'
 import { repo } from '../../db'
 import { NotFoundError } from '../../db/repo'
 import {
@@ -43,6 +44,7 @@ function HistoryItem({
   onEdit,
   onClose,
   onSaved,
+  onDeleted,
   takeFocus,
 }: {
   entry: HistoryEntry
@@ -56,6 +58,8 @@ function HistoryItem({
   /** The editor was closed, saved or not: the "Change date" button should get the focus back. */
   onClose: () => void
   onSaved: (entry: HistoryEntry) => void
+  /** The entry was deleted (after the person confirmed). */
+  onDeleted: (entry: HistoryEntry) => void
   /** True once, right after this line's editor closed: its button then takes the focus back. */
   takeFocus: (id: string) => boolean
 }) {
@@ -87,6 +91,16 @@ function HistoryItem({
     } finally {
       setBusy(false)
     }
+  }
+
+  async function remove() {
+    try {
+      await repo.deleteUse(entry.use.id)
+    } catch (failure) {
+      if (!(failure instanceof NotFoundError)) throw failure
+      // Already gone (for example deleted on another tab): the list updates by itself.
+    }
+    onDeleted(entry)
   }
 
   const startEditing = () => {
@@ -160,6 +174,13 @@ function HistoryItem({
                 Cancel
               </button>
             </div>
+            <div className="mt-3">
+              <ConfirmDelete
+                label="Delete this entry"
+                prompt="Delete this entry? The pass gets this entry back. This can’t be undone."
+                onConfirm={remove}
+              />
+            </div>
           </form>
         )}
       </div>
@@ -192,6 +213,7 @@ export function HistorySection({
   gyms,
   today,
   onSaved,
+  onDeleted,
   className = 'mt-6',
 }: {
   active: Row[]
@@ -199,6 +221,7 @@ export function HistorySection({
   gyms: GymEntry[]
   today: LocalDate
   onSaved: (entry: HistoryEntry) => void
+  onDeleted: (entry: HistoryEntry) => void
   className?: string
 }) {
   const entries = useMemo(
@@ -284,6 +307,13 @@ export function HistorySection({
                       setMovedId(saved.use.id)
                       setEditingId(null)
                       onSaved(saved)
+                    }}
+                    onDeleted={(deleted) => {
+                      // The line is gone: its neighbour takes the focus.
+                      const at = entries.findIndex((e) => e.use.id === deleted.use.id)
+                      refocus.current = (entries[at + 1] ?? entries[at - 1])?.use.id ?? null
+                      setEditingId(null)
+                      onDeleted(deleted)
                     }}
                     takeFocus={(id) => {
                       const mine = refocus.current === id

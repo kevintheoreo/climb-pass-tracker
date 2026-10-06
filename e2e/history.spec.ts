@@ -63,6 +63,29 @@ test('a changed date is saved by Save, moves the line, says so and survives a re
   await expect(lines(page).last().locator('p').first()).toHaveText(formatWeekdayDayMonth(day(-10)))
 })
 
+test('an entry is deleted only after confirming, and stays deleted after a reload', async ({
+  page,
+}) => {
+  await seedSamples(page)
+  await openHistory(page)
+  await lines(page)
+    .first()
+    .getByRole('button', { name: /^Change date/ })
+    .click()
+  await page.getByRole('button', { name: 'Delete this entry' }).click()
+  await page.getByRole('button', { name: 'Cancel' }).last().click()
+  await expect(page.getByText('History (5)')).toBeVisible()
+
+  await page.getByRole('button', { name: 'Delete this entry' }).click()
+  await page.getByRole('button', { name: 'Yes, delete' }).click()
+  await expect(page.getByText('Entry deleted')).toBeVisible()
+  await expect(page.getByText('History (4)')).toBeVisible()
+  await expect(lines(page)).toHaveCount(4)
+
+  await page.reload()
+  await expect(page.getByText('History (4)')).toBeVisible()
+})
+
 test('a date that is not allowed is refused with the reason, and nothing changes', async ({
   page,
 }) => {

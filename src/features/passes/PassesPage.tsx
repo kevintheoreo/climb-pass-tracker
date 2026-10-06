@@ -76,7 +76,7 @@ export default function PassesPage() {
   let shownNotice: Notice | null = null
   if (notice?.kind === 'finished') {
     shownNotice = finished.some((row) => row.pass.id === notice.passId) ? notice : null
-  } else if (notice?.kind === 'saved') {
+  } else if (notice?.kind === 'saved' || notice?.kind === 'deleted') {
     shownNotice = notice
   } else if (notice?.kind === 'added') {
     const row = [...active, ...finished].find((r) => r.pass.id === notice.passId)
@@ -186,6 +186,9 @@ export default function PassesPage() {
         className={showFinished ? 'mt-1' : 'mt-6'}
         onSaved={(entry) =>
           setNotice({ key: Date.now(), kind: 'saved', passId: entry.pass.id, what: '' })
+        }
+        onDeleted={(entry) =>
+          setNotice({ key: Date.now(), kind: 'deleted', passId: entry.pass.id, what: '' })
         }
       />
 

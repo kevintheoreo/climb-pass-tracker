@@ -90,6 +90,9 @@ for (const scheme of ['light', 'dark'] as const) {
       await page.getByRole('button', { name: 'Save' }).click()
       await expect(page.getByRole('alert').filter({ hasText: 'after today' })).toBeVisible()
       await scan(page, 'History with a refused date')
+      await page.getByRole('button', { name: 'Delete this entry' }).click()
+      await expect(page.getByRole('alertdialog', { name: 'Delete this entry' })).toBeVisible()
+      await scan(page, 'History with the delete prompt')
     })
 
     test('the notices, and the Buy again row', async ({ page }) => {
