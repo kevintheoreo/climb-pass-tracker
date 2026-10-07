@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { Page } from '../../components/Page'
 import { repo } from '../../db'
 import { DataSettings } from './DataSettings'
+import { DeleteAllData } from './DeleteAllData'
 import { InstallHelp } from './InstallHelp'
 import { ReminderSettings } from './ReminderSettings'
 
@@ -11,9 +12,10 @@ export default function SettingsPage() {
 
   return (
     <Page title="Settings">
-      {settings && <ReminderSettings settings={settings} />}
       <DataSettings />
+      {settings && <ReminderSettings settings={settings} />}
       <InstallHelp />
+      <DeleteAllData />
       <nav aria-label="About and legal" className="mb-4 flex flex-wrap gap-x-2">
         {[
           { to: '/about', label: 'About' },

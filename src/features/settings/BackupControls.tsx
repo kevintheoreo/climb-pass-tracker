@@ -114,10 +114,9 @@ export function BackupControls() {
 
   return (
     <div>
-      <h3 className="mb-1 text-base font-semibold">Back up or move to another device</h3>
+      <h3 className="mb-1 text-base font-semibold">Backup file</h3>
       <p className="mb-3 text-base">
-        To move to a new phone, or to keep a copy safe: download a backup file here, send it to the
-        other device (a message, email, AirDrop or cloud drive), then open it there under Settings.
+        To move to a new phone: download a file here, send it over, and open it there.
       </p>
       <div className="flex flex-col items-start gap-3">
         <button type="button" onClick={run(download)} className={buttonClass('secondary')}>

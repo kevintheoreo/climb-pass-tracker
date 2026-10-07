@@ -139,11 +139,23 @@ describe('reminder settings', () => {
   })
 })
 
-describe('your data', () => {
+describe('backup and deleting', () => {
   it('says the data is only on this device', async () => {
     renderSettings()
-    const section = await screen.findByRole('region', { name: 'Your data' })
+    const section = await screen.findByRole('region', { name: 'Backup' })
     expect(section).toHaveTextContent('only on this device')
+  })
+
+  it('puts Backup first and Delete everything last, below Reminders and the home screen steps', async () => {
+    renderSettings()
+    await screen.findByRole('heading', { name: 'Reminders' })
+    const names = screen.getAllByRole('heading', { level: 2 }).map((h) => h.textContent)
+    expect(names).toEqual(['Backup', 'Reminders', 'Delete everything'])
+    const summary = screen.getByText('Add to your home screen')
+    const after = (a: Node, b: Node) =>
+      a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING
+    expect(after(screen.getByRole('heading', { name: 'Reminders' }), summary)).toBeTruthy()
+    expect(after(summary, screen.getByRole('heading', { name: 'Delete everything' }))).toBeTruthy()
   })
 
   it('deleting asks first; Cancel keeps everything', async () => {
@@ -175,13 +187,35 @@ describe('your data', () => {
 })
 
 describe('install and version', () => {
-  it('explains how to add the app to the home screen on iPhone and Android', async () => {
+  it('explains how to add the app to the home screen on iPhone and Android, once opened', async () => {
+    const user = userEvent.setup()
     renderSettings()
-    const section = await screen.findByRole('region', { name: 'Add to your home screen' })
+    const summary = await screen.findByText('Add to your home screen')
+    const section = summary.closest('details')!
+    // Closed until asked for.
+    expect(section).not.toHaveAttribute('open')
+    expect(within(section).queryByText('iPhone or iPad (Safari)')).not.toBeVisible()
+    await user.click(summary)
     expect(within(section).getByText('iPhone or iPad (Safari)')).toBeVisible()
     expect(within(section).getByText(/Add to Home Screen/)).toBeVisible()
     expect(within(section).getByText('Android (Chrome)')).toBeVisible()
     expect(within(section).getByText(/Install app/)).toBeVisible()
+  })
+
+  it('leaves the home screen steps out once the app is installed', async () => {
+    vi.stubGlobal('matchMedia', (query: string) => ({
+      matches: query.includes('standalone'),
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    }))
+    try {
+      renderSettings()
+      await screen.findByRole('heading', { name: 'Reminders' })
+      expect(screen.queryByText('Add to your home screen')).not.toBeInTheDocument()
+    } finally {
+      vi.unstubAllGlobals()
+    }
   })
 
   it('shows the app version', async () => {
