@@ -4,14 +4,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { buttonClass } from '../../components/formUtils'
 import { formatDate, localDateOfTimestamp } from '../../domain/dates'
 import { parseAuthReturn } from '../../domain/dropbox'
-import {
-  DropboxError,
-  dropboxAppKey,
-  failureMessage,
-  savedState,
-  signInUrl,
-  type DropboxFailure,
-} from './dropboxApi'
+import { DropboxError, dropboxAppKey, failureMessage, savedState, signInUrl } from './dropboxApi'
 import {
   backupNow,
   connect,
@@ -23,8 +16,11 @@ import {
 
 const muted = 'text-sm text-stone-600 dark:text-stone-400'
 
-const failureOf = (failure: unknown): DropboxFailure =>
-  failure instanceof DropboxError ? failure.failure : 'other'
+/** The words for whatever went wrong, with what Dropbox said when it refused for another reason. */
+const messageFor = (failure: unknown): string =>
+  failure instanceof DropboxError
+    ? failureMessage(failure.failure, failure.detail)
+    : failureMessage('other')
 
 /**
  * The optional Dropbox backup (D59, FR-78), in Settings under the backup file. Connect once and the
@@ -67,7 +63,7 @@ export function DropboxBackup({
           await connect(result.code)
           setMessage('Dropbox is connected.')
         } catch (failure) {
-          setMessage(failureMessage(failureOf(failure)))
+          setMessage(messageFor(failure))
         } finally {
           setBusy(false)
         }
@@ -84,7 +80,7 @@ export function DropboxBackup({
     try {
       setMessage(await work())
     } catch (failure) {
-      setMessage(failureMessage(failureOf(failure)))
+      setMessage(messageFor(failure))
     } finally {
       setBusy(false)
     }

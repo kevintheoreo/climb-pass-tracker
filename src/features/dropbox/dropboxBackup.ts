@@ -82,7 +82,7 @@ async function withToken<T>(call: (token: string) => Promise<T>): Promise<T> {
     if (failure instanceof DropboxError) {
       if (failure.failure === 'missing') throw failure
       await record({
-        lastError: failureMessage(failure.failure),
+        lastError: failureMessage(failure.failure, failure.detail),
         signedOut: failure.failure === 'signed-out',
       })
     }

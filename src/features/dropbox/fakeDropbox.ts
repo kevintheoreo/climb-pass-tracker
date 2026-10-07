@@ -8,7 +8,7 @@ export interface FakeDropbox {
   /** Every request made, in order: the address and (for uploads) the Dropbox-API-Arg header. */
   calls: { url: string; arg?: string; auth?: string; body?: string }[]
   /** Make the next calls fail the way Dropbox does: out of space, or a sign-in it no longer knows. */
-  mode: 'ok' | 'full' | 'signed-out' | 'offline'
+  mode: 'ok' | 'full' | 'signed-out' | 'offline' | 'refused'
   /** The token endpoint refuses a refresh (the person removed the app in Dropbox). */
   rejectRefresh: boolean
 }
@@ -48,6 +48,9 @@ export function fakeDropbox(file: string | null = null): FakeDropbox {
       if (url.endsWith('/auth/token/revoke')) return json(null)
       if (state.mode === 'signed-out') return json({ error_summary: 'invalid_access_token/' }, 401)
       if (url.endsWith('/files/upload')) {
+        if (state.mode === 'refused') {
+          return json({ error_summary: 'path/no_write_permission/..' }, 409)
+        }
         if (state.mode === 'full') {
           return json({ error_summary: 'path/insufficient_space/' }, 409)
         }

@@ -130,6 +130,18 @@ describe('backing up now', () => {
     expect(await readConnection()).toMatchObject({ signedOut: false, lastError: null })
   })
 
+  it('shows what Dropbox said when it refuses for another reason, so it can be reported', async () => {
+    await signIn()
+    await repo.createPass(pass())
+    dropbox.mode = 'refused'
+    await expect(backupNow()).rejects.toMatchObject({ failure: 'other' })
+    const message = (await readConnection())?.lastError
+    expect(message).toMatch(/did not accept the backup/)
+    expect(message).toMatch(/Dropbox said: 409 path\/no_write_permission/)
+    // Nothing private: no tokens, no file contents.
+    expect(message).not.toMatch(/access-1|refresh-1|passes/)
+  })
+
   it('marks the connection signed out when Dropbox refuses to renew the token', async () => {
     await signIn()
     await repo.setMeta('dropbox', {

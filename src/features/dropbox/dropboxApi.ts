@@ -29,15 +29,18 @@ export type DropboxFailure = 'signed-out' | 'full' | 'missing' | 'network' | 'ot
 /** Not called NotFoundError: Dexie rewrites errors with that name. */
 export class DropboxError extends Error {
   readonly failure: DropboxFailure
-  constructor(failure: DropboxFailure) {
+  /** What Dropbox answered (status and its short error name), kept for the person to report. */
+  readonly detail: string | undefined
+  constructor(failure: DropboxFailure, detail?: string) {
     super(`Dropbox: ${failure}`)
     this.name = 'DropboxError'
     this.failure = failure
+    this.detail = detail
   }
 }
 
 /** The words shown to the person for each failure. */
-export function failureMessage(failure: DropboxFailure): string {
+export function failureMessage(failure: DropboxFailure, detail?: string): string {
   switch (failure) {
     case 'signed-out':
       return 'Dropbox signed you out. Connect again to carry on backing up.'
@@ -48,7 +51,10 @@ export function failureMessage(failure: DropboxFailure): string {
     case 'network':
       return 'Could not reach Dropbox. It will try again the next time you open the app.'
     default:
-      return 'Dropbox did not accept the backup. It will try again the next time you open the app.'
+      return (
+        'Dropbox did not accept the backup. It will try again the next time you open the app.' +
+        (detail ? ` (Dropbox said: ${detail})` : '')
+      )
   }
 }
 
@@ -177,13 +183,26 @@ async function send(url: string, init: RequestInit): Promise<Response> {
   }
 }
 
+/** The status and short error name of a failed answer, for the message shown to the person. */
+async function describe(response: Response, text: string): Promise<string> {
+  let summary = text
+  try {
+    const json = JSON.parse(text) as { error_summary?: unknown; error?: unknown }
+    if (typeof json.error_summary === 'string') summary = json.error_summary
+    else if (typeof json.error === 'string') summary = json.error
+  } catch {
+    // Not JSON: use the start of the text as it is.
+  }
+  return `${response.status} ${summary.replace(/\s+/g, ' ').trim().slice(0, 120)}`.trim()
+}
+
 /** Reads a failed answer: out of space, no such file, signed out, or something else. */
 async function failureOf(response: Response): Promise<DropboxError> {
   if (response.status === 401) return new DropboxError('signed-out')
   const text = await response.text().catch(() => '')
   if (/insufficient_space/.test(text)) return new DropboxError('full')
   if (response.status === 409 && /not_found/.test(text)) return new DropboxError('missing')
-  return new DropboxError('other')
+  return new DropboxError('other', await describe(response, text))
 }
 
 const bearer = (token: string): Record<string, string> => ({ Authorization: `Bearer ${token}` })
