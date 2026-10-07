@@ -20,6 +20,9 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+        env:
+          # A made-up key switches the optional Dropbox backup on for the browser tests.
+          VITE_DROPBOX_APP_KEY: test-app-key
       - name: Install the browser for the end-to-end tests
         run: npx playwright install --with-deps chromium
       - run: npm run e2e
