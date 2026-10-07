@@ -1,4 +1,3 @@
-import { BadgeStatus } from './BadgeStatus'
 import { useState, type ReactNode } from 'react'
 import { repo } from '../../db'
 import {
@@ -114,7 +113,6 @@ export function ReminderSettings({ settings }: { settings: Settings }) {
         Reminders show as banners at the top of the list while the app is open. Nothing is sent to
         your phone.
       </p>
-      <BadgeStatus />
       <div className="flex flex-col gap-3">
         <Group>
           <Toggle
