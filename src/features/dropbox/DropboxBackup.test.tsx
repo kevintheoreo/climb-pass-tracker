@@ -171,6 +171,38 @@ describe('Back up to Dropbox in Settings (FR-78)', () => {
     expect(screen.queryByText(/already has a backup, probably/)).not.toBeInTheDocument()
   })
 
+  it('refuses to back up an empty phone and points to Restore, leaving Dropbox alone', async () => {
+    dropbox.file = '{"precious":true}'
+    await connected()
+    await userEvent.click(screen.getByRole('button', { name: 'Back up now' }))
+    expect(await screen.findByText(/nothing on this phone to back up yet/)).toBeVisible()
+    expect(screen.getByText(/choose Restore from Dropbox/)).toBeVisible()
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
+    expect(dropbox.file).toBe('{"precious":true}')
+  })
+
+  it('asks first on a phone that never backed up when Dropbox already holds a backup, and says where older versions are', async () => {
+    dropbox.file = '{"x":1}'
+    await repo.createPass(pass())
+    await connected()
+    // No automatic check has run: the person goes straight to Back up now.
+    await userEvent.click(screen.getByRole('button', { name: 'Back up now' }))
+    const ask = await screen.findByRole('alertdialog', { name: 'Replace the backup in Dropbox' })
+    expect(ask).toHaveTextContent(/Version history/)
+    expect(dropbox.file).toBe('{"x":1}')
+    await userEvent.click(within(ask).getByRole('button', { name: 'Yes, replace it' }))
+    expect(await screen.findByText('Backed up to Dropbox.')).toBeVisible()
+    expect(JSON.parse(dropbox.file!).passes).toHaveLength(1)
+  })
+
+  it('does not ask when Dropbox holds nothing yet', async () => {
+    await repo.createPass(pass())
+    await connected()
+    await userEvent.click(screen.getByRole('button', { name: 'Back up now' }))
+    expect(await screen.findByText('Backed up to Dropbox.')).toBeVisible()
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
+  })
+
   it('Disconnect forgets the connection but says the backup stays', async () => {
     await connected()
     await userEvent.click(screen.getByRole('button', { name: 'Disconnect Dropbox' }))

@@ -24,7 +24,7 @@ export const dropboxAppKey = (): string | undefined =>
 export const redirectUri = (): string => `${window.location.origin}/settings`
 
 /** Why a call failed, in the terms the screen cares about. */
-export type DropboxFailure = 'signed-out' | 'full' | 'missing' | 'network' | 'other'
+export type DropboxFailure = 'signed-out' | 'full' | 'missing' | 'network' | 'empty' | 'other'
 
 /** Not called NotFoundError: Dexie rewrites errors with that name. */
 export class DropboxError extends Error {
@@ -45,6 +45,8 @@ export function failureMessage(failure: DropboxFailure): string {
       return 'Your Dropbox is full, so the backup was not saved. Free up some space and try again.'
     case 'missing':
       return 'There is no backup in your Dropbox yet.'
+    case 'empty':
+      return 'There is nothing on this phone to back up yet. To get your passes back, choose Restore from Dropbox.'
     case 'network':
       return 'Could not reach Dropbox. It will try again the next time you open the app.'
     default:

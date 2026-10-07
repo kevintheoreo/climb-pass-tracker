@@ -5,6 +5,7 @@ import type { PassInput } from '../../domain/types'
 import { signInUrl } from './dropboxApi'
 import {
   backupNow,
+  checkBeforeBackup,
   connect,
   disconnect,
   fetchBackupText,
@@ -105,6 +106,7 @@ describe('backing up now', () => {
 
   it('asks for a new access token when the old one has run out', async () => {
     await signIn()
+    await repo.createPass(pass())
     await repo.setMeta('dropbox', {
       ...(await readConnection())!,
       expiresAt: '2020-01-01T00:00:00Z',
@@ -132,6 +134,7 @@ describe('backing up now', () => {
 
   it('marks the connection signed out when Dropbox refuses to renew the token', async () => {
     await signIn()
+    await repo.createPass(pass())
     await repo.setMeta('dropbox', {
       ...(await readConnection())!,
       expiresAt: '2020-01-01T00:00:00Z',
@@ -139,6 +142,50 @@ describe('backing up now', () => {
     dropbox.rejectRefresh = true
     await expect(backupNow()).rejects.toMatchObject({ failure: 'signed-out' })
     expect(await readConnection()).toMatchObject({ signedOut: true })
+  })
+})
+
+describe('guards on Back up now (checkBeforeBackup, backupNow)', () => {
+  it('never replaces a backup with an empty one: refused, nothing sent', async () => {
+    dropbox.file = '{"precious":true}'
+    await signIn()
+    dropbox.calls.length = 0
+    await expect(backupNow()).rejects.toMatchObject({ failure: 'empty' })
+    await expect(checkBeforeBackup()).rejects.toMatchObject({ failure: 'empty' })
+    expect(dropbox.file).toBe('{"precious":true}')
+    expect(dropbox.calls).toHaveLength(0)
+    // A refusal is not a Dropbox failure: nothing is remembered as an error.
+    expect((await readConnection())?.lastError).toBeNull()
+  })
+
+  it('a phone that never backed up must ask when Dropbox already holds a backup', async () => {
+    dropbox.file = '{"other":"phone"}'
+    await signIn()
+    await repo.createPass(pass())
+    await expect(checkBeforeBackup()).resolves.toBe('replaces')
+  })
+
+  it('a phone that never backed up goes ahead when Dropbox holds nothing', async () => {
+    await signIn()
+    await repo.createPass(pass())
+    await expect(checkBeforeBackup()).resolves.toBe('ok')
+  })
+
+  it('a phone that already backs up goes ahead without asking, and without a Dropbox look', async () => {
+    await signIn()
+    await repo.createPass(pass())
+    await backupNow()
+    dropbox.calls.length = 0
+    await expect(checkBeforeBackup()).resolves.toBe('ok')
+    expect(dropbox.calls).toHaveLength(0)
+  })
+
+  it('a phone waiting for the choice asks', async () => {
+    dropbox.file = '{"other":"phone"}'
+    await signIn()
+    await repo.createPass(pass())
+    await runAutoBackup(today)
+    await expect(checkBeforeBackup()).resolves.toBe('replaces')
   })
 })
 

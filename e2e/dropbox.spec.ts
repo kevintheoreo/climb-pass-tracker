@@ -95,6 +95,20 @@ test('a backup from another phone is never replaced unasked, and can be restored
   expect(dropbox.file).toBe(theirs)
 })
 
+test('an empty phone cannot replace the Dropbox backup, and is pointed to Restore', async ({
+  page,
+}) => {
+  const dropbox = await mockDropbox(page, '{"precious":true}')
+  await page.goto('/')
+  await expect(page.getByRole('combobox', { name: 'Gym' })).toBeVisible()
+  await connect(page)
+  await page.getByRole('button', { name: 'Back up now' }).click()
+  await expect(page.getByText(/nothing on this phone to back up yet/)).toBeVisible()
+  await expect(page.getByText(/choose Restore from Dropbox/)).toBeVisible()
+  expect(dropbox.file).toBe('{"precious":true}')
+  expect(dropbox.calls.some((c) => c.endsWith('/files/upload'))).toBe(false)
+})
+
 for (const scheme of ['light', 'dark'] as const) {
   test(`the Dropbox section has no accessibility problems (${scheme})`, async ({ page }) => {
     await page.emulateMedia({ colorScheme: scheme })
