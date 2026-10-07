@@ -14,6 +14,7 @@ import {
 } from './dropboxApi'
 import {
   backupNow,
+  checkBeforeBackup,
   connect,
   disconnect,
   fetchBackupText,
@@ -167,8 +168,9 @@ export function DropboxBackup({
                   >
                     <p className="mb-3 text-sm">
                       Replace the backup in your Dropbox with what is on this phone? If that backup
-                      is from your old phone, restore it first. Dropbox keeps older versions of the
-                      file for a while, but the app cannot undo this.
+                      is from your old phone, restore it first. If you replace it by mistake,
+                      Dropbox keeps older versions: on dropbox.com, open the file’s ⋯ menu and
+                      choose Version history.
                     </p>
                     <div className="flex flex-wrap gap-3">
                       <button
@@ -198,16 +200,17 @@ export function DropboxBackup({
                   <button
                     type="button"
                     disabled={busy}
-                    onClick={() => {
-                      if (connection.needsChoice) {
-                        setConfirming(true)
-                        return
-                      }
+                    onClick={() =>
                       void act(async () => {
+                        // An empty phone is refused, and a backup already in Dropbox is asked about.
+                        if ((await checkBeforeBackup()) === 'replaces') {
+                          setConfirming(true)
+                          return ''
+                        }
                         await backupNow()
                         return 'Backed up to Dropbox.'
                       })
-                    }}
+                    }
                     className={buttonClass('secondary')}
                   >
                     Back up now

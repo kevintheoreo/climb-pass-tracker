@@ -90,8 +90,26 @@ async function withToken<T>(call: (token: string) => Promise<T>): Promise<T> {
   }
 }
 
+/**
+ * What pressing Back up now needs first. An empty phone is refused (an empty backup would replace
+ * a good one, and nobody needs one: `DropboxError('empty')`). A phone that has not backed up yet
+ * must ask first when Dropbox already holds a backup, which is probably another phone's or an
+ * earlier one of this phone's; so must one that is already waiting for that choice.
+ */
+export async function checkBeforeBackup(): Promise<'ok' | 'replaces'> {
+  if ((await repo.listPasses()).length === 0) throw new DropboxError('empty')
+  const connection = await readConnection()
+  if (connection?.needsChoice) return 'replaces'
+  if (connection && connection.lastBackupAt === null && (await withToken(remoteBackupExists))) {
+    return 'replaces'
+  }
+  return 'ok'
+}
+
 /** Puts what is on this device in Dropbox, replacing the earlier backup there. */
 export async function backupNow(): Promise<void> {
+  // Never replace a backup with an empty one, whoever asks.
+  if ((await repo.listPasses()).length === 0) throw new DropboxError('empty')
   const text = backupToText(await repo.exportBackup())
   await withToken((token) => uploadBackup(token, text))
   await record({ lastBackupAt: nowIso(), needsChoice: false, signedOut: false, lastError: null })
