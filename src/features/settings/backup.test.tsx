@@ -107,10 +107,10 @@ describe('downloading a backup', () => {
 
   it('explains how to move to another device', async () => {
     renderSettings()
-    const section = await screen.findByRole('region', { name: 'Your data' })
-    expect(section).toHaveTextContent('Back up or move to another device')
-    expect(section).toHaveTextContent('send it to the other device')
-    expect(section).toHaveTextContent('There are no accounts')
+    const section = await screen.findByRole('region', { name: 'Backup' })
+    expect(section).toHaveTextContent('Backup file')
+    expect(section).toHaveTextContent('download a file here, send it over, and open it there')
+    expect(section).toHaveTextContent('with no account')
   })
 })
 

@@ -51,7 +51,7 @@ describe('Back up to Dropbox in Settings (FR-78)', () => {
   it('is not there in a build with no Dropbox app key', async () => {
     vi.stubEnv('VITE_DROPBOX_APP_KEY', '')
     renderSettings()
-    await screen.findByRole('heading', { name: 'Back up or move to another device' })
+    await screen.findByRole('heading', { name: 'Backup file' })
     expect(screen.queryByText(/Dropbox/)).not.toBeInTheDocument()
   })
 

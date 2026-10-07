@@ -31,7 +31,8 @@ test('connect, back up now, survive a reload, then disconnect', async ({ page })
 
   await page.getByRole('button', { name: 'Disconnect Dropbox' }).click()
   await expect(page.getByRole('button', { name: 'Connect Dropbox', exact: true })).toBeVisible()
-  expect(dropbox.calls.some((c) => c.endsWith('/auth/token/revoke'))).toBe(true)
+  // The app forgets the connection first and tells Dropbox right after, so wait for that call.
+  await expect.poll(() => dropbox.calls.some((c) => c.endsWith('/auth/token/revoke'))).toBe(true)
   expect(dropbox.file).not.toBeNull()
 })
 

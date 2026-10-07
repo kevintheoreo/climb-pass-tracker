@@ -101,16 +101,14 @@ export function DropboxBackup({
   return (
     <section aria-labelledby="dropbox-heading" className="mt-6">
       <h3 id="dropbox-heading" className="mb-1 text-base font-semibold">
-        Back up to Dropbox (optional)
+        Dropbox (optional)
       </h3>
 
       {connection === null ? (
         <>
           <p className="mb-3 text-base">
-            Connect your Dropbox and the app saves a backup in its own folder in your Dropbox once a
-            day, when you open it. On a new phone, connect Dropbox there and restore it. The backup
-            goes only to your own Dropbox, and it is not encrypted, so anyone who can open your
-            Dropbox can read it.
+            Saves a backup in your own Dropbox once a day when you open the app. It is not
+            encrypted. On a new phone, connect and restore it.
           </p>
           <button
             type="button"
