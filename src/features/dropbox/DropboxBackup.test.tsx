@@ -68,6 +68,14 @@ describe('Back up to Dropbox in Settings (FR-78)', () => {
     expect(go.mock.calls[0]![0]).toMatch(/^https:\/\/www\.dropbox\.com\/oauth2\/authorize\?/)
   })
 
+  it('shows the Dropbox logo on the Connect button, as decoration only', async () => {
+    renderSettings()
+    const button = await screen.findByRole('button', { name: 'Connect Dropbox' })
+    const logo = button.querySelector('svg')!
+    expect(logo).toHaveAttribute('aria-hidden', 'true')
+    expect(logo.querySelectorAll('path')).toHaveLength(1)
+  })
+
   it('finishes the sign-in when Dropbox sends the person back, and cleans the address', async () => {
     await signInUrl('test-app-key')
     const state = sessionStorage.getItem('dropbox-state')!
@@ -157,7 +165,9 @@ describe('Back up to Dropbox in Settings (FR-78)', () => {
     await screen.findByText(/already has a backup, probably from another phone/)
 
     await userEvent.click(screen.getByRole('button', { name: 'Back up now' }))
-    const ask = screen.getByRole('alertdialog', { name: 'Replace the backup in Dropbox' })
+    // Back up now checks first (an empty phone, a backup already there), so the question follows a
+    // moment after the tap.
+    const ask = await screen.findByRole('alertdialog', { name: 'Replace the backup in Dropbox' })
     expect(ask).toHaveTextContent(/restore it first/)
     expect(dropbox.file).toBe('{"x":1}')
     await userEvent.click(within(ask).getByRole('button', { name: 'Cancel' }))
@@ -165,7 +175,7 @@ describe('Back up to Dropbox in Settings (FR-78)', () => {
     expect(dropbox.file).toBe('{"x":1}')
 
     await userEvent.click(screen.getByRole('button', { name: 'Back up now' }))
-    await userEvent.click(screen.getByRole('button', { name: 'Yes, replace it' }))
+    await userEvent.click(await screen.findByRole('button', { name: 'Yes, replace it' }))
     expect(await screen.findByText('Backed up to Dropbox.')).toBeVisible()
     expect(JSON.parse(dropbox.file!).passes).toHaveLength(1)
     expect(screen.queryByText(/already has a backup, probably/)).not.toBeInTheDocument()
