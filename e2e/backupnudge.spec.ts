@@ -52,7 +52,7 @@ test('after 45 days the reminder asks; downloading a backup ends it, also after 
   await expect(nudge(page)).toHaveCount(0)
 
   await page.getByRole('link', { name: 'Settings' }).click()
-  await expect(page.getByText(/^Last backup file: /)).toBeVisible()
+  await expect(page.getByText(/^Last backup: /)).toBeVisible()
 })
 
 test('Remind me in a week hides it, also after a reload', async ({ page }) => {

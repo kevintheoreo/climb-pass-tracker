@@ -34,7 +34,10 @@ export default function TermsPage() {
         <p>
           Your passes are saved only on your device. Browsers and phones can lose stored data (a
           cleared browser, a lost phone, a reset). Downloading a backup file from Settings is your
-          responsibility; we cannot recover data for you because we never have it.
+          responsibility; we cannot recover data for you because we never have it. The optional
+          Dropbox backup is a convenience, not a guarantee: it can fail (no connection, a full
+          Dropbox, a sign-in Dropbox no longer accepts), so keep a backup file as well if your
+          passes matter.
         </p>
       </LegalSection>
 

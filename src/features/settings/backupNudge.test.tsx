@@ -146,9 +146,9 @@ describe('the last backup in Settings', () => {
   it('says there is none yet, then the date of the one just downloaded', async () => {
     const user = userEvent.setup()
     renderAt('/settings')
-    expect(await screen.findByText('No backup file downloaded yet.')).toBeVisible()
+    expect(await screen.findByText('No backup made yet.')).toBeVisible()
     await user.click(screen.getByRole('button', { name: 'Download backup file' }))
-    expect(await screen.findByText(`Last backup file: ${formatDate(today)}.`)).toBeVisible()
+    expect(await screen.findByText(`Last backup: ${formatDate(today)}.`)).toBeVisible()
   })
 
   it('a backup downloaded in Settings stops the reminder', async () => {

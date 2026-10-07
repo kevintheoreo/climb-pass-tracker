@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises'
 import { expect, test } from '@playwright/test'
+import { mockDropbox } from './dropboxMock'
 
 // The app under the production security headers. netlify.toml sets a Content-Security-Policy on every
 // page; here the very same policy is added to the pages the preview server sends, and the app's
@@ -18,7 +19,9 @@ async function policy(): Promise<string> {
 test('the app works under the production Content-Security-Policy', async ({ page }) => {
   const csp = await policy()
   expect(csp).toContain("default-src 'none'")
-  expect(csp).toContain("connect-src 'self'")
+  expect(csp).toContain(
+    "connect-src 'self' https://api.dropboxapi.com https://content.dropboxapi.com",
+  )
   await page.route('**/*', async (route) => {
     const response = await route.fetch()
     await route.fulfill({
@@ -67,6 +70,16 @@ test('the app works under the production Content-Security-Policy', async ({ page
   await expect(
     page.getByText(/already on this phone|can be added|nothing to add/i).first(),
   ).toBeVisible()
+
+  // The optional Dropbox backup: sign in, back up and restore, with the page's connections held to
+  // the policy (only the two Dropbox addresses may be called).
+  await mockDropbox(page)
+  await page.getByRole('button', { name: 'Connect Dropbox', exact: true }).click()
+  await expect(page.getByText('Dropbox is connected.').first()).toBeVisible()
+  await page.getByRole('button', { name: 'Back up now' }).click()
+  await expect(page.getByText('Backed up to Dropbox.')).toBeVisible()
+  await page.getByRole('button', { name: 'Restore from Dropbox' }).click()
+  await expect(page.getByRole('region', { name: 'Backup preview' })).toBeVisible()
 
   // The other screens.
   await page.goto('/about')

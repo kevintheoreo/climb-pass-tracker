@@ -20,8 +20,9 @@ export default defineConfig({
   },
   projects: [{ name: 'mobile', use: { ...devices['Pixel 7'] } }],
   webServer: {
-    // CI has just built the app in an earlier step, so it only has to serve it.
-    command: `${ci ? '' : 'npm run build && '}npm run preview -- --port 4173 --strictPort`,
+    // CI has just built the app in an earlier step (with a test Dropbox app key, so the optional
+    // Dropbox backup is switched on for the tests), so it only has to serve it.
+    command: `${ci ? '' : 'VITE_DROPBOX_APP_KEY=test-app-key npm run build && '}npm run preview -- --port 4173 --strictPort`,
     url: 'http://localhost:4173',
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,

@@ -10,7 +10,8 @@ export default function PrivacyPage() {
       <LegalSection title="The short version">
         <p>
           Climb Pass Tracker collects nothing about you. There are no accounts, no sign-in, no
-          analytics, no advertising and no tracking. Your passes stay on your phone.
+          analytics, no advertising and no tracking. Your passes stay on your phone, unless you
+          choose to connect your own Dropbox for backups (see “Dropbox backup (optional)” below).
         </p>
       </LegalSection>
 
@@ -22,7 +23,8 @@ export default function PrivacyPage() {
         </p>
         <p>
           The app also keeps your settings (reminder choices) and a few small facts, such as when
-          you last downloaded a backup file, in the same place.
+          you last made a backup, in the same place. If you connect Dropbox, the sign-in token
+          Dropbox gives the app is kept there too.
         </p>
       </LegalSection>
 
@@ -52,16 +54,35 @@ export default function PrivacyPage() {
         </p>
       </LegalSection>
 
+      <LegalSection title="Dropbox backup (optional)">
+        <p>
+          If you choose Connect Dropbox in Settings, you sign in on Dropbox’s own website. The app
+          never sees your Dropbox password and asks only for access to its own folder in your
+          Dropbox, not to your other files. Once a day, when you open the app, it then saves a
+          backup file (the same file as the downloaded one: your passes, uses and gyms) into that
+          folder, and it reads it back when you choose Restore from Dropbox. It goes from your
+          device to your Dropbox and nowhere else; we receive nothing and cannot see it.
+        </p>
+        <p>
+          The file is not encrypted, so anyone who can open your Dropbox can read it. Dropbox’s own
+          privacy policy applies to what it stores. Disconnect in Settings stops the backups and
+          asks Dropbox to end the app’s access; the file already in your Dropbox stays until you
+          delete it there. Without Connect Dropbox, the app never contacts Dropbox.
+        </p>
+      </LegalSection>
+
       <LegalSection title="Cookies and tracking">
         <p>The app does not use cookies, advertising identifiers or any third-party tracking.</p>
       </LegalSection>
 
       <LegalSection title="Deleting your data">
         <p>
-          Settings → Delete all local data removes everything the app has stored. Clearing the
-          site’s data in your browser, or removing the app from your phone, does the same. Your
-          browser may also clear the storage of a website it considers unused; installing the app to
-          your home screen and downloading a backup file from time to time protect you from that.
+          Settings → Delete all local data removes everything the app has stored, including the
+          Dropbox sign-in (a backup file already in your Dropbox stays there; delete it in Dropbox).
+          Clearing the site’s data in your browser, or removing the app from your phone, does the
+          same. Your browser may also clear the storage of a website it considers unused; installing
+          the app to your home screen and downloading a backup file from time to time protect you
+          from that.
         </p>
       </LegalSection>
 

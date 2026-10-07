@@ -29,9 +29,21 @@ Netlify keeps every deploy. In the site's **Deploys** page, open the last good d
 - **The app updates itself.** When the app is opened the browser checks `sw.js`; a new one installs and takes over at once (`registerType: 'autoUpdate'`, skip waiting), and the new files are used from the next time the app is opened. A tab that was already open keeps running the old code, which keeps working. If that tab then opens Settings, the privacy policy or the terms, the old file it asks for is gone: `src/app/lazyRoute.ts` reloads the page once to pick up the new version.
 - **The backup file** carries a format version (`src/domain/backup.ts`); an older app refuses a file from a newer format (and says to update), and a newer app must keep reading older ones.
 
+## Dropbox backup (optional feature, off until set up)
+
+The Dropbox backup (D59, FR-78) is built in but **stays hidden until the build has a Dropbox app key**. To switch it on:
+
+1. In the [Dropbox App Console](https://www.dropbox.com/developers/apps) create an app: Scoped access, **App folder**, any name (the name is what people see on Dropbox's sign-in page and becomes the folder name).
+2. Under **Permissions** tick `files.content.write` and `files.content.read` (and `files.metadata.read` for the check for an existing backup), then press Submit.
+3. Under **Settings** add these **Redirect URIs**, exactly: `https://climbpasstracker.netlify.app/settings` (and `http://localhost:4173/settings` to try it on your own computer).
+4. In Netlify (Site configuration, Environment variables) add `VITE_DROPBOX_APP_KEY` with the app **key** (the public one; the app secret is never used and must never be put in the project) and redeploy. Deploy previews have other addresses, so Dropbox's sign-in only works on the live site (and localhost).
+5. Dropbox limits an app in **development** status to 500 linked accounts, and asks for **production** status (free) within two weeks of the 50th linked account. Apply in the App Console before launching it widely; the app must follow Dropbox's branding guidelines and terms. Until approved, people past the limit just see a failure message and can still use backup files.
+
+The CI build sets a made-up key (`.github/workflows/ci.yml`) so the browser tests can exercise the feature against a pretend Dropbox. To switch the feature off again, remove the variable and redeploy.
+
 ## Security headers
 
-`netlify.toml` sets a strict Content-Security-Policy (only the app's own files, no outside connections), no framing, no referrer, and a few more. They back up the privacy policy: nothing can leave the phone. `e2e/csp.spec.ts` runs the app under that exact policy. If a change needs more (an inline style, a font file, a web address), that test fails first; widen the policy deliberately, never to make a test pass.
+`netlify.toml` sets a strict Content-Security-Policy (only the app's own files; the only outside connections allowed are the two Dropbox addresses of the optional Dropbox backup), no framing, no referrer, and a few more. They back up the privacy policy: nothing can leave the phone unless the person connects Dropbox. `e2e/csp.spec.ts` runs the app under that exact policy. If a change needs more (an inline style, a font file, a web address), that test fails first; widen the policy deliberately, never to make a test pass.
 
 ## Where things can go wrong
 

@@ -5,6 +5,7 @@ import { repo } from '../../db'
 import { parseBackup, type Backup, type ImportSummary } from '../../domain/backup'
 import { formatDate, localDateOfTimestamp } from '../../domain/dates'
 import { importLines } from '../../domain/format'
+import { DropboxBackup } from '../dropbox/DropboxBackup'
 import { downloadBackupFile } from './backupDownload'
 
 /** A backup is a few kilobytes. Anything this big is not one, and reading it could hang a phone. */
@@ -13,7 +14,14 @@ const MAX_BYTES = 20_000_000
 type Stage =
   | { kind: 'idle' }
   | { kind: 'error'; message: string }
-  | { kind: 'preview'; fileName: string; backup: Backup; summary: ImportSummary }
+  | {
+      kind: 'preview'
+      fileName: string
+      backup: Backup
+      summary: ImportSummary
+      /** Runs once the backup has been added (or was already all here). */
+      afterAdded?: () => Promise<void>
+    }
   | { kind: 'done'; summary: ImportSummary }
 
 function Lines({ lines }: { lines: string[] }) {
@@ -64,23 +72,33 @@ export function BackupControls() {
       setStage({ kind: 'error', message: 'Could not read that file. Nothing was imported.' })
       return
     }
+    await chosenText(text, file.name)
+  }
+
+  /** Looks over the text of a backup (a file, or the one in Dropbox) and shows what it would add. */
+  async function chosenText(text: string, name: string, afterAdded?: () => Promise<void>) {
+    setMessage('')
+    if (text.length > MAX_BYTES) {
+      setStage({ kind: 'error', message: 'That is too big to be a backup. Nothing was imported.' })
+      return
+    }
     const parsed = parseBackup(text)
     if (!parsed.ok) {
       setStage({ kind: 'error', message: parsed.error })
       return
     }
-    setStage({
-      kind: 'preview',
-      fileName: file.name,
-      backup: parsed.backup,
-      summary: await repo.previewImport(parsed.backup),
-    })
+    const summary = await repo.previewImport(parsed.backup)
+    // Nothing to add: this device already holds everything in it.
+    if (summary.nothingNew) await afterAdded?.()
+    setStage({ kind: 'preview', fileName: name, backup: parsed.backup, summary, afterAdded })
   }
 
-  async function add(backup: Backup) {
+  async function add(backup: Backup, afterAdded?: () => Promise<void>) {
     setBusy(true)
     try {
-      setStage({ kind: 'done', summary: await repo.importBackup(backup) })
+      const summary = await repo.importBackup(backup)
+      await afterAdded?.()
+      setStage({ kind: 'done', summary })
     } catch {
       setStage({
         kind: 'error',
@@ -126,10 +144,12 @@ export function BackupControls() {
       {lastBackupAt !== undefined && (
         <p className="mt-3 text-sm text-stone-600 dark:text-stone-400">
           {lastBackupAt === null
-            ? 'No backup file downloaded yet.'
-            : `Last backup file: ${formatDate(localDateOfTimestamp(lastBackupAt))}.`}
+            ? 'No backup made yet.'
+            : `Last backup: ${formatDate(localDateOfTimestamp(lastBackupAt))}.`}
         </p>
       )}
+
+      <DropboxBackup onRestore={chosenText} />
 
       <div className="mt-3" aria-live="polite">
         {message && <p className="text-sm text-stone-600 dark:text-stone-400">{message}</p>}
@@ -168,7 +188,7 @@ export function BackupControls() {
                 <button
                   type="button"
                   disabled={busy}
-                  onClick={() => void add(stage.backup)}
+                  onClick={() => void add(stage.backup, stage.afterAdded)}
                   className={buttonClass('primary')}
                 >
                   Add to this device
