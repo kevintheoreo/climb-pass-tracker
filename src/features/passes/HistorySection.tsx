@@ -28,6 +28,9 @@ import { motionAllowed, ROW_MOTION_MS } from './useRowMotion'
 /** How many lines are shown at first, and how many more each "Show more" adds. */
 const PAGE = 30
 
+/** How long a changed line waits for the list to show its new date before it is let go. */
+const GIVE_UP_MS = 10_000
+
 const muted = 'text-stone-600 dark:text-stone-400'
 
 /**
@@ -57,7 +60,7 @@ function HistoryItem({
   onEdit: () => void
   /** The editor was closed, saved or not: the "Change date" button should get the focus back. */
   onClose: () => void
-  onSaved: (entry: HistoryEntry) => void
+  onSaved: (entry: HistoryEntry, newDate: LocalDate) => void
   /** The entry was deleted (after the person confirmed). */
   onDeleted: (entry: HistoryEntry) => void
   /** True once, right after this line's editor closed: its button then takes the focus back. */
@@ -81,7 +84,7 @@ function HistoryItem({
     try {
       const result = await repo.updateUseDate(entry.use.id, draft, today)
       if (result.ok) {
-        onSaved(entry)
+        onSaved(entry, draft)
       } else {
         setError(refusedDateMessage(result))
       }
@@ -234,16 +237,23 @@ export function HistorySection({
   )
   const [shown, setShown] = useState(PAGE)
   const [editingId, setEditingId] = useState<string | null>(null)
-  // The line whose date was just changed, for as long as it takes to slide in.
-  const [movedId, setMovedId] = useState<string | null>(null)
+  // The line whose date was just changed, and the date it was given, for as long as it takes to
+  // slide in. The slide is timed from when the list shows the new date, not from the save: on a
+  // slow phone the database can answer later than the slide lasts, and the line must still take
+  // the focus when it arrives at its new place.
+  const [moved, setMoved] = useState<{ id: string; date: LocalDate } | null>(null)
+  const movedId = moved?.id ?? null
   const refocus = useRef<string | null>(null)
   const groupsId = useId()
 
+  const arrived =
+    moved !== null && entries.some((e) => e.use.id === moved.id && e.date === moved.date)
   useEffect(() => {
-    if (movedId === null) return
-    const timer = setTimeout(() => setMovedId(null), ROW_MOTION_MS)
+    if (moved === null) return
+    // Never wait for ever: a line that never shows its new date (changed elsewhere, deleted) lets go.
+    const timer = setTimeout(() => setMoved(null), arrived ? ROW_MOTION_MS : GIVE_UP_MS)
     return () => clearTimeout(timer)
-  }, [movedId])
+  }, [moved, arrived])
 
   // A line moved to an older date can land beyond the lines shown: show it, so it never vanishes.
   const movedIndex = movedId === null ? -1 : entries.findIndex((e) => e.use.id === movedId)
@@ -303,8 +313,8 @@ export function HistorySection({
                       refocus.current = entry.use.id
                       setEditingId(null)
                     }}
-                    onSaved={(saved) => {
-                      setMovedId(saved.use.id)
+                    onSaved={(saved, newDate) => {
+                      setMoved({ id: saved.use.id, date: newDate })
                       setEditingId(null)
                       onSaved(saved)
                     }}

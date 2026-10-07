@@ -323,8 +323,37 @@ describe('changing the date of a use', () => {
     await waitFor(() => expect(lines(list)).toHaveLength(35))
     const last = lines(list)[34]!
     expect(last).toHaveTextContent(formatWeekdayDayMonth(day(-100)))
-    expect(within(last).getByRole('button', { name: /^Change date/ })).toHaveFocus()
+    await waitFor(() =>
+      expect(within(last).getByRole('button', { name: /^Change date/ })).toHaveFocus(),
+    )
     expect(screen.queryByRole('button', { name: /^Show more/ })).not.toBeInTheDocument()
+  })
+
+  it('keeps the focus on the changed line even when the new order arrives late (a slow phone)', async () => {
+    const user = userEvent.setup()
+    const pass = await repo.createPass(multipass({ totalEntries: 80, purchaseDate: day(-100) }))
+    for (let i = 0; i < 5; i++) await spend(pass.id, day(-1 - i), 8 + i)
+    renderApp()
+    const list = await openHistory(user)
+    // From now on the database answers a long time after a change, longer than the slide takes.
+    const read = repo.listBundles
+    const slow = vi.spyOn(repo, 'listBundles').mockImplementation(async () => {
+      const bundles = await read()
+      await new Promise((resolve) => setTimeout(resolve, 800))
+      return bundles
+    })
+    try {
+      await user.click(within(lines(list)[0]!).getByRole('button', { name: /^Change date/ }))
+      fireEvent.change(dateBox(), { target: { value: day(-100) } })
+      await user.click(screen.getByRole('button', { name: 'Save' }))
+      await waitFor(
+        () => expect(lines(list)[4]!).toHaveTextContent(formatWeekdayDayMonth(day(-100))),
+        { timeout: 3000 },
+      )
+      expect(within(lines(list)[4]!).getByRole('button', { name: /^Change date/ })).toHaveFocus()
+    } finally {
+      slow.mockRestore()
+    }
   })
 
   it('tells a monthly membership that the month it would move into is full', async () => {
