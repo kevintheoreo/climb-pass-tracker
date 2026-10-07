@@ -75,6 +75,14 @@ test('a backup from another phone is never replaced unasked, and can be restored
   await page.goto('/settings')
   await expect(page.getByText(/already has a backup, probably from another phone/)).toBeVisible()
 
+  // Back up now asks first; Cancel leaves the other phone's backup alone.
+  await page.getByRole('button', { name: 'Back up now' }).click()
+  await expect(
+    page.getByRole('alertdialog', { name: 'Replace the backup in Dropbox' }),
+  ).toBeVisible()
+  await page.getByRole('button', { name: 'Cancel' }).click()
+  expect(dropbox.file).toBe(theirs)
+
   await page.getByRole('button', { name: 'Restore from Dropbox' }).click()
   const preview = page.getByRole('region', { name: 'Backup preview' })
   await expect(preview).toBeVisible()
@@ -112,6 +120,11 @@ for (const scheme of ['light', 'dark'] as const) {
     await page.goto('/settings')
     await expect(page.getByText(/already has a backup/)).toBeVisible()
     await scan('Dropbox, waiting for a choice')
+    await page.getByRole('button', { name: 'Back up now' }).click()
+    await expect(
+      page.getByRole('alertdialog', { name: 'Replace the backup in Dropbox' }),
+    ).toBeVisible()
+    await scan('Dropbox, asking before replacing')
   })
 }
 

@@ -44,6 +44,8 @@ export function DropboxBackup({
   const connection = useLiveQuery(async () => (await readConnection()) ?? null, [])
   const [message, setMessage] = useState('')
   const [busy, setBusy] = useState(false)
+  // Back up now was pressed while Dropbox holds a backup from another phone: ask before replacing it.
+  const [confirming, setConfirming] = useState(false)
   const location = useLocation()
   const navigate = useNavigate()
   const handled = useRef(false)
@@ -159,19 +161,60 @@ export function DropboxBackup({
               </button>
             ) : (
               <>
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={() =>
-                    void act(async () => {
-                      await backupNow()
-                      return 'Backed up to Dropbox.'
-                    })
-                  }
-                  className={buttonClass('secondary')}
-                >
-                  Back up now
-                </button>
+                {confirming ? (
+                  <div
+                    role="alertdialog"
+                    aria-label="Replace the backup in Dropbox"
+                    className="rounded-lg border border-red-300 p-3 dark:border-red-800"
+                  >
+                    <p className="mb-3 text-sm">
+                      Replace the backup in your Dropbox with what is on this phone? If that backup
+                      is from your old phone, restore it first. Dropbox keeps older versions of the
+                      file for a while, but the app cannot undo this.
+                    </p>
+                    <div className="flex flex-wrap gap-3">
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={() => {
+                          setConfirming(false)
+                          void act(async () => {
+                            await backupNow()
+                            return 'Backed up to Dropbox.'
+                          })
+                        }}
+                        className={buttonClass('danger')}
+                      >
+                        Yes, replace it
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setConfirming(false)}
+                        className={buttonClass('secondary')}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={busy}
+                    onClick={() => {
+                      if (connection.needsChoice) {
+                        setConfirming(true)
+                        return
+                      }
+                      void act(async () => {
+                        await backupNow()
+                        return 'Backed up to Dropbox.'
+                      })
+                    }}
+                    className={buttonClass('secondary')}
+                  >
+                    Back up now
+                  </button>
+                )}
                 <button
                   type="button"
                   disabled={busy}

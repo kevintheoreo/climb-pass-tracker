@@ -148,6 +148,29 @@ describe('Back up to Dropbox in Settings (FR-78)', () => {
     expect(dropbox.file).toBe('{"x":1}')
   })
 
+  it('asks before Back up now replaces a backup from another phone, and Cancel changes nothing', async () => {
+    dropbox.file = '{"x":1}'
+    await repo.createPass(pass())
+    await connected()
+    const { runAutoBackup } = await import('./dropboxBackup')
+    await runAutoBackup(today)
+    await screen.findByText(/already has a backup, probably from another phone/)
+
+    await userEvent.click(screen.getByRole('button', { name: 'Back up now' }))
+    const ask = screen.getByRole('alertdialog', { name: 'Replace the backup in Dropbox' })
+    expect(ask).toHaveTextContent(/restore it first/)
+    expect(dropbox.file).toBe('{"x":1}')
+    await userEvent.click(within(ask).getByRole('button', { name: 'Cancel' }))
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
+    expect(dropbox.file).toBe('{"x":1}')
+
+    await userEvent.click(screen.getByRole('button', { name: 'Back up now' }))
+    await userEvent.click(screen.getByRole('button', { name: 'Yes, replace it' }))
+    expect(await screen.findByText('Backed up to Dropbox.')).toBeVisible()
+    expect(JSON.parse(dropbox.file!).passes).toHaveLength(1)
+    expect(screen.queryByText(/already has a backup, probably/)).not.toBeInTheDocument()
+  })
+
   it('Disconnect forgets the connection but says the backup stays', async () => {
     await connected()
     await userEvent.click(screen.getByRole('button', { name: 'Disconnect Dropbox' }))
