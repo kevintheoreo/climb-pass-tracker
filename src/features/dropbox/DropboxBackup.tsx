@@ -25,7 +25,8 @@ import {
 const muted = 'text-sm text-stone-600 dark:text-stone-400'
 
 /**
- * The Dropbox logo (the open box), unaltered, for the Connect buttons. Shown in Dropbox blue on
+ * The Dropbox logo (the open box), unaltered, for the section heading (so it shows whether or not
+ * Dropbox is connected) and the Connect buttons. Shown in Dropbox blue on
  * the light button and in white on the dark one (both are allowed by Dropbox's brand guidelines);
  * it only decorates the button, whose own words name it.
  */
@@ -122,8 +123,9 @@ export function DropboxBackup({
 
   return (
     <section aria-labelledby="dropbox-heading" className="mt-6">
-      <h3 id="dropbox-heading" className="mb-1 text-base font-semibold">
-        Dropbox (optional)
+      <h3 id="dropbox-heading" className="mb-1 flex items-center text-base font-semibold">
+        <DropboxGlyph className="text-[#0061FF] dark:text-white" />
+        Dropbox
       </h3>
 
       {connection === null ? (
