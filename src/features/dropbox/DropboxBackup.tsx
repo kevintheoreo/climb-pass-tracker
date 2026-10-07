@@ -24,6 +24,27 @@ import {
 
 const muted = 'text-sm text-stone-600 dark:text-stone-400'
 
+/**
+ * The Dropbox logo (the open box), unaltered, for the Connect buttons. Shown in Dropbox blue on
+ * the light button and in white on the dark one (both are allowed by Dropbox's brand guidelines);
+ * it only decorates the button, whose own words name it.
+ */
+function DropboxGlyph({ className = '' }: { className?: string }) {
+  return (
+    <svg
+      aria-hidden="true"
+      focusable="false"
+      viewBox="0 0 24 24"
+      className={`mr-2 size-5 shrink-0 ${className}`}
+    >
+      <path
+        fill="currentColor"
+        d="M6 1.807L0 5.629l6 3.822 6.001-3.822L6 1.807zM18 1.807l-6 3.822 6 3.822 6-3.822-6-3.822zM0 13.274l6 3.822 6.001-3.822L6 9.452l-6 3.822zM18 9.452l-6 3.822 6 3.822 6-3.822-6-3.822zM6 18.371l6.001 3.822 6-3.822-6-3.822L6 18.371z"
+      />
+    </svg>
+  )
+}
+
 const failureOf = (failure: unknown): DropboxFailure =>
   failure instanceof DropboxError ? failure.failure : 'other'
 
@@ -117,6 +138,7 @@ export function DropboxBackup({
             onClick={() => void signIn()}
             className={buttonClass('secondary')}
           >
+            <DropboxGlyph className="text-[#0061FF] dark:text-white" />
             Connect Dropbox
           </button>
         </>
@@ -156,6 +178,7 @@ export function DropboxBackup({
                 onClick={() => void signIn()}
                 className={buttonClass('primary')}
               >
+                <DropboxGlyph />
                 Connect Dropbox again
               </button>
             ) : (
