@@ -76,6 +76,18 @@ describe('Back up to Dropbox in Settings (FR-78)', () => {
     expect(logo.querySelectorAll('path')).toHaveLength(1)
   })
 
+  it('shows the Dropbox logo in the heading, before and after connecting, with no "(optional)"', async () => {
+    await signInUrl('test-app-key')
+    const state = sessionStorage.getItem('dropbox-state')!
+    renderSettings(`/settings?code=abc&state=${state}`)
+    const heading = await screen.findByRole('heading', { name: 'Dropbox' })
+    expect(heading.querySelector('svg')).toHaveAttribute('aria-hidden', 'true')
+    await screen.findByRole('button', { name: 'Back up now' })
+    // Connected: the logo is still there.
+    expect(screen.getByRole('heading', { name: 'Dropbox' }).querySelector('svg')).not.toBeNull()
+    expect(screen.queryByText(/\(optional\)/)).not.toBeInTheDocument()
+  })
+
   it('finishes the sign-in when Dropbox sends the person back, and cleans the address', async () => {
     await signInUrl('test-app-key')
     const state = sessionStorage.getItem('dropbox-state')!
