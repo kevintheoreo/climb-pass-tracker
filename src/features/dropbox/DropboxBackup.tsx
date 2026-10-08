@@ -89,8 +89,8 @@ export function DropboxBackup({
       } else if (result.kind === 'code') {
         setBusy(true)
         try {
+          // The green "Dropbox is connected." line says it once the connection is saved.
           await connect(result.code)
-          setMessage('Dropbox is connected.')
         } catch (failure) {
           setMessage(failureMessage(failureOf(failure)))
         } finally {
@@ -146,9 +146,15 @@ export function DropboxBackup({
         </>
       ) : (
         <>
-          <p className="text-base">
-            {connection.signedOut ? 'Dropbox needs you to connect again.' : 'Dropbox is connected.'}
-          </p>
+          {connection.signedOut ? (
+            <p className="text-base">Dropbox needs you to connect again.</p>
+          ) : (
+            // The same green tick as "Installed as an app" in the data-safety line.
+            <p role="status" className="text-base text-green-800 dark:text-green-300">
+              <span aria-hidden="true">✓ </span>
+              Dropbox is connected.
+            </p>
+          )}
           <p className={`mb-3 ${muted}`}>
             {connection.lastBackupAt === null
               ? 'No Dropbox backup yet. It backs up once a day when you open the app.'

@@ -100,6 +100,19 @@ describe('Back up to Dropbox in Settings (FR-78)', () => {
     expect(screen.getByText(/No Dropbox backup yet/)).toBeVisible()
   })
 
+  it('says Dropbox is connected in green with a tick, as the installed-app line does', async () => {
+    await signInUrl('test-app-key')
+    const state = sessionStorage.getItem('dropbox-state')!
+    renderSettings(`/settings?code=abc&state=${state}`)
+    const line = await screen.findByText('Dropbox is connected.')
+    expect(line).toHaveClass('text-green-800')
+    expect(line).toHaveAttribute('role', 'status')
+    expect(line.querySelector('span')).toHaveTextContent('✓')
+    expect(line.querySelector('span')).toHaveAttribute('aria-hidden', 'true')
+    // Said once, not twice.
+    expect(screen.getAllByText('Dropbox is connected.')).toHaveLength(1)
+  })
+
   it('ignores a return that did not start here', async () => {
     await signInUrl('test-app-key')
     renderSettings('/settings?code=abc&state=somebody-elses')
