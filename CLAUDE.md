@@ -28,6 +28,8 @@ Releases: `docs/DEPLOY.md` (merging into `main` publishes the live site, https:/
 
 Row motion (FR-61): `useRowMotion` (`src/features/passes/useRowMotion.ts`) keeps a row that moved between the main list and Finished on screen as an inert `ghost` that slides out (CSS `.row-leaving` / `.row-entering` in `src/index.css`), and marks one that came from the other list as entering; it does nothing when `prefers-reduced-motion` is on or `matchMedia` is missing (so jsdom tests have no motion), and the Playwright config sets `reducedMotion: 'reduce'` for all tests except `e2e/rowmotion.spec.ts`.
 
+Real-device checking: `docs/IPHONE_TEST_PLAN.md` is the owner's hands-on iPhone checklist (install, separate Safari/installed storage, backup file, offline, and the risky Dropbox sign-in in the installed app); its results decide whether Dropbox needs a note or a fix on iPhone.
+
 Speed: `docs/PERFORMANCE.md` has the Lighthouse numbers against the 2 s / 1 s targets and how to measure again. Only the main screen is in the first download: Settings, privacy and terms are `React.lazy` routes in `src/app/App.tsx` (keep new screens lazy), and `public/robots.txt` must stay a real file (the SPA fallback would otherwise answer for it).
 
 Accessibility is checked in the browser tests: `e2e/a11y.spec.ts` runs axe (WCAG 2.1 A and AA) on every screen and state in light and dark, and a serious or critical finding fails it; `e2e/a11y-extras.spec.ts` covers 200% text at 320px wide (rows stack, banners wrap, via `@max-[19rem]:` container queries, which follow the text size), the gym autocomplete's roles and keys, visible focus, and the row buttons' names. New screens should be added to the axe tests.
